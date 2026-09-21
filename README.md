@@ -3,9 +3,37 @@
 Personal site for [@dhairyakhetan](https://github.com/dhairyakhetan). Next.js App
 Router, TypeScript, Tailwind v4, framer-motion. Deployed on Vercel.
 
-One page, five panels (Home / About / Qualification / Projects / Contact) that
-swap in place. The active panel is mirrored into the URL hash, so back/forward,
-deep links and reloads all behave like a normal multi-page site.
+Five panels — Home / About / Qualification / Projects / Contact — each a real
+route (`/home`, `/about`, …), all statically prerendered.
+
+## Routing
+
+It reads as one page but every panel has a clean URL, because the persistent
+chrome and the swapping content live at different levels of the tree:
+
+- `src/app/layout.tsx` renders **Chrome** (background, cursor, nav, palette,
+  footer) and never unmounts
+- `src/app/[panel]/page.tsx` renders just the active panel, and is the only
+  thing that changes on navigation
+
+Chrome has to sit in the **root** layout, not in `[panel]/layout.tsx`. Those
+look equivalent but a layout underneath a dynamic segment is remounted whenever
+that segment's value changes — which rebuilt the whole background and cursor on
+every click. Moving it one level up fixed it.
+
+Navigation is ordinary `next/link`, so prefetching, back/forward and deep links
+all work with no custom history handling.
+
+## Animations never hide content
+
+Entrance animations are CSS, not JS. A JS reveal starts an element at
+`opacity: 0` and depends on a script reaching the end state; if that animation
+is throttled (background tab), interrupted (fast navigation), or never starts,
+the element stays invisible forever — a blank page caused by decoration.
+
+Every animated element here is *visible* in its un-animated state; the keyframes
+only describe the arrival. Verified against reduced-motion, a tab that loads
+while backgrounded, and twelve navigations that each interrupt the one before.
 
 ## Structure
 
@@ -15,13 +43,16 @@ deep links and reloads all behave like a normal multi-page site.
 │   └── worker.js               # committed copy of the deployed worker
 │
 ├── public/
-│   └── favicon.svg             # adapts to light/dark
+│   ├── favicon.svg             # adapts to light/dark
+│   └── me.jpg                  # About photo (optional — falls back to initials)
 │
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx          # fonts, metadata, blocking theme script
-│   │   ├── page.tsx            # server component: fetches + classifies repos
-│   │   ├── globals.css         # both themes, as CSS custom properties
+│   │   ├── layout.tsx          # fonts, metadata, theme script — and Chrome
+│   │   ├── page.tsx            # "/" → redirects to /home
+│   │   ├── globals.css         # both themes + CSS entrance animations
+│   │   ├── [panel]/
+│   │   │   └── page.tsx        # /home /about /qualification /projects /contact
 │   │   └── api/repos/route.ts  # same-origin JSON endpoint
 │   │
 │   ├── lib/
@@ -31,11 +62,11 @@ deep links and reloads all behave like a normal multi-page site.
 │   │   └── fixtures.ts         # stand-in data when the worker is unreachable
 │   │
 │   └── components/
-│       ├── Shell.tsx           # panel state, nav, hash routing, footer
+│       ├── Chrome.tsx          # persistent shell: nav, cursor, palette, footer
 │       ├── CommandPalette.tsx  # ⌘K over panels + live repos
 │       ├── CustomCursor.tsx    # dot + lagging ring, opt-in via data attrs
 │       ├── Magnetic.tsx        # pulls a child toward the pointer
-│       ├── Reveal.tsx          # staggered entry animations
+│       ├── Reveal.tsx          # CSS entrance animations
 │       ├── ThemeToggle.tsx     # dark ⇄ light
 │       ├── KineticName.tsx     # hero name, per-letter pointer reaction
 │       ├── ShaderField.tsx     # cursor-reactive canvas field

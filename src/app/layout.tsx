@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import Chrome from "@/components/Chrome";
 import { identity } from "@/lib/content";
+import { getProjects } from "@/lib/repos";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -56,14 +58,27 @@ const THEME_INIT = `
 })();
 `;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Chrome lives here, in the ROOT layout, deliberately.
+ *
+ * It was originally in `[panel]/layout.tsx`, which looks equivalent but is
+ * not: a layout underneath a dynamic segment is remounted whenever that
+ * segment's value changes. Every panel click was therefore tearing down and
+ * rebuilding the background, cursor and palette — measurably, the DOM nodes
+ * were different objects afterwards. Sitting above `[panel]`, it survives.
+ */
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const data = await getProjects();
+
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
       <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
-        {children}
+        <Chrome projects={data.projects} degraded={data.degraded}>
+          {children}
+        </Chrome>
       </body>
     </html>
   );

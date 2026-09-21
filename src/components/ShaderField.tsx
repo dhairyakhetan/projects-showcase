@@ -158,12 +158,15 @@ export default function ShaderField({ className }: { className?: string }) {
       build();
     }
 
+    // Declared before the handler that reads it — a `let` below its own
+    // closure is a temporal-dead-zone throw if the event ever lands first.
+    let visible = true;
+
     function onVisibility() {
       if (document.hidden) stop();
       else if (visible) start();
     }
 
-    let visible = true;
     const observer = new IntersectionObserver(
       ([entry]) => {
         visible = entry.isIntersecting;

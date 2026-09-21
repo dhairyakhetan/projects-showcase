@@ -12,12 +12,12 @@ export default function QualificationPanel() {
       </Reveal>
 
       <h2 className="font-display text-[clamp(2rem,6vw,3.4rem)] font-bold leading-tight">
-        <RevealWords text={qualification.heading} delay={0.08} />
+        <RevealWords text={qualification.heading} delay={80} />
       </h2>
 
       <ol className="mt-12 space-y-0">
         {qualification.entries.map((entry, index) => (
-          <Reveal key={`${entry.title}-${index}`} delay={0.16 + index * 0.1}>
+          <Reveal key={`${entry.title}-${index}`} delay={160 + index * 100}>
             {/* The last item drops the border so the spine ends cleanly. */}
             <li
               className={`relative pb-10 pl-8 ${
@@ -64,7 +64,7 @@ export default function QualificationPanel() {
       </ol>
 
       {qualification.footnote ? (
-        <Reveal delay={0.5}>
+        <Reveal delay={500}>
           <p className="mt-2 border-l-2 border-[var(--accent)] py-1 pl-4 font-mono text-xs leading-relaxed text-[var(--text-faint)]">
             {qualification.footnote}
           </p>

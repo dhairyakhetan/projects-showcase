@@ -215,6 +215,55 @@
   color: transparent;
 }
 
+/* ---- entrance animations -------------------------------------------------
+ * These are CSS, not JS, on purpose.
+ *
+ * A JS-driven reveal starts the element at opacity 0 and relies on a script
+ * reaching the end state. If that animation never runs or never finishes —
+ * a throttled background tab, an interrupted mount, a swap that happens
+ * mid-flight — the element stays invisible permanently. That is a blank page
+ * caused by decoration.
+ *
+ * A CSS animation cannot fail that way. The un-animated state of every
+ * element below is the VISIBLE one; the keyframes only describe how it
+ * arrives. If animations are disabled, throttled, or never start, the content
+ * is simply there. `both` fill-mode holds the from-state through the delay so
+ * nothing flashes before its turn.
+ */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(var(--rise-from, 18px)); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes rise-word {
+  from { opacity: 0; transform: translateY(110%); }
+  to { opacity: 1; transform: none; }
+}
+
+.reveal {
+  animation: rise 620ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms) both;
+}
+
+.reveal-word {
+  display: inline-block;
+  animation: rise-word 660ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms) both;
+}
+
+/* Keyed on the route, so each panel swap replays it. */
+.panel-enter {
+  animation: rise 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --rise-from: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-word,
+  .panel-enter {
+    animation: none;
+  }
+}
+
 /* ---- surfaces ------------------------------------------------------------ */
 .surface {
   background: var(--bg-raised);

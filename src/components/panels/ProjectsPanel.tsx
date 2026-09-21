@@ -1,7 +1,6 @@
 "use client";
 
 import { useDeferredValue, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import ProjectCard from "@/components/ProjectCard";
 import { Reveal, RevealWords } from "@/components/Reveal";
 import { projects as projectsContent } from "@/lib/content";
@@ -45,11 +44,11 @@ export default function ProjectsPanel({ data }: { data: ProjectsResult }) {
           </Reveal>
 
           <h2 className="font-display text-[clamp(2rem,6vw,3.4rem)] font-bold leading-tight">
-            <RevealWords text={projectsContent.heading} delay={0.08} />
+            <RevealWords text={projectsContent.heading} delay={80} />
           </h2>
         </div>
 
-        <Reveal delay={0.2}>
+        <Reveal delay={200}>
           <p className="max-w-sm text-sm leading-relaxed text-[var(--text-dim)]">
             {projectsContent.intro}
           </p>
@@ -58,7 +57,7 @@ export default function ProjectsPanel({ data }: { data: ProjectsResult }) {
 
       {/* Say so, rather than passing fixtures off as real data. */}
       {data.degraded ? (
-        <Reveal delay={0.26}>
+        <Reveal delay={260}>
           <p className="mt-8 rounded-[var(--radius)] border border-[var(--accent-3)]/40 bg-[var(--accent-3)]/10 px-4 py-3 font-mono text-xs text-[var(--text-dim)]">
             couldn&apos;t reach the worker{data.error ? ` (${data.error})` : ""} — showing sample
             data until the next sync
@@ -66,7 +65,7 @@ export default function ProjectsPanel({ data }: { data: ProjectsResult }) {
         </Reveal>
       ) : null}
 
-      <Reveal delay={0.3}>
+      <Reveal delay={300}>
         <div className="mt-10 flex flex-col gap-4">
           <div className="flex items-center gap-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-raised)] px-4 py-2.5 focus-within:border-[var(--accent)]">
             <span className="font-mono text-xs text-[var(--text-faint)]">/</span>
@@ -119,16 +118,14 @@ export default function ProjectsPanel({ data }: { data: ProjectsResult }) {
           nothing matches that.
         </p>
       ) : (
-        <motion.div
-          layout
-          className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
-        >
-          <AnimatePresence mode="popLayout">
-            {visible.map((project, index) => (
-              <ProjectCard key={project.id} project={project} index={index} />
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        /* Plain grid. A layout-animated list with AnimatePresence looked
+           nicer in isolation, but filtering mid-animation could leave cards
+           parked at opacity 0 — not worth it for a re-sorting grid. */
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {visible.map((project, index) => (
+            <ProjectCard key={project.id} project={project} index={index} />
+          ))}
+        </div>
       )}
     </div>
   );

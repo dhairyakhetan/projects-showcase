@@ -28,6 +28,14 @@ export const identity = {
 
 export const about = {
   heading: "About",
+  /**
+   * Drop a photo at `public/me.jpg` (or change this path). If the file isn't
+   * there the panel falls back to initials rather than a broken image, so it's
+   * safe to leave pointing at a file that doesn't exist yet.
+   */
+  portrait: "/me.jpg",
+  portraitAlt: "Dhairya Khetan",
+
   /** Paragraphs. Add or remove freely. */
   paragraphs: [
     "I'm an IIT aspirant who codes in the gaps — between problem sets, between mock tests, " +
@@ -42,7 +50,7 @@ export const about = {
   facts: [
     { label: "based in", value: "India" }, // TODO city if you want it public
     { label: "currently", value: "JEE prep + side projects" }, // TODO
-    { label: "learning", value: "TypeScript, systems, design" }, // TODO
+    { label: "learning", value: "C++ and JavaScript" },
     { label: "open to", value: "collabs & freelance" }, // TODO
   ],
 } as const;
@@ -89,10 +97,26 @@ export const contact = {
   intro: "Easiest ways to reach me. Email's click-to-copy.",
   email: "dhairyaplayz97@proton.me", // TODO confirm this is the address you want public
   links: [
-    { label: "GitHub", handle: "@dhairyakhetan", href: "https://github.com/dhairyakhetan" },
-    { label: "X", handle: "TODO", href: "#" }, // TODO
-    { label: "LinkedIn", handle: "TODO", href: "#" }, // TODO
-    { label: "Discord", handle: "TODO", href: "#" }, // TODO
+    {
+      label: "GitHub",
+      handle: "@dhairyakhetan",
+      href: "https://github.com/dhairyakhetan",
+    },
+    {
+      label: "LinkedIn",
+      handle: "Dhairya Khetan",
+      href: "https://www.linkedin.com/in/dhairya-khetan-aa6392364/",
+    },
+    {
+      label: "Instagram",
+      handle: "@dhairyakhetan",
+      href: "https://instagram.com/dhairyakhetan",
+    },
+    {
+      label: "LeetCode",
+      handle: "anWtedW7Hw",
+      href: "https://leetcode.com/u/anWtedW7Hw/",
+    },
   ],
 } as const;
 

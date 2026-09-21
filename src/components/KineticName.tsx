@@ -70,16 +70,28 @@ export default function KineticName({ name, className }: { name: string; classNa
       pointerY = event.clientY;
     }
 
+    // Coalesced to one measurement per frame: scroll fires far more often
+    // than that, and each raw call forces a synchronous layout per letter.
+    let measureQueued = false;
+    function queueMeasure() {
+      if (measureQueued) return;
+      measureQueued = true;
+      requestAnimationFrame(() => {
+        measure();
+        measureQueued = false;
+      });
+    }
+
     window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("resize", measure);
-    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", queueMeasure);
+    window.addEventListener("scroll", queueMeasure, { passive: true });
     frame = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("resize", measure);
-      window.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", queueMeasure);
+      window.removeEventListener("scroll", queueMeasure);
     };
   }, [name]);
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { panels, type PanelId } from "@/lib/content";
+import { panels } from "@/lib/content";
 import type { Project } from "@/lib/repos";
 
 interface Command {
@@ -18,15 +19,8 @@ interface Command {
  * Project entries come from the same fetched data the grid renders, so it
  * can't drift out of sync with the site.
  */
-export default function CommandPalette({
-  projects,
-  onNavigate,
-  onToggleTheme,
-}: {
-  projects: Project[];
-  onNavigate: (panel: PanelId) => void;
-  onToggleTheme: () => void;
-}) {
+export default function CommandPalette({ projects }: { projects: Project[] }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -68,9 +62,9 @@ export default function CommandPalette({
     const panelCommands: Command[] = panels.map(panel => ({
       id: `panel-${panel.id}`,
       label: panel.label,
-      hint: "go to panel",
+      hint: `/${panel.id}`,
       group: "Panels",
-      run: () => onNavigate(panel.id),
+      run: () => router.push(`/${panel.id}`),
     }));
 
     const projectCommands: Command[] = projects.map(project => ({
@@ -89,10 +83,19 @@ export default function CommandPalette({
         label: "Toggle theme",
         hint: "dark ⇄ light",
         group: "Actions",
-        run: onToggleTheme,
+        run: () => {
+          const root = document.documentElement;
+          const next = root.dataset.theme === "light" ? "dark" : "light";
+          root.dataset.theme = next;
+          try {
+            localStorage.setItem("theme", next);
+          } catch {
+            // Not persisted; the switch itself still applied.
+          }
+        },
       },
     ];
-  }, [projects, onNavigate, onToggleTheme]);
+  }, [projects, router]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

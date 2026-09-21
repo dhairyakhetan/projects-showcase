@@ -1,17 +1,19 @@
-"use client";
-
-import { motion } from "framer-motion";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 /**
- * Panels mount when they become active, so these animate on mount — no scroll
- * observers. Stagger a panel by giving successive blocks 0, 0.06, 0.12.
+ * Entrance animations, driven by CSS rather than JS.
+ *
+ * The un-animated state of everything here is visible — the keyframes only
+ * describe the arrival. That means content can never get stuck invisible
+ * because an animation was throttled, interrupted, or never ran. See the
+ * `rise` keyframes in globals.css.
+ *
+ * `delay` is what staggers a panel: give successive blocks 0, 60, 120.
  */
-
-const EASE = [0.16, 1, 0.3, 1] as const;
 
 interface RevealProps {
   children: ReactNode;
+  /** Milliseconds. */
   delay?: number;
   /** Distance travelled on the way in, in px. Negative comes from above. */
   y?: number;
@@ -19,47 +21,46 @@ interface RevealProps {
 }
 
 export function Reveal({ children, delay = 0, y = 18, className }: RevealProps) {
+  const style = {
+    "--reveal-delay": `${delay}ms`,
+    "--rise-from": `${y}px`,
+  } as CSSProperties;
+
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.62, delay, ease: EASE }}
-    >
+    <div className={`reveal${className ? ` ${className}` : ""}`} style={style}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
 interface RevealWordsProps {
   text: string;
+  /** Milliseconds. */
   delay?: number;
-  /** Gap between consecutive words, in seconds. */
+  /** Milliseconds between consecutive words. */
   stagger?: number;
   className?: string;
 }
 
 /**
  * Reveals a line word by word. The inline-block spans still wrap and justify
- * like normal text, and aria-label keeps it one announcement rather than
- * thirty.
+ * like normal text, and aria-label keeps it one announcement rather than one
+ * per word.
  */
-export function RevealWords({ text, delay = 0, stagger = 0.03, className }: RevealWordsProps) {
+export function RevealWords({ text, delay = 0, stagger = 30, className }: RevealWordsProps) {
   const words = text.split(" ");
 
   return (
     <span className={className} aria-label={text}>
       {words.map((word, index) => (
         <span key={`${word}-${index}`} aria-hidden className="inline-block overflow-hidden align-bottom">
-          <motion.span
-            className="inline-block"
-            initial={{ y: "110%", opacity: 0 }}
-            animate={{ y: "0%", opacity: 1 }}
-            transition={{ duration: 0.66, delay: delay + index * stagger, ease: EASE }}
+          <span
+            className="reveal-word"
+            style={{ "--reveal-delay": `${delay + index * stagger}ms` } as CSSProperties}
           >
             {word}
             {index < words.length - 1 ? " " : ""}
-          </motion.span>
+          </span>
         </span>
       ))}
     </span>

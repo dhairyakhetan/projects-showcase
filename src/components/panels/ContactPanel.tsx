@@ -18,9 +18,6 @@ export default function ContactPanel() {
     }
   }
 
-  // A link still on "#" is an unfilled placeholder — drop it rather than ship
-  // a dead link.
-  const links = contact.links.filter(link => link.href !== "#");
 
   return (
     <div className="max-w-3xl">
@@ -29,14 +26,14 @@ export default function ContactPanel() {
       </Reveal>
 
       <h2 className="font-display text-[clamp(2rem,6vw,3.4rem)] font-bold leading-tight">
-        <RevealWords text={contact.heading} delay={0.08} />
+        <RevealWords text={contact.heading} delay={80} />
       </h2>
 
-      <Reveal delay={0.18}>
+      <Reveal delay={180}>
         <p className="mt-5 text-[1.02rem] leading-relaxed text-[var(--text-dim)]">{contact.intro}</p>
       </Reveal>
 
-      <Reveal delay={0.28}>
+      <Reveal delay={280}>
         <button
           type="button"
           onClick={copyEmail}
@@ -58,10 +55,10 @@ export default function ContactPanel() {
         </button>
       </Reveal>
 
-      {links.length ? (
+      {contact.links.length ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {links.map((link, index) => (
-            <Reveal key={link.label} delay={0.36 + index * 0.06}>
+          {contact.links.map((link, index) => (
+            <Reveal key={link.label} delay={360 + index * 60}>
               <Magnetic strength={5}>
                 <a
                   href={link.href}
