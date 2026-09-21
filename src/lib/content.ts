@@ -28,31 +28,46 @@ export const identity = {
 
 export const about = {
   heading: "About",
+
   /**
    * Drop a photo at `public/me.jpg` (or change this path). If the file isn't
-   * there the panel falls back to initials rather than a broken image, so it's
-   * safe to leave pointing at a file that doesn't exist yet.
+   * there the panel shows initials instead, so it's safe to leave this
+   * pointing at a file that doesn't exist yet.
    */
   portrait: "/me.jpg",
   portraitAlt: "Dhairya Khetan",
+  portraitCaption: "somewhere between a mock test and a merge conflict", // TODO
 
-  /** Paragraphs. Add or remove freely. */
+  /** One sentence, set large. This is the line people actually read. */
+  lead:
+    "I'm seventeen, preparing for an exam that decides a lot, and building things " +
+    "at every hour that exam prep leaves over.", // TODO your words
+
+  /** Body copy. Add or remove freely. */
   paragraphs: [
-    "I'm an IIT aspirant who codes in the gaps — between problem sets, between mock tests, " +
-      "between the hours I'm supposed to be revising. None of this is coursework. All of it " +
-      "is stuff I wanted to exist.",
-    "I learn by building the whole thing badly first, then rebuilding it until it stops " +
+    "None of this is coursework. Every project here started because I wanted the thing to " +
+      "exist and nobody was going to build it for me.",
+    "I learn by making the whole thing badly first, then rebuilding until it stops " +
       "embarrassing me. This site is on its second life for exactly that reason.",
-    "Right now I'm somewhere between 'knows enough to be dangerous' and 'knows enough to know " +
-      "how much is left'. That gap is the interesting part.",
   ], // TODO replace with your actual words
-  /** Small labelled facts rendered as a grid. Keep values short. */
-  facts: [
+
+  /**
+   * A snapshot of right now, shown with a live dot. Keep values short — this
+   * is the section most worth keeping current.
+   */
+  now: [
+    { label: "preparing for", value: "JEE" },
+    { label: "writing", value: "C++ and JavaScript" },
     { label: "based in", value: "India" }, // TODO city if you want it public
-    { label: "currently", value: "JEE prep + side projects" }, // TODO
-    { label: "learning", value: "C++ and JavaScript" },
     { label: "open to", value: "collabs & freelance" }, // TODO
   ],
+
+  /** Short declarative lines. Opinions, not credentials. */
+  principles: [
+    "Ship it ugly, then make it good. Nothing gets better in a planning doc.",
+    "If I can't explain how it works, I haven't finished building it.",
+    "Being early is the only real advantage I have, so I'd rather be wrong loudly than quiet.",
+  ], // TODO make these yours — they're the most personal thing on the site
 } as const;
 
 export const qualification = {
@@ -94,28 +109,36 @@ export const qualification = {
 
 export const contact = {
   heading: "Contact",
-  intro: "Easiest ways to reach me. Email's click-to-copy.",
+  intro: "Email is the one I actually check. Everything else, take your chances.",
   email: "dhairyaplayz97@proton.me", // TODO confirm this is the address you want public
+
+  /** Drives the local-time line. Any IANA zone. */
+  timezone: "Asia/Kolkata",
+
+  /**
+   * `note` says what the platform is FOR — never the handle. On a page with my
+   * name at the top, printing "@dhairyakhetan" four times says nothing.
+   */
   links: [
     {
       label: "GitHub",
-      handle: "@dhairyakhetan",
+      note: "everything on this site comes from here",
       href: "https://github.com/dhairyakhetan",
     },
     {
       label: "LinkedIn",
-      handle: "Dhairya Khetan",
+      note: "the one with a collar on",
       href: "https://www.linkedin.com/in/dhairya-khetan-aa6392364/",
     },
     {
-      label: "Instagram",
-      handle: "@dhairyakhetan",
-      href: "https://instagram.com/dhairyakhetan",
+      label: "LeetCode",
+      note: "very much a beginner, and not hiding it",
+      href: "https://leetcode.com/u/anWtedW7Hw/",
     },
     {
-      label: "LeetCode",
-      handle: "anWtedW7Hw",
-      href: "https://leetcode.com/u/anWtedW7Hw/",
+      label: "Instagram",
+      note: "proof I occasionally leave the editor",
+      href: "https://instagram.com/dhairyakhetan",
     },
   ],
 } as const;

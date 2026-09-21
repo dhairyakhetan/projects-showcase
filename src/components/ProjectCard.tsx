@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import ArrowUpRight from "@/components/ArrowUpRight";
 import type { Project } from "@/lib/repos";
 
 /**
@@ -141,9 +142,9 @@ export default function ProjectCard({ project, index }: { project: Project; inde
                 target="_blank"
                 rel="noopener noreferrer"
                 data-cursor-label="visit"
-                className="flex-1 rounded-[var(--radius)] bg-[var(--accent)] py-2 text-center font-mono text-xs font-semibold text-[#06070a] transition-opacity hover:opacity-85"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius)] bg-[var(--accent)] py-2 font-mono text-xs font-semibold text-[#06070a] transition-opacity hover:opacity-85"
               >
-                visit ↗
+                visit <ArrowUpRight />
               </a>
             ) : null}
           </div>
