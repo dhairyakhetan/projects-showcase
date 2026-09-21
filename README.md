@@ -7,24 +7,63 @@ One page, five panels (Home / About / Qualification / Projects / Contact) that
 swap in place. The active panel is mirrored into the URL hash, so back/forward,
 deep links and reloads all behave like a normal multi-page site.
 
+## Structure
+
+```
+.
+├── cloudflare/                 # the worker — deployed separately, not by Vercel
+│   ├── worker.js               # syncs upstream → KV daily, serves with ETag
+│   ├── wrangler.toml           # KV binding + the daily cron trigger
+│   └── README.md               # deploy steps
+│
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx          # fonts + the blocking theme script
+│   │   ├── page.tsx            # server component: fetches + classifies repos
+│   │   ├── globals.css         # both themes, as CSS custom properties
+│   │   └── api/repos/route.ts  # same-origin JSON endpoint
+│   │
+│   ├── lib/
+│   │   ├── content.ts          # ⭐ ALL personal content — edit this one
+│   │   ├── repos.ts            # server-side worker fetch + normalise
+│   │   ├── tech.ts             # tech tags + OVERRIDES (ignores GitHub's guess)
+│   │   └── fixtures.ts         # stand-in data when the worker is unreachable
+│   │
+│   └── components/
+│       ├── Shell.tsx           # panel state, nav, hash routing, footer
+│       ├── CommandPalette.tsx  # ⌘K over panels + live repos
+│       ├── CustomCursor.tsx    # dot + lagging ring, opt-in via data attrs
+│       ├── Magnetic.tsx        # pulls a child toward the pointer
+│       ├── Reveal.tsx          # staggered entry animations
+│       ├── ThemeToggle.tsx     # dark ⇄ light
+│       ├── KineticName.tsx     # hero name, per-letter pointer reaction
+│       ├── ShaderField.tsx     # cursor-reactive canvas field
+│       ├── FlappyProjects.tsx  # the easter egg
+│       ├── ProjectCard.tsx     # one repo
+│       └── panels/             # Home / About / Qualification / Projects / Contact
+│
+├── next.config.ts
+├── postcss.config.mjs
+└── tsconfig.json
+```
+
 ## Editing content
 
 All personal content lives in **`src/lib/content.ts`** — name, tagline, bio,
 timeline entries, contact links, excluded and pinned repos. No component
-hardcodes any of it. Anything still marked `// TODO` in that file is placeholder
-text waiting to be replaced.
+hardcodes any of it. Anything still marked `// TODO` there is placeholder text
+waiting to be replaced.
 
 ## Where the projects come from
 
-The repo grid is pulled live from a Cloudflare Worker
-(`logger.dhairyaplayz97.workers.dev`), which syncs the GitHub API into KV once a
-day and resolves each project's `og:image` off its live site. A reference copy of
-the deployed worker is committed at **`infra/logger-worker.js`** — editing it
-there does not deploy anything.
+The repo grid is pulled live from the Cloudflare Worker in `cloudflare/`, which
+syncs the GitHub API into KV once a day and resolves each project's `og:image`
+off its live site.
 
 The worker's CORS allowlist only contains production origins, so the browser
-can't call it from localhost or a preview deployment. Instead of widening that
-allowlist, the site fetches it **server-side** (`src/lib/repos.ts`) and sends a
+can't call it from localhost or a preview deployment — and a plain server-side
+fetch sends no `Origin` at all, which it also rejects. Instead of widening that
+allowlist, the site fetches it **server-side** (`src/lib/repos.ts`) with a
 matching `Origin` header. Consequences worth knowing:
 
 - the worker URL never reaches the client
@@ -59,12 +98,11 @@ export const OVERRIDES: Record<string, string[]> = {
 
 ## Themes
 
-Two, and they're meant to feel like different places rather than a palette
-inversion: dark is a late-night terminal (near-black, phosphor green, grid
-texture), light is warm cream with multi-hue sun washes. Both are defined as the
-same CSS custom properties on `[data-theme]`, so components never branch on
-theme. A blocking script in `src/app/layout.tsx` applies the stored choice before
-first paint to avoid a flash.
+Two, meant to feel like different places rather than a palette inversion: dark
+is a late-night terminal (near-black, phosphor green, grid texture), light is
+warm cream with multi-hue sun washes. Both are the same CSS custom properties on
+`[data-theme]`, so components never branch on theme. A blocking script in
+`src/app/layout.tsx` applies the stored choice before first paint.
 
 ## Commands
 

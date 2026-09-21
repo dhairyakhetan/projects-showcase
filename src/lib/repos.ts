@@ -2,18 +2,12 @@ import { deriveTech, type Tech } from "./tech";
 import { projects as projectsContent, GITHUB_USERNAME } from "./content";
 
 /**
- * Repo data comes from my own Cloudflare Worker, not straight from GitHub.
- * The worker syncs the GitHub API into KV once a day, resolves each project's
- * og:image off its live site, and serves the result with an ETag.
- *
- * The worker's CORS allowlist only contains my production origins, so the
- * browser can't call it directly from localhost or from a preview deployment.
- * Rather than widening that allowlist, the site fetches it server-side and
- * sends a matching Origin header. Two things fall out of that:
- *
- *   - the worker URL never reaches the client, and
- *   - the worker's per-IP rate limit stops being user-facing, because one
- *     Next.js cache entry serves every visitor.
+ * The worker's CORS allowlist only contains production origins, so the browser
+ * can't call it from localhost or a preview deployment — and a server-side
+ * fetch sends no Origin at all, which it also rejects. Fetching it here with a
+ * matching Origin avoids widening that allowlist, keeps the worker URL off the
+ * client, and makes its per-IP rate limit irrelevant since one cache entry
+ * serves everyone.
  */
 const WORKER_URL = "https://logger.dhairyaplayz97.workers.dev?project=showcase";
 const WORKER_ORIGIN = "https://dhairyakhetan-projects.vercel.app";
@@ -21,7 +15,6 @@ const WORKER_ORIGIN = "https://dhairyakhetan-projects.vercel.app";
 /** Matches the worker's own sync interval — refetching faster just returns KV. */
 const REVALIDATE_SECONDS = 60 * 60 * 24;
 
-/** Shape the worker returns: a GitHub repo plus its resolved og:image. */
 interface WorkerRepo {
   id: number;
   name: string;
@@ -37,7 +30,6 @@ interface WorkerRepo {
   ogImage?: string | null;
 }
 
-/** What the rest of the app actually consumes. */
 export interface Project {
   id: number;
   name: string;
@@ -54,7 +46,6 @@ export interface Project {
   pushedAt: string;
 }
 
-/** `my-cool-thing` → `My Cool Thing`, but leave deliberate casing alone. */
 function titleize(name: string): string {
   return name
     .replace(/[-_]+/g, " ")
@@ -87,7 +78,6 @@ function isShown(repo: WorkerRepo): boolean {
   return !repo.fork && !repo.archived && !excluded.has(repo.name.toLowerCase());
 }
 
-/** Pinned first in listed order, then most recently pushed. */
 function order(a: Project, b: Project): number {
   if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
 
@@ -110,9 +100,6 @@ export async function getProjects(): Promise<ProjectsResult> {
   try {
     const response = await fetch(WORKER_URL, {
       headers: {
-        // The worker checks Origin against a fixed allowlist. Set explicitly
-        // because a server-side fetch sends none, which the worker reads as
-        // a disallowed origin and answers with 403.
         Origin: WORKER_ORIGIN,
         "User-Agent": "portfolio-ssr",
       },
@@ -133,8 +120,6 @@ export async function getProjects(): Promise<ProjectsResult> {
 
     return { projects, degraded: false, fetchedAt: new Date().toISOString() };
   } catch (error) {
-    // A dead worker shouldn't mean a dead page. Serve the fixtures, flag the
-    // state honestly in the UI, and let the next revalidation try again.
     const { FIXTURE_PROJECTS } = await import("./fixtures");
 
     return {

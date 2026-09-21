@@ -5,12 +5,9 @@ import { motion } from "framer-motion";
 import type { Project } from "@/lib/repos";
 
 /**
- * One project.
- *
- * Deliberately restrained motion: the card lifts and its border warms on
- * hover, and that's it. No 3D tilt, no cursor-tracked light sweep — with a
- * grid of these on screen, anything more turns the page into noise, and the
- * thumbnail is the thing worth looking at.
+ * Restrained on purpose: the card lifts and its border warms, and that's it.
+ * No tilt, no light sweep — with a grid of these on screen anything more is
+ * noise, and the thumbnail is the thing worth looking at.
  */
 
 function timeAgo(iso: string): string {
@@ -25,9 +22,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function ProjectCard({ project, index }: { project: Project; index: number }) {
-  // Two chances at a thumbnail: whatever the worker scraped off the live site,
-  // then GitHub's generated repo preview. After that, a tech-coloured panel —
-  // which is a fine outcome, not a broken one.
+  // Two chances: the worker's scraped og:image, then GitHub's repo preview.
   const [src, setSrc] = useState(project.thumbnail);
   const [failed, setFailed] = useState(false);
 
@@ -52,7 +47,7 @@ export default function ProjectCard({ project, index }: { project: Project; inde
       className="group relative flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-raised)] transition-[border-color,box-shadow] duration-300 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow)]"
       style={{ ["--card-accent" as string]: accent }}
     >
-      {/* Identity stripe — the one place each card's tech colour is loud. */}
+      {/* The one place a card's tech colour is loud. */}
       <span
         aria-hidden
         className="absolute inset-x-0 top-0 z-10 h-[2px] origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100"
@@ -61,9 +56,8 @@ export default function ProjectCard({ project, index }: { project: Project; inde
 
       <div className="relative aspect-[16/9] overflow-hidden border-b border-[var(--border)] bg-[var(--bg-inset)]">
         {failed ? (
-          /* Tint from the tech colour, letters from the theme — a light accent
-             like JavaScript yellow is invisible as text on a cream card, and a
-             dark one like WebGL red is invisible on a black one. */
+          /* Tint from the tech colour, letters from the theme: JavaScript
+             yellow vanishes on cream, WebGL red vanishes on black. */
           <div
             className="flex h-full w-full items-center justify-center font-display text-4xl font-bold text-[var(--text-faint)]"
             style={{ background: `${accent}1f` }}
@@ -117,10 +111,9 @@ export default function ProjectCard({ project, index }: { project: Project; inde
         {project.tech.length ? (
           <ul className="flex flex-wrap gap-1.5">
             {project.tech.slice(0, 4).map(tech => (
-              /* The tech colour lives in the dot and the border, never in the
-                 label. Tech palettes span pure yellow to near-black, so using
-                 them as text colour fails contrast in one theme or the other
-                 no matter which shade is picked. */
+              /* Colour in the dot and border, never the label — tech palettes
+                 run from pure yellow to near-black and fail contrast as text
+                 in one theme or the other whichever shade is picked. */
               <li
                 key={tech.slug}
                 className="flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] text-[var(--text-dim)]"

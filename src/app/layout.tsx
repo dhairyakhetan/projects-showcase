@@ -40,11 +40,8 @@ export const viewport: Viewport = {
 };
 
 /**
- * Applies the stored theme before first paint.
- *
- * Without this the page renders in the default theme and then corrects itself
- * once React hydrates, which reads as a flash of the wrong colours. It has to
- * be inline and blocking for that reason — a deferred script is already too late.
+ * Applies the stored theme before first paint. Has to be inline and blocking:
+ * anything deferred is already too late and the wrong theme flashes.
  */
 const THEME_INIT = `
 (function () {

@@ -4,16 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Project } from "@/lib/repos";
 
 /**
- * The easter egg: flappy-bird, where every gap you fly through is one of my
- * projects and crashing tells you which one you hit (with a link to it).
+ * Flappy-bird where every gap is one of my projects, and crashing tells you
+ * which one you hit.
  *
- * Kept behind a deliberate open so it never interrupts someone who just wants
- * to read the page. It runs on the same canvas-2D budget as everything else.
- *
- * Icons: a project with a live site gets its favicon fetched through a public
- * icon service; anything without one — or any fetch that fails — falls back to
- * a letter tile in that project's own tech colour. The fallback is the common
- * case, not an error path, so it's drawn to look intentional.
+ * A project with a live site gets its favicon from a public icon service;
+ * everything else falls back to a letter tile in its own tech colour. That
+ * fallback is the common case, not an error path.
  */
 
 const GRAVITY = 1500;
@@ -57,8 +53,7 @@ export default function FlappyProjects({
   const [best, setBest] = useState(0);
   const [hit, setHit] = useState<Project | null>(null);
 
-  // The loop reads these without re-subscribing, so they live in refs and the
-  // effect below runs exactly once.
+  // Read by the rAF loop without re-subscribing, so the effect runs once.
   const phaseRef = useRef<Phase>("ready");
   const flapRef = useRef(false);
 
@@ -105,8 +100,7 @@ export default function FlappyProjects({
 
       const image = new Image();
       image.crossOrigin = "anonymous";
-      // Only registered once it has actually decoded — a broken icon then
-      // simply never appears and the letter tile is drawn instead.
+      // Registered only once decoded, so a broken icon falls through to the tile.
       image.onload = () => icons.set(project.id, image);
       image.src = url;
     }
@@ -180,8 +174,7 @@ export default function FlappyProjects({
         ctx!.stroke();
       }
 
-      // Identity marker sits in the gap, so you read the project name exactly
-      // when you're threading through it.
+      // Sits in the gap, so you read the name while threading through it.
       const icon = icons.get(pipe.project.id);
       const cx = pipe.x + PIPE_WIDTH / 2;
 
@@ -216,15 +209,15 @@ export default function FlappyProjects({
         try {
           localStorage.setItem("flappy-best", String(next));
         } catch {
-          // Score just isn't persisted. Nothing to recover from.
+          // Score just isn't persisted.
         }
         return next;
       });
     }
 
     function step(now: number) {
-      // Clamped so a backgrounded tab doesn't resume with one enormous step
-      // that teleports the bird through a pipe.
+      // Clamped so a backgrounded tab can't resume with one step large enough
+      // to teleport the bird straight through a pipe.
       const dt = Math.min((now - last) / 1000, 0.033);
       last = now;
 
@@ -305,8 +298,8 @@ export default function FlappyProjects({
       if (phaseRef.current !== "playing") reset();
     }
 
-    // Restarting is handled here rather than in a React handler so it can reuse
-    // the closure's `reset` without re-creating the whole loop.
+    // Lives here rather than in a React handler so it can reuse the closure's
+    // `reset` without re-creating the loop.
     function onRestart() {
       reset();
       setPhaseBoth("ready");
@@ -322,8 +315,8 @@ export default function FlappyProjects({
     };
   }, [projects, setPhaseBoth]);
 
-  // Keyboard: space/up to flap, Escape to leave. Bound at window level because
-  // the canvas itself isn't focusable and shouldn't steal the tab order.
+  // Bound at window level because the canvas isn't focusable and shouldn't
+  // take a place in the tab order.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -376,9 +369,7 @@ export default function FlappyProjects({
       </button>
 
       {phase !== "playing" ? (
-        /* A light scrim rather than a solid cover: the board stays visible
-           behind the message, so the pipes you just died on are still there
-           to look at. The text sits on its own panel to stay readable. */
+        /* A scrim, not a cover — the pipes you just died on stay visible. */
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center backdrop-blur-[1.5px]">
           <div className="flex flex-col items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--bg-overlay)] px-8 py-6 backdrop-blur-md">
             {phase === "ready" ? (

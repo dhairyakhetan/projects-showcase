@@ -1,20 +1,11 @@
 /**
- * Tech classification.
+ * GitHub's `language` is a byte-count guess and it lies constantly: an Astro
+ * site reports "HTML", a Next.js app reports "JavaScript" off one config file.
+ * Tags are built from three sources instead, most trustworthy first:
  *
- * GitHub's `language` field is a byte-count guess and it lies constantly:
- * an Astro site reports "HTML", a Next.js app reports "JavaScript" because of
- * one config file, a TypeScript project reports "CSS" if the stylesheet is long
- * enough. Filtering on that field directly gives you nonsense categories.
- *
- * So the site never shows `language` raw. It builds a tech tag set per repo
- * from three sources, in descending order of trustworthiness:
- *
- *   1. OVERRIDES below — hand-written, always wins. Use this to correct
- *      anything the other two get wrong.
- *   2. GitHub topics — you set these yourself, so they're accurate when present.
- *   3. `language` + heuristics — the fallback, and the one that's often wrong.
- *
- * Fixing a mislabelled repo = one line in OVERRIDES. That's the whole workflow.
+ *   1. OVERRIDES — hand-written, always wins
+ *   2. GitHub topics — set by hand, so treated as intentional
+ *   3. `language` + heuristics — the fallback, and the one that's often wrong
  */
 
 export type TechCategory = "language" | "framework" | "styling" | "platform" | "tool";
@@ -26,7 +17,7 @@ export interface Tech {
   color: string;
 }
 
-/** Canonical registry. Anything not in here renders in a neutral tone. */
+/** Anything not in here still renders, just without a colour. */
 const REGISTRY: Record<string, Omit<Tech, "slug">> = {
   typescript: { label: "TypeScript", category: "language", color: "#3178C6" },
   javascript: { label: "JavaScript", category: "language", color: "#F7DF1E" },
@@ -79,20 +70,16 @@ const REGISTRY: Record<string, Omit<Tech, "slug">> = {
 };
 
 /**
- * Hand corrections, keyed by exact repo name (case-insensitive).
+ * Keyed by exact repo name, case-insensitive. Listing a repo here REPLACES
+ * everything inferred for it — exactly the tags you write, in that order.
  *
- * Listing a repo here REPLACES everything inferred for it — you get exactly
- * the tags you write, in the order you write them. Slugs must exist in
- * REGISTRY above; unknown ones still render, just without a colour.
- *
- * Example:
  *   "my-astro-site": ["astro", "typescript", "tailwind"],
  */
 export const OVERRIDES: Record<string, string[]> = {
   // TODO populate as you spot wrong tags on the live site.
 };
 
-/** Topic string → registry slug. Covers the spellings people actually use. */
+/** Topic → slug, covering the spellings people actually use. */
 const TOPIC_ALIASES: Record<string, string> = {
   ts: "typescript", typescript: "typescript",
   js: "javascript", javascript: "javascript", vanillajs: "javascript",
@@ -124,7 +111,6 @@ const TOPIC_ALIASES: Record<string, string> = {
   bot: "bot", game: "game", gamedev: "game", cli: "cli",
 };
 
-/** GitHub's `language` value → registry slug. */
 const LANGUAGE_MAP: Record<string, string> = {
   TypeScript: "typescript", JavaScript: "javascript", Python: "python",
   HTML: "html", CSS: "css", SCSS: "sass", Sass: "sass",
@@ -137,7 +123,7 @@ const LANGUAGE_MAP: Record<string, string> = {
 function toTech(slug: string): Tech {
   const entry = REGISTRY[slug];
   if (entry) return { slug, ...entry };
-  // Unknown slug — still show it, just neutrally. Better than dropping a tag.
+
   return {
     slug,
     label: slug.replace(/-/g, " "),
@@ -146,7 +132,7 @@ function toTech(slug: string): Tech {
   };
 }
 
-/** Sort so the identity of a project reads first: framework → language → rest. */
+/** Identity of a project reads first: framework → language → rest. */
 const CATEGORY_ORDER: TechCategory[] = ["framework", "language", "styling", "platform", "tool"];
 
 export interface ClassifiableRepo {
@@ -163,19 +149,15 @@ export function deriveTech(repo: ClassifiableRepo): Tech[] {
 
   const slugs = new Set<string>();
 
-  // 1. Topics — set by hand on GitHub, so treated as intentional.
   for (const topic of repo.topics ?? []) {
     const slug = TOPIC_ALIASES[topic.toLowerCase()];
     if (slug) slugs.add(slug);
   }
 
-  // 2. The reported language — but only when the topics didn't already answer
-  //    the question. If a topic names a language, that was written by hand and
-  //    beats a byte-count guess outright: a repo tagged `typescript` that
-  //    GitHub calls "JavaScript" is TypeScript, and showing both is just the
-  //    wrong answer sitting next to the right one. Same for a framework topic
-  //    plus a markup language — the HTML *is* the Astro output, not a
-  //    second technology worth listing.
+  // A topic naming a language beats the byte-count guess outright: a repo
+  // tagged `typescript` that GitHub calls "JavaScript" is TypeScript, and
+  // showing both puts the wrong answer next to the right one. Likewise a
+  // framework topic plus markup — the HTML *is* the Astro output.
   const languageSlug = repo.language ? LANGUAGE_MAP[repo.language] : null;
 
   const topicsNamedLanguage = [...slugs].some(s => REGISTRY[s]?.category === "language");
@@ -188,8 +170,7 @@ export function deriveTech(repo: ClassifiableRepo): Tech[] {
     slugs.add(languageSlug);
   }
 
-  // 3. A live homepage means it's a site, whatever the byte counts say.
-  //    Only used as a last resort, when nothing else identified it.
+  // Last resort: a live homepage at least means it's a site.
   if (slugs.size === 0 && repo.homepage) slugs.add("html");
 
   return [...slugs]
@@ -201,7 +182,7 @@ export function deriveTech(repo: ClassifiableRepo): Tech[] {
     );
 }
 
-/** All distinct tech across a repo set, ordered by how often it appears. */
+/** All distinct tech across a repo set, ordered by frequency. */
 export function techIndex(repos: { tech: Tech[] }[]): { tech: Tech; count: number }[] {
   const counts = new Map<string, { tech: Tech; count: number }>();
 

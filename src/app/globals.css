@@ -1,15 +1,12 @@
 @import "tailwindcss";
 
 /*
- * Two themes, two personalities, one layout.
- *
  * dark  — late-night terminal. Near-black, phosphor green, glow, hard edges.
  * light — sunshine and rainbows. Warm cream, saturated hues, soft shadows.
  *
- * Both are defined as the same set of custom properties, so every component
- * is written once against the tokens and never branches on theme. The only
- * things that read the theme directly are the few places where the two moods
- * genuinely differ in kind, not degree (grid texture vs. sun rays).
+ * Both are the same custom properties, so components never branch on theme.
+ * Only the few places where the moods differ in kind rather than degree read
+ * [data-theme] directly.
  */
 
 @custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
@@ -77,7 +74,7 @@
   --radius-lg: 20px;
 }
 
-/* Expose the tokens to Tailwind so utilities like bg-surface / text-dim work. */
+/* Expose the tokens to Tailwind. */
 @theme inline {
   --color-bg: var(--bg);
   --color-raised: var(--bg-raised);
@@ -100,13 +97,10 @@
 }
 
 /*
- * These element resets MUST stay inside @layer base.
- *
- * Tailwind v4 emits utilities into `@layer utilities`, and unlayered CSS beats
- * any layered rule regardless of specificity. An unlayered `button { padding: 0 }`
- * therefore silently defeats every padding/background/border utility on every
- * button in the app — which is exactly what happened the first time these were
- * written outside a layer.
+ * These resets MUST stay inside @layer base. Tailwind v4 emits utilities into
+ * `@layer utilities`, and unlayered CSS beats any layered rule regardless of
+ * specificity — so an unlayered `button { padding: 0 }` silently defeats every
+ * padding/background/border utility on every button in the app.
  */
 @layer base {
   * {
@@ -128,7 +122,6 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
-    /* Theme switch is a deliberate moment, so it fades rather than snapping. */
     transition: background-color 420ms ease, color 420ms ease;
   }
 
@@ -158,11 +151,8 @@
   }
 }
 
-/*
- * The custom cursor replaces the system one, but only where a real pointer
- * exists and only once the component has mounted — so the native cursor is
- * never hidden on touch, nor during the pre-hydration window.
- */
+/* Only hide the native cursor where a real pointer exists AND the custom one
+   has mounted — never on touch, never pre-hydration. */
 @media (hover: hover) and (pointer: fine) {
   body[data-cursor="custom"],
   body[data-cursor="custom"] * {
@@ -171,9 +161,7 @@
 }
 
 /* ---- texture -------------------------------------------------------------
- * Dark gets a faint terminal grid. Light gets warm radial sun-wash. Same
- * element, different atmosphere — this is where the two themes stop being
- * a palette swap and start being different places.
+ * Where the two themes stop being a palette swap: a terminal grid vs. sun-wash.
  */
 .texture {
   position: fixed;
@@ -211,7 +199,7 @@
   color: var(--text-faint);
 }
 
-/* Light theme earns its "rainbows" here; dark keeps a single phosphor glow. */
+/* Light earns its "rainbows" here; dark keeps a single phosphor glow. */
 .headline-accent {
   color: var(--accent);
 }
@@ -246,8 +234,7 @@
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
 /* ---- motion opt-out ------------------------------------------------------
- * Everything decorative stops. Layout and legibility are untouched, so the
- * site is fully usable — just still.
+ * Decoration stops; layout and legibility are untouched.
  */
 @media (prefers-reduced-motion: reduce) {
   *,

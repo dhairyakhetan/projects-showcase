@@ -6,13 +6,10 @@ import { motion } from "framer-motion";
 type Theme = "dark" | "light";
 
 /**
- * Switches the two themes and remembers the choice.
- *
- * The actual switch is one attribute on <html>; every colour in the site is a
- * custom property that reads off it, so nothing here needs to know what's on
- * the page. The blocking script in the layout applies the stored value before
- * first paint — this component only mirrors it once React is running, which is
- * why it renders a placeholder until mounted rather than guessing.
+ * The switch is one attribute on <html>; every colour reads off it, so nothing
+ * here needs to know what's on the page. The layout's blocking script applies
+ * the stored value before first paint — this only mirrors it once React runs,
+ * which is why it reads the DOM on mount rather than guessing.
  */
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme | null>(null);
@@ -29,8 +26,7 @@ export default function ThemeToggle() {
     try {
       localStorage.setItem("theme", next);
     } catch {
-      // Private mode or blocked storage — the theme still switches, it just
-      // won't survive a reload. Not worth surfacing.
+      // Blocked storage — the theme still switches, it just won't persist.
     }
   }
 
@@ -44,8 +40,6 @@ export default function ThemeToggle() {
       data-cursor="link"
       className="relative flex h-8 w-[58px] items-center rounded-full border border-[var(--border-strong)] bg-[var(--bg-inset)] px-1 transition-colors"
     >
-      {/* Until mounted, theme is null and the knob renders neutral rather than
-          animating from a wrong position on first paint. */}
       <motion.span
         className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-[11px]"
         animate={{ x: isLight ? 26 : 0 }}

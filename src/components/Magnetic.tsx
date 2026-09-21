@@ -13,9 +13,8 @@ interface MagneticProps {
 /**
  * Pulls its child toward the pointer while hovered, then springs it back.
  *
- * The offset is capped rather than proportional to distance, so a wide element
- * doesn't fly further than a narrow one — every magnetic thing on the page
- * moves by a comparable amount and the effect stays subtle.
+ * The offset is capped rather than proportional to size, so a wide element
+ * doesn't travel further than a narrow one.
  */
 export default function Magnetic({ children, strength = 10, className }: MagneticProps) {
   const ref = useRef<HTMLDivElement>(null);

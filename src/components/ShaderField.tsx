@@ -5,14 +5,12 @@ import { useEffect, useRef } from "react";
 /**
  * A field of points that warps around the pointer.
  *
- * Canvas 2D rather than WebGL on purpose: the effect is a per-point
- * displacement and a brightness ramp, which the CPU handles fine at this
- * density, and skipping WebGL means no shader compilation, no context-loss
- * handling, and no failure mode on a machine with flaky drivers.
+ * Canvas 2D rather than WebGL: it's a per-point displacement and a brightness
+ * ramp, which the CPU handles fine at this density, and it avoids shader
+ * compilation, context loss, and flaky-driver failure modes entirely.
  *
- * Costs nothing when it isn't visible — the loop stops on tab hide and when
- * the hero is scrolled out, and never starts at all under reduced motion
- * (a single static frame is drawn instead, so the hero isn't just empty).
+ * The loop stops on tab hide and when the hero scrolls out, and never starts
+ * under reduced motion — one static frame is drawn so the hero isn't empty.
  */
 
 const SPACING = 30;
@@ -27,7 +25,7 @@ interface Point {
   energy: number;
 }
 
-/** Reads a CSS custom property as "r, g, b" so it can be used with alpha. */
+/** Reads --accent as [r, g, b] so it can be drawn with alpha. */
 function readAccent(): [number, number, number] {
   const raw = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
 
@@ -58,8 +56,7 @@ export default function ShaderField({ className }: { className?: string }) {
     let width = 0;
     let height = 0;
 
-    // Pointer is tracked as a target and eased toward, so the field trails the
-    // cursor slightly instead of snapping — reads as viscous rather than rigid.
+    // Eased toward rather than set, so the field trails the cursor slightly.
     let pointerX = -9999;
     let pointerY = -9999;
     let targetX = -9999;
@@ -96,8 +93,7 @@ export default function ShaderField({ className }: { className?: string }) {
           const dist = Math.hypot(dx, dy);
 
           if (dist < RADIUS && dist > 0.001) {
-            // Squared falloff: points near the cursor move a lot, points at
-            // the rim barely move, so the disturbance has a soft edge.
+            // Squared falloff gives the disturbance a soft edge.
             const falloff = (1 - dist / RADIUS) ** 2;
             const targetPointX = point.homeX + (dx / dist) * PUSH * falloff;
             const targetPointY = point.homeY + (dy / dist) * PUSH * falloff;
@@ -167,7 +163,6 @@ export default function ShaderField({ className }: { className?: string }) {
       else if (visible) start();
     }
 
-    // Only animate while the hero is actually on screen.
     let visible = true;
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -183,7 +178,7 @@ export default function ShaderField({ className }: { className?: string }) {
     window.addEventListener("resize", onResize);
     document.addEventListener("visibilitychange", onVisibility);
 
-    // The field is drawn in the accent colour, which changes with the theme.
+    // The field draws in the accent colour, which changes with the theme.
     const themeWatcher = new MutationObserver(() => {
       accent = readAccent();
     });

@@ -4,15 +4,13 @@ import { useEffect, useState } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 
 /**
- * Replaces the system cursor with a two-part one: a small dot that tracks the
- * pointer exactly, and a ring that lags behind on a spring.
+ * A dot that tracks the pointer exactly and a ring that lags on a spring.
  *
- * Any element can change its appearance without this component knowing about
- * that element — set `data-cursor="link"` for the expanded ring, or
- * `data-cursor-label="open"` to print a word inside it. That keeps the cursor
- * from accumulating a list of selectors it has to stay in sync with.
+ * Elements opt into appearance changes themselves — `data-cursor="link"` for
+ * the expanded ring, `data-cursor-label="open"` to print a word inside it — so
+ * this never accumulates a selector list it has to keep in sync.
  *
- * Never renders on touch or coarse-pointer devices; there's nothing to track.
+ * Never renders on touch or coarse-pointer devices.
  */
 export default function CustomCursor() {
   const [enabled, setEnabled] = useState(false);
@@ -40,8 +38,8 @@ export default function CustomCursor() {
       y.set(event.clientY);
       setVisible(true);
 
-      // Read state off the deepest element that declares it, so a label on a
-      // card still applies when the pointer is over the text inside it.
+      // Deepest declaring element wins, so a label on a card still applies
+      // when the pointer is over the text inside it.
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>(
         "[data-cursor], [data-cursor-label], a, button",
       );

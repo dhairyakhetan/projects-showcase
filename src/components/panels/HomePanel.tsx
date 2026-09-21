@@ -21,7 +21,6 @@ export default function HomePanel({
   const [roleIndex, setRoleIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
 
-  // Roles cycle on their own; the hero has one moving part and this is it.
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -51,7 +50,7 @@ export default function HomePanel({
           <RevealWords text={identity.tagline} delay={0.28} />
         </div>
 
-        {/* Fixed-height row so the cycling word can't shift the layout under it. */}
+        {/* Fixed height so the cycling word can't shift the layout under it. */}
         <Reveal delay={0.5}>
           <div className="mt-4 flex h-7 items-center gap-2 font-mono text-sm text-[var(--text-dim)]">
             <span className="text-[var(--text-faint)]">$</span>
@@ -106,9 +105,7 @@ export default function HomePanel({
         </Reveal>
       </div>
 
-      {/* The game is opt-in and modal — it never competes with the hero for
-          attention, and it can't trap anyone (escape and the close button
-          both leave). */}
+      {/* Opt-in, so it never competes with the hero for attention. */}
       <AnimatePresence>
         {playing ? (
           <motion.div

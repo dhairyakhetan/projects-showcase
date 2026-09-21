@@ -1,19 +1,11 @@
 /**
- * Stand-in repo data.
+ * Shown only when the worker fetch fails, flagged as sample data — never merged
+ * with live repos.
  *
- * Used in exactly one situation: the worker fetch in `repos.ts` failed, so the
- * page renders these instead of an error screen and flags itself as degraded.
- * They are never merged with live data and never shown alongside it.
- *
- * They also carry the build's test load, because the sandbox this was written
- * in cannot reach the worker or the GitHub API. So they're deliberately shaped
- * around the cases the classifier has to get right rather than being pretty:
- *
- *   - an Astro site GitHub reports as "HTML"          → must not tag as HTML
- *   - a TypeScript app GitHub reports as "JavaScript" → topics must win
- *   - a repo with no language at all                  → must not render empty
- *   - a repo with no description, no topics, no site  → minimum viable card
- *   - long names and long descriptions                → layout stress
+ * Shaped around the cases the classifier has to get right rather than around
+ * looking good: an Astro site GitHub reports as "HTML", a TypeScript app it
+ * reports as "JavaScript", a repo with no language at all, and names and
+ * descriptions long enough to stress the card layout.
  */
 
 interface FixtureRepo {

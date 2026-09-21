@@ -13,11 +13,11 @@ export default function ProjectsPanel({ data }: { data: ProjectsResult }) {
   const [activeTech, setActiveTech] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Typing stays responsive even when the grid below is re-laying out.
+  // Typing stays responsive while the grid below re-lays out.
   const deferredQuery = useDeferredValue(query);
 
-  // Filter chips are built from derived tech, never from GitHub's `language`,
-  // so "Astro" is a real category here and "HTML" doesn't swallow every site.
+  // Built from derived tech, never GitHub's `language`, so "Astro" is a real
+  // category and "HTML" doesn't swallow every site.
   const techs = useMemo(() => techIndex(data.projects), [data.projects]);
 
   const visible = useMemo(() => {
@@ -56,7 +56,7 @@ export default function ProjectsPanel({ data }: { data: ProjectsResult }) {
         </Reveal>
       </div>
 
-      {/* Honest about a failed fetch rather than passing fixtures off as real. */}
+      {/* Say so, rather than passing fixtures off as real data. */}
       {data.degraded ? (
         <Reveal delay={0.26}>
           <p className="mt-8 rounded-[var(--radius)] border border-[var(--accent-3)]/40 bg-[var(--accent-3)]/10 px-4 py-3 font-mono text-xs text-[var(--text-dim)]">

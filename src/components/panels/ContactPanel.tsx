@@ -14,13 +14,12 @@ export default function ContactPanel() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Clipboard blocked (insecure context, denied permission) — the address
-      // is displayed in full right there, so there's nothing to fall back to.
+      // Blocked clipboard — the address is displayed in full anyway.
     }
   }
 
-  // A link still pointing at "#" is a placeholder I haven't filled in yet.
-  // Better to drop it than to ship a dead link.
+  // A link still on "#" is an unfilled placeholder — drop it rather than ship
+  // a dead link.
   const links = contact.links.filter(link => link.href !== "#");
 
   return (

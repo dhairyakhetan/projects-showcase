@@ -14,11 +14,9 @@ interface Command {
 }
 
 /**
- * ⌘K / Ctrl+K palette over the panels, the live project list and a couple of
- * actions.
- *
- * The project entries come from the same fetched data the grid renders, so the
- * palette can't drift out of sync with what's actually on the site.
+ * ⌘K palette over the panels, the live project list and a couple of actions.
+ * Project entries come from the same fetched data the grid renders, so it
+ * can't drift out of sync with the site.
  */
 export default function CommandPalette({
   projects,
@@ -42,8 +40,7 @@ export default function CommandPalette({
         return;
       }
 
-      // Bare "/" is a shortcut too, but only when the user isn't already typing
-      // somewhere — otherwise it would hijack the projects search box.
+      // "/" opens it too, but not while typing — it would hijack the search box.
       const target = event.target as HTMLElement | null;
       const typing =
         target?.tagName === "INPUT" ||
@@ -60,7 +57,6 @@ export default function CommandPalette({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Reset between openings so it never reopens mid-search from last time.
   useEffect(() => {
     if (!open) {
       setQuery("");
@@ -107,8 +103,8 @@ export default function CommandPalette({
     );
   }, [commands, query]);
 
-  // Clamp rather than reset, so narrowing the list doesn't jump the selection
-  // back to the top while the user is still arrowing through it.
+  // Clamped rather than reset, so narrowing the list doesn't throw the
+  // selection back to the top mid-arrow.
   const active = Math.min(cursor, Math.max(0, results.length - 1));
 
   function onInputKey(event: React.KeyboardEvent) {

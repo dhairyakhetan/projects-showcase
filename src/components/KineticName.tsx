@@ -3,15 +3,13 @@
 import { useEffect, useRef } from "react";
 
 /**
- * The name at display scale, with each letter reacting to pointer proximity.
+ * The name at display scale, each letter reacting to pointer proximity.
  *
- * Letters are written to directly inside one rAF loop rather than each being a
- * motion component — with ~15 characters updating every frame, per-letter
- * spring instances cost far more than the effect is worth, and a shared loop
- * lets a single pass compute all of them.
+ * One shared rAF loop writing to the DOM directly, rather than a motion
+ * component per letter — at ~15 characters a frame, per-letter spring
+ * instances cost more than the effect is worth.
  *
- * Every letter is still a real character in the DOM, so the name remains
- * selectable text and reads correctly to a screen reader.
+ * Letters stay real characters, so the name is still selectable text.
  */
 
 const RADIUS = 160;
@@ -28,7 +26,7 @@ export default function KineticName({ name, className }: { name: string; classNa
     if (still || !fine) return;
 
     const letters = Array.from(container.querySelectorAll<HTMLElement>("[data-letter]"));
-    // Cached so the hot loop never triggers layout; refreshed on resize only.
+    // Cached so the loop never triggers layout; refreshed on resize and scroll.
     let centers: { x: number; y: number }[] = [];
 
     function measure() {

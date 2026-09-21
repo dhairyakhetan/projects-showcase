@@ -20,13 +20,9 @@ function isPanelId(value: string): value is PanelId {
 }
 
 /**
- * The whole site is one page; panels swap in place rather than scrolling past
- * each other.
- *
- * The active panel is mirrored into the URL hash, which buys back the things a
- * single page usually loses: back/forward work, a panel can be linked to, and
- * a reload lands where you were. It's `replaceState` on first mount (so we
- * don't push an entry for simply arriving) and a real hash change after that.
+ * One page; panels swap in place. The active panel is mirrored into the URL
+ * hash, which buys back what a single page usually loses: back/forward, deep
+ * links, and a reload landing where you were.
  */
 export default function Shell({ data }: { data: ProjectsResult }) {
   const [active, setActive] = useState<PanelId>("home");
@@ -49,8 +45,7 @@ export default function Shell({ data }: { data: ProjectsResult }) {
     window.history.pushState(null, "", panel === "home" ? "#home" : `#${panel}`);
   }, []);
 
-  // Left/right arrows walk the panels, but only when nothing is focused that
-  // would want those keys for itself.
+  // Arrows walk the panels, unless something focused wants those keys.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
@@ -119,8 +114,7 @@ export default function Shell({ data }: { data: ProjectsResult }) {
                     : "text-[var(--text-dim)] hover:text-[var(--text)]"
                 }`}
               >
-                {/* One shared element slides between tabs instead of each tab
-                    fading its own background in and out. */}
+                {/* One shared element slides between tabs. */}
                 {active === panel.id ? (
                   <motion.span
                     layoutId="nav-pill"
@@ -154,8 +148,7 @@ export default function Shell({ data }: { data: ProjectsResult }) {
           </AnimatePresence>
         </main>
 
-        {/* Mobile nav. Sits at the bottom because that's where thumbs are, and
-            scrolls horizontally rather than wrapping onto two rows. */}
+        {/* Bottom-anchored on mobile, scrolling sideways rather than wrapping. */}
         <nav
           aria-label="Sections"
           className="sticky bottom-0 z-20 -mx-5 flex gap-1 overflow-x-auto border-t border-[var(--border)] bg-[var(--bg-overlay)] px-5 py-3 backdrop-blur md:hidden"

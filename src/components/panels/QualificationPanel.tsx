@@ -18,8 +18,7 @@ export default function QualificationPanel() {
       <ol className="mt-12 space-y-0">
         {qualification.entries.map((entry, index) => (
           <Reveal key={`${entry.title}-${index}`} delay={0.16 + index * 0.1}>
-            {/* Border on the list item draws the spine; the last item stops it
-                so the timeline ends rather than trailing into nothing. */}
+            {/* The last item drops the border so the spine ends cleanly. */}
             <li
               className={`relative pb-10 pl-8 ${
                 index === qualification.entries.length - 1

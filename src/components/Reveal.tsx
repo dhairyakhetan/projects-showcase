@@ -4,12 +4,8 @@ import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
 /**
- * Entry animations for panel content.
- *
- * Panels mount when they become active and unmount when they don't, so these
- * animate on mount — no scroll observers, no visibility tracking. `delay` is
- * what staggers a panel: give successive blocks 0, 0.06, 0.12 and the panel
- * assembles itself instead of appearing all at once.
+ * Panels mount when they become active, so these animate on mount — no scroll
+ * observers. Stagger a panel by giving successive blocks 0, 0.06, 0.12.
  */
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -17,7 +13,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 interface RevealProps {
   children: ReactNode;
   delay?: number;
-  /** Distance travelled on the way in, in px. Negative values come from above. */
+  /** Distance travelled on the way in, in px. Negative comes from above. */
   y?: number;
   className?: string;
 }
@@ -44,12 +40,9 @@ interface RevealWordsProps {
 }
 
 /**
- * Reveals a line word by word rather than as a block.
- *
- * Words are wrapped in inline-block spans, which means they still wrap and
- * justify like normal text — the animation doesn't cost the line its ability
- * to reflow. Screen readers get the whole string via aria-label and skip the
- * pieces, so this never turns one sentence into thirty announcements.
+ * Reveals a line word by word. The inline-block spans still wrap and justify
+ * like normal text, and aria-label keeps it one announcement rather than
+ * thirty.
  */
 export function RevealWords({ text, delay = 0, stagger = 0.03, className }: RevealWordsProps) {
   const words = text.split(" ");
