@@ -1,0 +1,147 @@
+import { deriveTech, type Tech } from "./tech";
+import { projects as projectsContent, GITHUB_USERNAME } from "./content";
+
+/**
+ * Repo data comes from my own Cloudflare Worker, not straight from GitHub.
+ * The worker syncs the GitHub API into KV once a day, resolves each project's
+ * og:image off its live site, and serves the result with an ETag.
+ *
+ * The worker's CORS allowlist only contains my production origins, so the
+ * browser can't call it directly from localhost or from a preview deployment.
+ * Rather than widening that allowlist, the site fetches it server-side and
+ * sends a matching Origin header. Two things fall out of that:
+ *
+ *   - the worker URL never reaches the client, and
+ *   - the worker's per-IP rate limit stops being user-facing, because one
+ *     Next.js cache entry serves every visitor.
+ */
+const WORKER_URL = "https://logger.dhairyaplayz97.workers.dev?project=showcase";
+const WORKER_ORIGIN = "https://dhairyakhetan-projects.vercel.app";
+
+/** Matches the worker's own sync interval — refetching faster just returns KV. */
+const REVALIDATE_SECONDS = 60 * 60 * 24;
+
+/** Shape the worker returns: a GitHub repo plus its resolved og:image. */
+interface WorkerRepo {
+  id: number;
+  name: string;
+  description: string | null;
+  html_url: string;
+  homepage: string | null;
+  language: string | null;
+  topics?: string[];
+  fork: boolean;
+  archived?: boolean;
+  created_at: string;
+  pushed_at: string;
+  ogImage?: string | null;
+}
+
+/** What the rest of the app actually consumes. */
+export interface Project {
+  id: number;
+  name: string;
+  title: string;
+  description: string | null;
+  url: string;
+  homepage: string | null;
+  tech: Tech[];
+  thumbnail: string;
+  fallbackThumbnail: string;
+  isLive: boolean;
+  isPinned: boolean;
+  createdAt: string;
+  pushedAt: string;
+}
+
+/** `my-cool-thing` → `My Cool Thing`, but leave deliberate casing alone. */
+function titleize(name: string): string {
+  return name
+    .replace(/[-_]+/g, " ")
+    .replace(/\b[a-z]/g, c => c.toUpperCase());
+}
+
+function normalize(repo: WorkerRepo): Project {
+  const fallbackThumbnail = `https://opengraph.githubassets.com/1/${GITHUB_USERNAME}/${repo.name}`;
+
+  return {
+    id: repo.id,
+    name: repo.name,
+    title: titleize(repo.name),
+    description: repo.description,
+    url: repo.html_url,
+    homepage: repo.homepage || null,
+    tech: deriveTech(repo),
+    thumbnail: repo.ogImage || fallbackThumbnail,
+    fallbackThumbnail,
+    isLive: Boolean(repo.homepage),
+    isPinned: projectsContent.pinned.includes(repo.name),
+    createdAt: repo.created_at,
+    pushedAt: repo.pushed_at,
+  };
+}
+
+const excluded = new Set(projectsContent.exclude.map(n => n.toLowerCase()));
+
+function isShown(repo: WorkerRepo): boolean {
+  return !repo.fork && !repo.archived && !excluded.has(repo.name.toLowerCase());
+}
+
+/** Pinned first in listed order, then most recently pushed. */
+function order(a: Project, b: Project): number {
+  if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+
+  if (a.isPinned && b.isPinned) {
+    return projectsContent.pinned.indexOf(a.name) - projectsContent.pinned.indexOf(b.name);
+  }
+
+  return new Date(b.pushedAt).getTime() - new Date(a.pushedAt).getTime();
+}
+
+export interface ProjectsResult {
+  projects: Project[];
+  /** True when the worker couldn't be reached and fixtures are standing in. */
+  degraded: boolean;
+  error?: string;
+  fetchedAt: string;
+}
+
+export async function getProjects(): Promise<ProjectsResult> {
+  try {
+    const response = await fetch(WORKER_URL, {
+      headers: {
+        // The worker checks Origin against a fixed allowlist. Set explicitly
+        // because a server-side fetch sends none, which the worker reads as
+        // a disallowed origin and answers with 403.
+        Origin: WORKER_ORIGIN,
+        "User-Agent": "portfolio-ssr",
+      },
+      next: { revalidate: REVALIDATE_SECONDS, tags: ["projects"] },
+    });
+
+    if (!response.ok) {
+      throw new Error(`worker responded ${response.status}`);
+    }
+
+    const raw: unknown = await response.json();
+
+    if (!Array.isArray(raw)) {
+      throw new Error("worker returned a non-array payload");
+    }
+
+    const projects = (raw as WorkerRepo[]).filter(isShown).map(normalize).sort(order);
+
+    return { projects, degraded: false, fetchedAt: new Date().toISOString() };
+  } catch (error) {
+    // A dead worker shouldn't mean a dead page. Serve the fixtures, flag the
+    // state honestly in the UI, and let the next revalidation try again.
+    const { FIXTURE_PROJECTS } = await import("./fixtures");
+
+    return {
+      projects: FIXTURE_PROJECTS.filter(isShown).map(normalize).sort(order),
+      degraded: true,
+      error: error instanceof Error ? error.message : "unknown error",
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+}
