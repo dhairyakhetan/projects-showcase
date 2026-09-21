@@ -30,6 +30,7 @@ export const metadata: Metadata = {
     description: identity.blurb,
     type: "website",
   },
+  icons: { icon: "/favicon.svg" },
 };
 
 export const viewport: Viewport = {

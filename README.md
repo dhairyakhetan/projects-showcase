@@ -11,14 +11,15 @@ deep links and reloads all behave like a normal multi-page site.
 
 ```
 .
-├── cloudflare/                 # the worker — deployed separately, not by Vercel
-│   ├── worker.js               # syncs upstream → KV daily, serves with ETag
-│   ├── wrangler.toml           # KV binding + the daily cron trigger
-│   └── README.md               # deploy steps
+├── cloudflare/
+│   └── worker.js               # committed copy of the deployed worker
+│
+├── public/
+│   └── favicon.svg             # adapts to light/dark
 │
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx          # fonts + the blocking theme script
+│   │   ├── layout.tsx          # fonts, metadata, blocking theme script
 │   │   ├── page.tsx            # server component: fetches + classifies repos
 │   │   ├── globals.css         # both themes, as CSS custom properties
 │   │   └── api/repos/route.ts  # same-origin JSON endpoint
@@ -42,7 +43,7 @@ deep links and reloads all behave like a normal multi-page site.
 │       ├── ProjectCard.tsx     # one repo
 │       └── panels/             # Home / About / Qualification / Projects / Contact
 │
-├── next.config.ts
+├── package.json
 ├── postcss.config.mjs
 └── tsconfig.json
 ```
@@ -56,9 +57,13 @@ waiting to be replaced.
 
 ## Where the projects come from
 
-The repo grid is pulled live from the Cloudflare Worker in `cloudflare/`, which
-syncs the GitHub API into KV once a day and resolves each project's `og:image`
-off its live site.
+The repo grid is pulled live from the Cloudflare Worker at
+`logger.dhairyaplayz97.workers.dev`, which syncs the GitHub API into KV once a
+day and resolves each project's `og:image` off its live site.
+
+`cloudflare/worker.js` is a **committed copy** of what's deployed there, kept in
+the repo so the logic is readable alongside the site that consumes it. Editing
+it here deploys nothing — the worker lives in the Cloudflare dashboard.
 
 The worker's CORS allowlist only contains production origins, so the browser
 can't call it from localhost or a preview deployment — and a plain server-side
@@ -110,5 +115,4 @@ warm cream with multi-hue sun washes. Both are the same CSS custom properties on
 npm run dev     # dev server
 npm run build   # production build
 npm start       # serve the production build
-npm run lint
 ```

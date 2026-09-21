@@ -65,10 +65,9 @@ export default function ProjectCard({ project, index }: { project: Project; inde
             {project.name.slice(0, 2).toUpperCase()}
           </div>
         ) : (
-          /* eslint-disable-next-line @next/next/no-img-element --
-             og:image URLs resolve to arbitrary third-party hosts that the
-             optimizer can't be allowlisted for ahead of time, and a failed
-             optimization would lose the two-stage fallback above. */
+          /* Plain <img>, not next/image: og:image URLs resolve to arbitrary
+             third-party hosts the optimizer can't be allowlisted for, and a
+             failed optimization would lose the fallback chain above. */
           <img
             src={src}
             alt=""
