@@ -264,6 +264,94 @@
   }
 }
 
+/* ---- project grid --------------------------------------------------------
+ * Hover behaviour lives here rather than in utility classes because two of
+ * these effects are relational — they depend on a sibling being hovered, or
+ * on a pointer position — and neither expresses well inline.
+ *
+ * Note the dim targets .project-card, not the .reveal wrapper. A filled
+ * entrance animation wins the cascade for the properties it animates, so
+ * dimming the wrapper would be silently overridden by rise's final opacity.
+ */
+
+.project-card {
+  transition:
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 380ms ease,
+    border-color 300ms ease,
+    box-shadow 420ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Everything else recedes while one card is hovered. */
+  .project-grid:hover > :not(:hover) .project-card {
+    opacity: 0.45;
+  }
+
+  .project-card:hover {
+    transform: translateY(-8px);
+    border-color: rgb(var(--card-rgb) / 0.55);
+    box-shadow:
+      0 22px 50px -18px rgb(var(--card-rgb) / 0.3),
+      var(--shadow);
+  }
+
+  /* Pointer-tracked wash, fed by --mx/--my from the grid's move handler. */
+  .project-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 320ms ease;
+    background: radial-gradient(
+      240px circle at var(--mx, 50%) var(--my, 50%),
+      rgb(var(--card-rgb) / 0.14),
+      transparent 68%
+    );
+  }
+
+  .project-card:hover::after {
+    opacity: 1;
+  }
+}
+
+/* Actions sit out of the way until wanted — but only where hovering exists.
+   On touch, and whenever anything inside has focus, they are simply there. */
+.card-actions {
+  transition: opacity 320ms ease, transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-actions {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .project-card:hover .card-actions,
+  .project-card:focus-within .card-actions {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-card,
+  .card-actions {
+    transition: none;
+  }
+
+  .project-card:hover {
+    transform: none;
+  }
+
+  .card-actions {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ---- surfaces ------------------------------------------------------------ */
 .surface {
   background: var(--bg-raised);

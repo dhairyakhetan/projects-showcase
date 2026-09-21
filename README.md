@@ -89,12 +89,35 @@ waiting to be replaced.
 ## Where the projects come from
 
 The repo grid is pulled live from the Cloudflare Worker at
-`logger.dhairyaplayz97.workers.dev`, which syncs the GitHub API into KV once a
-day and resolves each project's `og:image` off its live site.
+`logger.dhairyaplayz97.workers.dev`. `cloudflare/worker.js` is a **committed
+copy** of what's deployed there — editing it here deploys nothing.
 
-`cloudflare/worker.js` is a **committed copy** of what's deployed there, kept in
-the repo so the logic is readable alongside the site that consumes it. Editing
-it here deploys nothing — the worker lives in the Cloudflare dashboard.
+The worker is built around three rules:
+
+**The request path never writes to KV.** Serving a visitor costs one KV read.
+An earlier version wrote twice per request (a rate counter and a request
+counter); on the free tier's 1,000 writes/day that meant roughly 500 visitors
+before the worker started failing.
+
+**Upstream calls are conditional.** Every sync sends `If-None-Match` with the
+ETag GitHub returned last time. A 304 costs no GitHub rate-limit quota,
+transfers no body, and skips the KV write — so checking often is nearly free,
+and real work only happens when something actually changed.
+
+**Updates arrive by push.** `POST /hooks/github` takes an HMAC-signed GitHub
+webhook and syncs within seconds. Cron is the safety net, and the request path
+has a slow lazy fallback if neither is configured.
+
+Steady state: a visitor costs one KV read; an hour in which nothing was pushed
+costs one conditional request that 304s; a push costs one full fetch and one
+KV write.
+
+To enable instant updates, add a repository or org webhook pointing at
+`/hooks/github` (content type `application/json`) and set
+`GITHUB_WEBHOOK_SECRET` to the same secret. Without it the worker still works,
+just on cron and lazy-sync timing.
+
+### Connecting to it
 
 The worker's CORS allowlist only contains production origins, so the browser
 can't call it from localhost or a preview deployment — and a plain server-side
@@ -103,9 +126,13 @@ allowlist, the site fetches it **server-side** (`src/lib/repos.ts`) with a
 matching `Origin` header. Consequences worth knowing:
 
 - the worker URL never reaches the client
-- the worker's per-IP rate limit stops being user-facing — one Next.js cache
-  entry serves every visitor
+- the worker's rate limit stops being user-facing — one Next.js cache entry
+  serves every visitor
 - it behaves identically on localhost and in production
+
+Because requests arrive from a handful of Vercel egress IPs rather than from
+end users, the worker's per-IP limit is deliberately loose. It exists to stop a
+flood, not to shape normal traffic.
 
 If the worker is unreachable, the page renders `src/lib/fixtures.ts` instead of
 an error and labels itself as sample data.

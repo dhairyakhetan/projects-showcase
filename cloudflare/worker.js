@@ -1,30 +1,56 @@
 /**
- * logger — syncs upstream data into KV once a day per project and serves it to
- * the portfolio front-end.
+ * logger — serves portfolio data from KV, and keeps KV current with as few
+ * upstream calls as possible.
  *
- * Bind a KV namespace as STATS_KV. Optionally set GITHUB_TOKEN to raise the
- * GitHub API rate limit. Deploy with `wrangler deploy` from this directory.
+ * Design, in order of importance:
+ *
+ * 1. THE REQUEST PATH NEVER WRITES TO KV. Serving a visitor costs one KV read
+ *    and nothing else. The previous version wrote twice per request (a rate
+ *    counter and a request counter), which on the free tier's 1,000 writes/day
+ *    meant roughly 500 visitors before the worker started failing.
+ *
+ * 2. UPSTREAM CALLS ARE CONDITIONAL. Every sync sends If-None-Match with the
+ *    ETag GitHub gave us last time. A 304 costs no rate-limit quota at GitHub,
+ *    transfers no body, and skips the KV write entirely — so checking often is
+ *    nearly free, and we only do real work when something actually changed.
+ *
+ * 3. UPDATES ARRIVE BY PUSH, NOT POLL. A GitHub webhook (POST /hooks/github)
+ *    syncs within seconds of a push. Cron is the safety net, and the request
+ *    path has a slow lazy fallback if neither is configured.
+ *
+ * Bindings: STATS_KV (required), GITHUB_TOKEN (optional, raises GitHub's rate
+ * limit), GITHUB_WEBHOOK_SECRET (optional, enables the webhook).
  */
 
 // ---------------------------------------------------------------- config ----
 
-/**
- * Entries are normalised, so a trailing slash here is harmless. Without that,
- * "https://example.com/" silently blocks everything: the Origin header is
- * always scheme + host with no path and no trailing slash, so an exact-string
- * compare against a slashed entry never matches.
- */
 const ALLOWED_ORIGINS = new Set(
   ["https://dhairyakhetan.vercel.app"].map(origin => origin.replace(/\/+$/, "")),
 );
 
 const isAllowedOrigin = origin => ALLOWED_ORIGINS.has(String(origin).replace(/\/+$/, ""));
 
-const SYNC_INTERVAL_SECONDS = 24 * 60 * 60;
-const RATE_LIMIT = 10;
-const RATE_WINDOW_SECONDS = 60;
+/** Safety net only — the webhook and cron are what keep data current. */
+const LAZY_SYNC_AFTER_MS = 6 * 60 * 60 * 1000;
+
+/** Per-isolate throttle so a burst of traffic can't fan out into upstream calls. */
+const LAZY_SYNC_THROTTLE_MS = 10 * 60 * 1000;
+
+/**
+ * Generous on purpose. The site fetches this server-side, so requests arrive
+ * from a handful of Vercel egress IPs rather than from end users — a tight
+ * per-IP limit would throttle the whole site, not one abuser. This exists to
+ * stop a flood, and a request now costs one KV read.
+ */
+const RATE_LIMIT = 120;
+const RATE_WINDOW_MS = 60 * 1000;
+
 const OG_FETCH_TIMEOUT_MS = 5000;
-const MAX_VERSIONS = 3;
+/** Re-crawl a site that resolved an image this rarely; retry a miss sooner. */
+const OG_HIT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const OG_MISS_TTL_MS = 24 * 60 * 60 * 1000;
+/** Bounds how many project sites one sync may crawl. */
+const OG_MAX_PER_SYNC = 8;
 
 const GITHUB_API = "https://api.github.com";
 
@@ -43,28 +69,12 @@ const PROJECTS = {
       repos: "/users/dhairyakhetan/repos?per_page=100&sort=updated",
     },
     resolveOgImages: true,
+    /** Repo events on this repo trigger a resync of this project. */
+    webhookOwner: "dhairyakhetan",
   },
 };
 
-const syncIntervalFor = project => project.syncIntervalSeconds ?? SYNC_INTERVAL_SECONDS;
-
-// --------------------------------------------------------------- kv keys ----
-
-const kv = {
-  data: project => `data:${project}`,
-  versions: project => `versions:${project}`,
-  reqs: project => `reqs:${project}`,
-  rate: ip => `rate:${ip}`,
-};
-
-/** KV reads that must never throw on malformed JSON. */
-async function readJson(env, key, fallback = null) {
-  try {
-    return (await env.STATS_KV.get(key, "json")) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
+const dataKey = name => `data:${name}`;
 
 // ------------------------------------------------------------------ http ----
 
@@ -84,36 +94,50 @@ function html(body, status = 200) {
   });
 }
 
+async function readRecord(env, name) {
+  try {
+    return await env.STATS_KV.get(dataKey(name), "json");
+  } catch {
+    return null;
+  }
+}
+
 // ------------------------------------------------------------ rate limit ----
 
 /**
- * Fixed window per IP.
+ * Per-isolate, in memory. Deliberately not KV: a KV-backed counter costs a
+ * write on every request, which is the exact cost this worker is built to
+ * avoid, and the real protection here is the Origin allowlist plus the fact
+ * that the request path only reads.
  *
- * The decision only needs the read; the write is deferred through waitUntil and
- * skipped once already over the limit, so sustained abuse costs one write per
- * window rather than one per request.
+ * An isolate is per-colo and short-lived, so this is approximate — it stops a
+ * flood from one client hitting one colo, not a distributed one. That is the
+ * right trade for a read-only endpoint.
  */
-async function withinRateLimit(env, ctx, ip) {
-  const key = kv.rate(ip);
+const hits = new Map();
+
+function withinRateLimit(ip) {
   const now = Date.now();
-  const entry = await readJson(env, key);
+  const entry = hits.get(ip);
 
-  const expired = !entry || now - entry.windowStart > RATE_WINDOW_SECONDS * 1000;
-  const window = expired ? { windowStart: now, count: 1 } : { ...entry, count: entry.count + 1 };
-  const allowed = expired || window.count <= RATE_LIMIT;
+  if (!entry || now - entry.start > RATE_WINDOW_MS) {
+    hits.set(ip, { start: now, count: 1 });
 
-  if (allowed) {
-    ctx.waitUntil(
-      env.STATS_KV.put(key, JSON.stringify(window), {
-        expirationTtl: RATE_WINDOW_SECONDS * 2,
-      }),
-    );
+    // Opportunistic sweep; the Map would otherwise grow for the isolate's life.
+    if (hits.size > 5000) {
+      for (const [key, value] of hits) {
+        if (now - value.start > RATE_WINDOW_MS) hits.delete(key);
+      }
+    }
+
+    return true;
   }
 
-  return allowed;
+  entry.count++;
+  return entry.count <= RATE_LIMIT;
 }
 
-// -------------------------------------------------------------- og images ----
+// ------------------------------------------------------------- og images ----
 
 const OG_PATTERNS = [
   /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
@@ -140,31 +164,58 @@ async function resolveOgImage(homepage) {
 }
 
 /**
- * Attaches an og:image to each repo.
+ * Attaches og:image to each repo, crawling as little as possible.
  *
- * This is the only field ever reused from the previous version, and only while
- * `homepage` is unchanged — every other field always comes from fresh data.
- * Without that reuse, a daily sync would re-crawl every project's site.
+ * A site is re-crawled only when its homepage changed, when the last attempt
+ * found nothing (retried after a day), or when a successful result has gone
+ * stale (a week — a redesign can change og:image without the URL moving).
+ * Everything else is reused. Crawls are capped per sync so a cold cache with
+ * twenty live projects doesn't turn one sync into twenty outbound requests.
  */
-async function attachOgImages(previous, repos) {
-  const seen = new Map((previous?.repos ?? []).map(repo => [repo.id, repo]));
-  let crawled = 0;
+async function attachOgImages(previousOg, repos) {
+  const now = Date.now();
+  const og = {};
+  const due = [];
 
-  const withImages = await Promise.all(
-    repos.map(async repo => {
-      if (!repo.homepage) return { ...repo, ogImage: null };
+  for (const repo of repos) {
+    const prev = previousOg?.[repo.id];
 
-      const cached = seen.get(repo.id);
-      if (cached && cached.homepage === repo.homepage) {
-        return { ...repo, ogImage: cached.ogImage };
-      }
+    if (!repo.homepage) {
+      og[repo.id] = { homepage: null, image: null, checkedAt: now };
+      continue;
+    }
 
-      crawled++;
-      return { ...repo, ogImage: await resolveOgImage(repo.homepage) };
+    const unchanged = prev && prev.homepage === repo.homepage;
+    const ttl = prev?.image ? OG_HIT_TTL_MS : OG_MISS_TTL_MS;
+    const fresh = unchanged && now - (prev.checkedAt ?? 0) < ttl;
+
+    if (fresh) {
+      og[repo.id] = prev;
+    } else {
+      og[repo.id] = unchanged ? prev : { homepage: repo.homepage, image: null, checkedAt: 0 };
+      due.push(repo);
+    }
+  }
+
+  // Oldest checks first, so a capped sync still makes progress every time.
+  due.sort((a, b) => (og[a.id]?.checkedAt ?? 0) - (og[b.id]?.checkedAt ?? 0));
+  const batch = due.slice(0, OG_MAX_PER_SYNC);
+
+  await Promise.all(
+    batch.map(async repo => {
+      og[repo.id] = {
+        homepage: repo.homepage,
+        image: await resolveOgImage(repo.homepage),
+        checkedAt: now,
+      };
     }),
   );
 
-  return { repos: withImages, crawled };
+  return {
+    og,
+    crawled: batch.length,
+    repos: repos.map(repo => ({ ...repo, ogImage: og[repo.id]?.image ?? null })),
+  };
 }
 
 // ------------------------------------------------------------------ sync ----
@@ -178,7 +229,7 @@ async function computeEtag(body) {
   return `"${hex}"`;
 }
 
-function upstreamHeaders(env, project) {
+function upstreamHeaders(env, project, etag) {
   const headers = { "User-Agent": "logger-worker" };
 
   // Token is GitHub-only — never attached to another upstream.
@@ -186,99 +237,212 @@ function upstreamHeaders(env, project) {
     headers.Authorization = `Bearer ${env.GITHUB_TOKEN}`;
   }
 
+  // A 304 from this costs no GitHub rate-limit quota and transfers no body.
+  if (etag) headers["If-None-Match"] = etag;
+
   return headers;
 }
 
-async function fetchUpstream(env, project) {
+/**
+ * Conditionally fetches every path of a project.
+ *
+ * Returns `{ unchanged: true }` when every path answered 304, which is the
+ * common case and the whole point: no body parsed, no KV written, no quota
+ * spent. A multi-path project where only some paths changed re-requests the
+ * unchanged ones unconditionally, since the merged payload needs them all.
+ */
+async function fetchUpstream(env, project, previousEtags = {}) {
   const entries = Object.entries(project.paths);
 
   const responses = await Promise.all(
-    entries.map(([, path]) =>
-      fetch(project.upstreamHost + path, { headers: upstreamHeaders(env, project) }),
+    entries.map(([key, path]) =>
+      fetch(project.upstreamHost + path, {
+        headers: upstreamHeaders(env, project, previousEtags[key]),
+      }),
     ),
   );
 
-  const failed = responses.find(response => !response.ok);
+  const failed = responses.find(response => !response.ok && response.status !== 304);
   if (failed) {
     // Never cache or serve an upstream error body as if it were real data.
     throw new Error(`upstream ${failed.status} for ${failed.url}`);
   }
 
-  const payloads = await Promise.all(responses.map(response => response.json()));
+  if (responses.every(response => response.status === 304)) {
+    return { unchanged: true };
+  }
 
-  // A single-path project serves its payload bare; multi-path projects serve a
-  // keyed object, so the front-end doesn't have to know which shape to expect.
-  return entries.length === 1
-    ? payloads[0]
-    : Object.fromEntries(entries.map(([key], index) => [key, payloads[index]]));
+  const etags = {};
+  const payloads = await Promise.all(
+    entries.map(async ([key, path], index) => {
+      let response = responses[index];
+
+      if (response.status === 304) {
+        response = await fetch(project.upstreamHost + path, {
+          headers: upstreamHeaders(env, project, null),
+        });
+        if (!response.ok) throw new Error(`upstream ${response.status} refetching ${key}`);
+      }
+
+      etags[key] = response.headers.get("etag");
+      return response.json();
+    }),
+  );
+
+  // A single-path project serves its payload bare; multi-path serves a keyed
+  // object, so the front-end doesn't have to know which shape to expect.
+  const payload =
+    entries.length === 1
+      ? payloads[0]
+      : Object.fromEntries(entries.map(([key], index) => [key, payloads[index]]));
+
+  return { unchanged: false, payload, etags };
 }
 
-async function runSync(env, name, project) {
-  let payload = await fetchUpstream(env, project);
-  let crawled = null;
+/**
+ * Brings a project up to date. Writes to KV only when the served body actually
+ * changes, so a sync that finds nothing new is read-only.
+ */
+async function sync(env, name, project, cached) {
+  const result = await fetchUpstream(env, project, cached?.upstreamEtags ?? {});
+
+  if (result.unchanged && cached) {
+    return { record: cached, changed: false, crawled: 0 };
+  }
+
+  let payload = result.payload;
+  let og = cached?.og ?? null;
+  let crawled = 0;
 
   if (project.resolveOgImages && Array.isArray(payload)) {
-    const versions = (await readJson(env, kv.versions(name), [])) ?? [];
-    const previous = Array.isArray(versions[0]?.repos) ? versions[0] : null;
-
-    const result = await attachOgImages(previous, payload);
-    payload = result.repos;
-    crawled = result.crawled;
-
-    const next = [
-      { version: (previous?.version ?? 0) + 1, fetchedAt: Date.now(), repos: payload },
-      ...versions,
-    ].slice(0, MAX_VERSIONS);
-
-    await env.STATS_KV.put(kv.versions(name), JSON.stringify(next));
+    const resolved = await attachOgImages(og, payload);
+    payload = resolved.repos;
+    og = resolved.og;
+    crawled = resolved.crawled;
   }
 
   const body = JSON.stringify(payload);
+  const etag = await computeEtag(body);
+
+  // An upstream ETag can change while the data we serve does not (ordering,
+  // fields we drop). Comparing our own body hash keeps the client's cached
+  // copy valid across those, and skips a pointless KV write.
+  if (cached && cached.etag === etag && crawled === 0) {
+    return { record: cached, changed: false, crawled: 0 };
+  }
 
   const record = {
     body,
-    etag: await computeEtag(body),
+    etag,
+    upstreamEtags: result.etags ?? cached?.upstreamEtags ?? {},
+    og,
     fetchedAt: Date.now(),
+    changedAt: cached?.etag === etag ? (cached.changedAt ?? Date.now()) : Date.now(),
     status: 200,
-    changed: crawled,
-    payloadIsArray: Array.isArray(payload),
+    crawled,
   };
 
-  await env.STATS_KV.put(kv.data(name), JSON.stringify(record));
-  return record;
+  await env.STATS_KV.put(dataKey(name), JSON.stringify(record));
+  return { record, changed: true, crawled };
 }
 
-async function readCachedRecord(env, name, project) {
-  const record = await readJson(env, kv.data(name));
-  if (!record) return null;
+/** Per-isolate memory of the last lazy check, so traffic can't fan out. */
+const lastLazyCheck = new Map();
 
-  // A record written before og:image resolution was enabled has the wrong
-  // shape for this project; treat it as absent so the next read re-syncs.
-  if (project.resolveOgImages && !record.payloadIsArray) return null;
+function shouldLazySync(name, cached) {
+  if (!cached) return true;
+  if (Date.now() - (cached.fetchedAt ?? 0) < LAZY_SYNC_AFTER_MS) return false;
 
-  return record;
+  const last = lastLazyCheck.get(name) ?? 0;
+  if (Date.now() - last < LAZY_SYNC_THROTTLE_MS) return false;
+
+  lastLazyCheck.set(name, Date.now());
+  return true;
 }
 
-async function syncIfStale(env, name, project, cached) {
-  const fresh = cached && Date.now() - cached.fetchedAt < syncIntervalFor(project) * 1000;
-  if (fresh) return { record: cached, refreshed: false };
+// --------------------------------------------------------------- webhook ----
 
+/** Constant-time compare — a length-or-content early exit leaks the signature. */
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function verifySignature(secret, body, header) {
+  if (!header?.startsWith("sha256=")) return false;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  const expected =
+    "sha256=" +
+    Array.from(new Uint8Array(signature))
+      .map(byte => byte.toString(16).padStart(2, "0"))
+      .join("");
+
+  return timingSafeEqual(expected, header);
+}
+
+/**
+ * GitHub webhook receiver. This is what makes changes show up in seconds
+ * instead of on the next poll, and it costs zero upstream calls until GitHub
+ * tells us there is something to fetch.
+ *
+ * Point a repository (or org) webhook at POST /hooks/github with content type
+ * application/json and a secret matching GITHUB_WEBHOOK_SECRET.
+ */
+async function handleWebhook(request, env, ctx) {
+  if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  if (!env.GITHUB_WEBHOOK_SECRET) return new Response("Webhook not configured", { status: 503 });
+
+  const body = await request.text();
+  const signed = await verifySignature(
+    env.GITHUB_WEBHOOK_SECRET,
+    body,
+    request.headers.get("X-Hub-Signature-256"),
+  );
+
+  if (!signed) return new Response("Bad signature", { status: 401 });
+
+  const event = request.headers.get("X-GitHub-Event");
+  if (event === "ping") return new Response("pong");
+
+  let owner = null;
   try {
-    return { record: await runSync(env, name, project), refreshed: true };
-  } catch (error) {
-    // Stale data beats no data. Only a cold cache turns an upstream failure
-    // into a failed request.
-    if (cached) return { record: cached, refreshed: false };
-    throw error;
+    owner = JSON.parse(body)?.repository?.owner?.login ?? null;
+  } catch {
+    return new Response("Bad payload", { status: 400 });
   }
-}
 
-/** Requests served off cache since the last real sync — a cheap cache-hit gauge. */
-async function trackRequest(env, name, refreshed) {
-  if (refreshed) return env.STATS_KV.put(kv.reqs(name), "0");
+  const targets = Object.entries(PROJECTS).filter(
+    ([, project]) => project.webhookOwner && project.webhookOwner === owner,
+  );
 
-  const current = (await readJson(env, kv.reqs(name), 0)) ?? 0;
-  return env.STATS_KV.put(kv.reqs(name), String(current + 1));
+  if (targets.length === 0) return new Response("Ignored", { status: 202 });
+
+  // Respond immediately; GitHub times out webhook deliveries at 10s.
+  ctx.waitUntil(
+    Promise.all(
+      targets.map(async ([name, project]) => {
+        try {
+          await sync(env, name, project, await readRecord(env, name));
+        } catch (error) {
+          console.error(`webhook sync failed for ${name}:`, error.message);
+        }
+      }),
+    ),
+  );
+
+  return new Response("Syncing", { status: 202 });
 }
 
 // ----------------------------------------------------------------- admin ----
@@ -309,71 +473,45 @@ function formatAge(ms) {
   return `${Math.floor(ms / size)}${suffix} ago`;
 }
 
-function formatInterval(seconds) {
-  if (seconds % 3600 === 0) return `${seconds / 3600}h`;
-  if (seconds % 60 === 0) return `${seconds / 60}m`;
-  return `${seconds}s`;
-}
-
-const STATE_COLORS = {
-  OK: "#3fb950",
-  STALE: "#d29922",
-  ERROR: "#f85149",
-  NEVER_FETCHED: "#888",
-};
-
-async function projectStatus(env, name) {
-  const project = PROJECTS[name];
-  const interval = syncIntervalFor(project);
-
-  const [record, reqs] = await Promise.all([
-    readJson(env, kv.data(name)),
-    readJson(env, kv.reqs(name), 0),
-  ]);
-
-  if (!record) {
-    return { name, state: "NEVER_FETCHED", reqs: reqs ?? 0, interval };
-  }
-
-  const age = Date.now() - record.fetchedAt;
-  const errored = record.status >= 400;
-
-  return {
-    name,
-    interval,
-    age,
-    reqs: reqs ?? 0,
-    fetchedAt: record.fetchedAt,
-    status: record.status,
-    changed: record.changed,
-    state: errored ? "ERROR" : age > interval * 1000 ? "STALE" : "OK",
-  };
-}
+const STATE_COLORS = { OK: "#3fb950", STALE: "#d29922", NEVER_FETCHED: "#888" };
 
 async function renderAdminPanel(env) {
   const names = Object.keys(PROJECTS);
 
   const [rows, keys] = await Promise.all([
-    Promise.all(names.map(name => projectStatus(env, name))),
+    Promise.all(
+      names.map(async name => {
+        const record = await readRecord(env, name);
+        if (!record) return { name, state: "NEVER_FETCHED" };
+
+        const age = Date.now() - record.fetchedAt;
+        return {
+          name,
+          age,
+          fetchedAt: record.fetchedAt,
+          changedAt: record.changedAt,
+          bytes: record.body?.length ?? 0,
+          ogKnown: record.og ? Object.keys(record.og).length : 0,
+          state: age > LAZY_SYNC_AFTER_MS ? "STALE" : "OK",
+        };
+      }),
+    ),
     env.STATS_KV.list()
       .then(list => list.keys.map(key => key.name))
       .catch(error => [`(couldn't list KV: ${error.message})`]),
   ]);
-
-  const expected = names.flatMap(name => [kv.data(name), kv.reqs(name)]).join(", ");
 
   const body = rows
     .map(
       row => `
     <tr>
       <td>${row.name}</td>
-      <td>${formatInterval(row.interval)}</td>
       <td style="white-space:nowrap;">${row.fetchedAt ? formatTimestamp(row.fetchedAt) : "—"}</td>
       <td>${row.age == null ? "—" : formatAge(row.age)}</td>
-      <td>${row.status ?? "—"}</td>
+      <td style="white-space:nowrap;">${row.changedAt ? formatAge(Date.now() - row.changedAt) : "—"}</td>
+      <td>${row.bytes ? `${(row.bytes / 1024).toFixed(1)} KB` : "—"}</td>
+      <td>${row.ogKnown || "—"}</td>
       <td style="color:${STATE_COLORS[row.state]};font-weight:bold;">${row.state}</td>
-      <td>${row.reqs}</td>
-      <td>${row.changed == null ? "—" : row.changed === 0 ? "none" : row.changed}</td>
     </tr>`,
     )
     .join("");
@@ -390,7 +528,8 @@ async function renderAdminPanel(env) {
   th{ background:#1a1a1a; }
   tr:nth-child(even) td{ background:#161616; }
   h3{ margin-top:32px; }
-  ul{ font-size:.82rem; color:#aaa; padding-left:18px; }
+  ul,p.note{ font-size:.82rem; color:#aaa; }
+  ul{ padding-left:18px; }
 </style>
 </head>
 <body>
@@ -398,13 +537,19 @@ async function renderAdminPanel(env) {
   <p>generated ${formatTimestamp(Date.now())}</p>
   <table>
     <tr>
-      <th>project</th><th>sync interval</th><th>last synced</th><th>age</th>
-      <th>upstream status</th><th>state</th><th>requests since fetch</th><th>og crawls</th>
+      <th>project</th><th>last synced</th><th>age</th><th>last change</th>
+      <th>payload</th><th>og cached</th><th>state</th>
     </tr>
     ${body}
   </table>
 
-  <h3>raw KV keys (ground truth — expected: ${expected})</h3>
+  <p class="note">
+    The request path never writes to KV. Syncs happen on webhook delivery and
+    on cron; "last synced" only advances when the served payload changed.
+    Webhook: ${env.GITHUB_WEBHOOK_SECRET ? "configured" : "NOT configured"}.
+  </p>
+
+  <h3>raw KV keys</h3>
   <ul>
     ${keys.length ? keys.map(key => `<li>${key}</li>`).join("") : "<li>(no keys in this namespace)</li>"}
   </ul>
@@ -441,33 +586,32 @@ async function handleProject(request, env, ctx, origin, name) {
   if (!isAllowedOrigin(origin)) return new Response("Forbidden", { status: 403 });
 
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-
-  // Independent KV keys — read in parallel rather than serially.
-  const [allowed, cached] = await Promise.all([
-    withinRateLimit(env, ctx, ip),
-    readCachedRecord(env, name, project),
-  ]);
-
-  if (!allowed) {
+  if (!withinRateLimit(ip)) {
     return new Response("Rate limited", { status: 429, headers: corsHeaders(origin) });
   }
 
-  let result;
-  try {
-    result = await syncIfStale(env, name, project, cached);
-  } catch {
-    return new Response("Upstream fetch failed", { status: 502 });
+  let record = await readRecord(env, name);
+
+  if (shouldLazySync(name, record)) {
+    try {
+      record = (await sync(env, name, project, record)).record;
+    } catch (error) {
+      // Stale data beats no data; only a cold cache turns this into a failure.
+      if (!record) return new Response("Upstream fetch failed", { status: 502 });
+      console.error(`lazy sync failed for ${name}:`, error.message);
+    }
   }
 
-  ctx.waitUntil(trackRequest(env, name, result.refreshed));
+  if (!record) return new Response("No data", { status: 503 });
 
-  const { record } = result;
   const headers = corsHeaders(origin, {
-    "cache-control": `public, max-age=${syncIntervalFor(project)}`,
-    ...(record.etag ? { etag: record.etag } : {}),
+    // Short, so a webhook-driven update reaches visitors quickly; the ETag
+    // makes the revalidation itself almost free.
+    "cache-control": "public, max-age=60, stale-while-revalidate=86400",
+    etag: record.etag,
   });
 
-  if (record.etag && request.headers.get("If-None-Match") === record.etag) {
+  if (request.headers.get("If-None-Match") === record.etag) {
     return new Response(null, { status: 304, headers });
   }
 
@@ -479,12 +623,12 @@ async function handleProject(request, env, ctx, origin, name) {
 // ---------------------------------------------------------------- export ----
 
 export default {
-  /** Inert until a cron trigger exists in wrangler.toml. */
+  /** Safety net behind the webhook. Conditional, so a no-op run is ~free. */
   async scheduled(event, env) {
     await Promise.all(
       Object.entries(PROJECTS).map(async ([name, project]) => {
         try {
-          await runSync(env, name, project);
+          await sync(env, name, project, await readRecord(env, name));
         } catch (error) {
           console.error(`scheduled sync failed for ${name}:`, error.message);
         }
@@ -494,13 +638,12 @@ export default {
 
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const path = url.pathname.replace(/\/$/, "");
     const origin = request.headers.get("Origin") || "";
 
     if (request.method === "OPTIONS") return handlePreflight(origin);
-
-    if (url.pathname.replace(/\/$/, "") === "/admin-panel") {
-      return renderAdminPanel(env);
-    }
+    if (path === "/hooks/github") return handleWebhook(request, env, ctx);
+    if (path === "/admin-panel") return renderAdminPanel(env);
 
     const name = url.searchParams.get("project");
     if (!name) return html(PLACEHOLDER_PAGE);
