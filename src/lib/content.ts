@@ -30,11 +30,10 @@ export const about = {
   heading: "About",
 
   /**
-   * Drop a photo at `public/me.jpg` (or change this path). If the file isn't
-   * there the panel shows initials instead, so it's safe to leave this
-   * pointing at a file that doesn't exist yet.
+   * Any file in `public/`. If it's missing the panel shows initials instead,
+   * so a wrong path degrades rather than breaking.
    */
-  portrait: "/me.jpg",
+  portrait: "/me.png",
   portraitAlt: "Dhairya Khetan",
   portraitCaption: "somewhere between a mock test and a merge conflict", // TODO
 

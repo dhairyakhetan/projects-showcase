@@ -44,7 +44,7 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │
 ├── public/
 │   ├── favicon.svg             # adapts to light/dark
-│   └── me.jpg                  # About photo (optional — falls back to initials)
+│   └── me.png                  # About photo (optional — falls back to initials)
 │
 ├── src/
 │   ├── app/
