@@ -8,10 +8,17 @@
 
 // ---------------------------------------------------------------- config ----
 
-const ALLOWED_ORIGINS = new Set([
-  "https://dhairyakhetan.github.io",
-  "https://dhairyakhetan-projects.vercel.app",
-]);
+/**
+ * Entries are normalised, so a trailing slash here is harmless. Without that,
+ * "https://example.com/" silently blocks everything: the Origin header is
+ * always scheme + host with no path and no trailing slash, so an exact-string
+ * compare against a slashed entry never matches.
+ */
+const ALLOWED_ORIGINS = new Set(
+  ["https://dhairyakhetan.vercel.app"].map(origin => origin.replace(/\/+$/, "")),
+);
+
+const isAllowedOrigin = origin => ALLOWED_ORIGINS.has(String(origin).replace(/\/+$/, ""));
 
 const SYNC_INTERVAL_SECONDS = 24 * 60 * 60;
 const RATE_LIMIT = 10;
@@ -416,7 +423,7 @@ const PLACEHOLDER_PAGE = `<!DOCTYPE html>
 // ---------------------------------------------------------------- routes ----
 
 function handlePreflight(origin) {
-  if (!ALLOWED_ORIGINS.has(origin)) return new Response(null, { status: 403 });
+  if (!isAllowedOrigin(origin)) return new Response(null, { status: 403 });
 
   return new Response(null, {
     status: 204,
@@ -431,7 +438,7 @@ function handlePreflight(origin) {
 async function handleProject(request, env, ctx, origin, name) {
   const project = PROJECTS[name];
   if (!project) return new Response("Not found", { status: 404 });
-  if (!ALLOWED_ORIGINS.has(origin)) return new Response("Forbidden", { status: 403 });
+  if (!isAllowedOrigin(origin)) return new Response("Forbidden", { status: 403 });
 
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
 

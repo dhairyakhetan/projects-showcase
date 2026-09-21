@@ -10,7 +10,12 @@ import { projects as projectsContent, GITHUB_USERNAME } from "./content";
  * serves everyone.
  */
 const WORKER_URL = "https://logger.dhairyaplayz97.workers.dev?project=showcase";
-const WORKER_ORIGIN = "https://dhairyakhetan-projects.vercel.app";
+/**
+ * Must exactly match an entry in the worker's ALLOWED_ORIGINS. The worker
+ * compares Origin as a plain string, and a browser never sends a trailing
+ * slash — so the allowlist entry must not have one either.
+ */
+const WORKER_ORIGIN = "https://dhairyakhetan.vercel.app";
 
 /** Matches the worker's own sync interval — refetching faster just returns KV. */
 const REVALIDATE_SECONDS = 60 * 60 * 24;
