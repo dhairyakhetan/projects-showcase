@@ -61,6 +61,17 @@ const PROJECTS = {
       ronaldo: "/page-data/match-histories/ronaldo-match-history/page-data.json",
       messi: "/page-data/match-histories/messi-match-history/page-data.json",
     },
+
+    /**
+     * Gatsby's page-data.json wraps the content in `result.data` and surrounds
+     * it with build bookkeeping — componentChunkName, staticQueryHashes,
+     * pageContext, the page path. None of that is useful downstream, and all
+     * of it was being stored in KV and shipped to the client on every request.
+     *
+     * Falls back to the whole object if the shape ever changes, so a Gatsby
+     * upgrade degrades to "bigger than necessary" rather than "empty".
+     */
+    transform: json => json?.result?.data ?? json,
   },
 
   showcase: {
@@ -69,7 +80,9 @@ const PROJECTS = {
       repos: "/users/dhairyakhetan/repos?per_page=100&sort=updated",
     },
     resolveOgImages: true,
-    /** Repo events on this repo trigger a resync of this project. */
+    /** GitHub answers errors with a JSON object; the repo list must be a list. */
+    expectsArray: true,
+    /** Repo events from this owner trigger a resync of this project. */
     webhookOwner: "dhairyakhetan",
   },
 };
@@ -172,16 +185,25 @@ async function resolveOgImage(homepage) {
  * Everything else is reused. Crawls are capped per sync so a cold cache with
  * twenty live projects doesn't turn one sync into twenty outbound requests.
  */
+/**
+ * Identity for og state. `id` is preferred because it survives a rename, but
+ * it is not assumed present: keying on `id` alone turned every repo without
+ * one into the same `og[undefined]` entry, so they inherited each other's
+ * images — the wrong picture on the wrong card.
+ */
+const ogKey = repo => String(repo.id ?? repo.name ?? repo.html_url ?? "");
+
 async function attachOgImages(previousOg, repos) {
   const now = Date.now();
   const og = {};
   const due = [];
 
   for (const repo of repos) {
-    const prev = previousOg?.[repo.id];
+    const key = ogKey(repo);
+    const prev = previousOg?.[key];
 
     if (!repo.homepage) {
-      og[repo.id] = { homepage: null, image: null, checkedAt: now };
+      og[key] = { homepage: null, image: null, checkedAt: now };
       continue;
     }
 
@@ -190,20 +212,20 @@ async function attachOgImages(previousOg, repos) {
     const fresh = unchanged && now - (prev.checkedAt ?? 0) < ttl;
 
     if (fresh) {
-      og[repo.id] = prev;
+      og[key] = prev;
     } else {
-      og[repo.id] = unchanged ? prev : { homepage: repo.homepage, image: null, checkedAt: 0 };
+      og[key] = unchanged ? prev : { homepage: repo.homepage, image: null, checkedAt: 0 };
       due.push(repo);
     }
   }
 
   // Oldest checks first, so a capped sync still makes progress every time.
-  due.sort((a, b) => (og[a.id]?.checkedAt ?? 0) - (og[b.id]?.checkedAt ?? 0));
+  due.sort((a, b) => (og[ogKey(a)]?.checkedAt ?? 0) - (og[ogKey(b)]?.checkedAt ?? 0));
   const batch = due.slice(0, OG_MAX_PER_SYNC);
 
   await Promise.all(
     batch.map(async repo => {
-      og[repo.id] = {
+      og[ogKey(repo)] = {
         homepage: repo.homepage,
         image: await resolveOgImage(repo.homepage),
         checkedAt: now,
@@ -214,7 +236,7 @@ async function attachOgImages(previousOg, repos) {
   return {
     og,
     crawled: batch.length,
-    repos: repos.map(repo => ({ ...repo, ogImage: og[repo.id]?.image ?? null })),
+    repos: repos.map(repo => ({ ...repo, ogImage: og[ogKey(repo)]?.image ?? null })),
   };
 }
 
@@ -251,70 +273,120 @@ function upstreamHeaders(env, project, etag) {
  * spent. A multi-path project where only some paths changed re-requests the
  * unchanged ones unconditionally, since the merged payload needs them all.
  */
+/**
+ * Conditionally fetches every path, returning one result per path.
+ *
+ * A 304 result carries no body — the caller recovers that path's content from
+ * the cached payload rather than re-requesting it, so a multi-path project
+ * where only one path changed still costs exactly one body transfer.
+ */
 async function fetchUpstream(env, project, previousEtags = {}) {
-  const entries = Object.entries(project.paths);
-
-  const responses = await Promise.all(
-    entries.map(([key, path]) =>
-      fetch(project.upstreamHost + path, {
+  return Promise.all(
+    Object.entries(project.paths).map(async ([key, path]) => {
+      const response = await fetch(project.upstreamHost + path, {
         headers: upstreamHeaders(env, project, previousEtags[key]),
-      }),
-    ),
-  );
-
-  const failed = responses.find(response => !response.ok && response.status !== 304);
-  if (failed) {
-    // Never cache or serve an upstream error body as if it were real data.
-    throw new Error(`upstream ${failed.status} for ${failed.url}`);
-  }
-
-  if (responses.every(response => response.status === 304)) {
-    return { unchanged: true };
-  }
-
-  const etags = {};
-  const payloads = await Promise.all(
-    entries.map(async ([key, path], index) => {
-      let response = responses[index];
+      });
 
       if (response.status === 304) {
-        response = await fetch(project.upstreamHost + path, {
-          headers: upstreamHeaders(env, project, null),
-        });
-        if (!response.ok) throw new Error(`upstream ${response.status} refetching ${key}`);
+        return { key, notModified: true, etag: previousEtags[key] ?? null };
       }
 
-      etags[key] = response.headers.get("etag");
-      return response.json();
+      // Never cache or serve an upstream error body as if it were real data.
+      if (!response.ok) throw new Error(`upstream ${response.status} for ${path}`);
+
+      const json = await response.json();
+
+      return {
+        key,
+        notModified: false,
+        etag: response.headers.get("etag"),
+        part: project.transform ? project.transform(json, key) : json,
+      };
     }),
   );
+}
 
-  // A single-path project serves its payload bare; multi-path serves a keyed
-  // object, so the front-end doesn't have to know which shape to expect.
-  const payload =
-    entries.length === 1
-      ? payloads[0]
-      : Object.fromEntries(entries.map(([key], index) => [key, payloads[index]]));
+/** The stored payload, or null when absent or unparseable. */
+function parsePayload(record) {
+  if (!record?.body) return null;
+  try {
+    const parsed = JSON.parse(record.body);
+    return parsed === undefined ? null : parsed;
+  } catch {
+    return null;
+  }
+}
 
-  return { unchanged: false, payload, etags };
+function sameEtags(a = {}, b = {}) {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if ((a[key] ?? null) !== (b[key] ?? null)) return false;
+  }
+  return true;
 }
 
 /**
- * Brings a project up to date. Writes to KV only when the served body actually
- * changes, so a sync that finds nothing new is read-only.
+ * Brings a project up to date, writing to KV only when the served body
+ * actually changes.
+ *
+ * Conditional requests make "nothing changed" the cheap path, but they also
+ * mean a 304 hands back no content — so anything the cache cannot supply has
+ * to be re-requested rather than assumed. That is what `retried` guards.
  */
-async function sync(env, name, project, cached) {
-  const result = await fetchUpstream(env, project, cached?.upstreamEtags ?? {});
+async function sync(env, name, project, cached, { retried = false } = {}) {
+  const cachedPayload = parsePayload(cached);
+  const usableCache = cached !== null && cachedPayload !== null;
+  const entries = Object.entries(project.paths);
+  const multiPath = entries.length > 1;
 
-  if (result.unchanged && cached) {
-    return { record: cached, changed: false, crawled: 0 };
+  const results = await fetchUpstream(
+    env,
+    project,
+    usableCache ? (cached.upstreamEtags ?? {}) : {},
+  );
+
+  // Rebuild every path: fresh bodies where upstream sent one, cached content
+  // where it answered 304.
+  const parts = {};
+  let unsupplied = null;
+
+  for (const result of results) {
+    if (!result.notModified) {
+      parts[result.key] = result.part;
+      continue;
+    }
+
+    const fromCache = multiPath ? cachedPayload?.[result.key] : cachedPayload;
+
+    if (fromCache === undefined || fromCache === null) {
+      unsupplied = result.key;
+      break;
+    }
+
+    parts[result.key] = fromCache;
   }
 
-  let payload = result.payload;
+  if (unsupplied !== null) {
+    // Upstream said "not modified" for something we cannot reconstruct. Writing
+    // here would store an empty payload, so re-ask unconditionally instead.
+    if (retried) {
+      throw new Error(`upstream kept answering 304 for ${unsupplied} with nothing cached`);
+    }
+    return sync(env, name, project, null, { retried: true });
+  }
+
+  // Single-path projects serve their payload bare; multi-path serve a keyed
+  // object, so the front-end doesn't have to know which shape to expect.
+  let payload = multiPath ? parts : parts[entries[0][0]];
+
+  if (project.expectsArray && !Array.isArray(payload)) {
+    throw new Error("upstream payload was not an array");
+  }
+
   let og = cached?.og ?? null;
   let crawled = 0;
 
-  if (project.resolveOgImages && Array.isArray(payload)) {
+  if (project.resolveOgImages) {
     const resolved = await attachOgImages(og, payload);
     payload = resolved.repos;
     og = resolved.og;
@@ -323,21 +395,27 @@ async function sync(env, name, project, cached) {
 
   const body = JSON.stringify(payload);
   const etag = await computeEtag(body);
+  const upstreamEtags = Object.fromEntries(results.map(r => [r.key, r.etag ?? null]));
 
-  // An upstream ETag can change while the data we serve does not (ordering,
-  // fields we drop). Comparing our own body hash keeps the client's cached
-  // copy valid across those, and skips a pointless KV write.
-  if (cached && cached.etag === etag && crawled === 0) {
-    return { record: cached, changed: false, crawled: 0 };
-  }
+  // Nothing to record: the served body is byte-identical, no site was
+  // re-crawled, and upstream's validators are unchanged. Note this is checked
+  // AFTER the og pass, so an expiring og entry still gets refreshed on a sync
+  // where upstream itself reported no change.
+  const unchanged =
+    usableCache &&
+    cached.etag === etag &&
+    crawled === 0 &&
+    sameEtags(cached.upstreamEtags, upstreamEtags);
+
+  if (unchanged) return { record: cached, changed: false, crawled: 0 };
 
   const record = {
     body,
     etag,
-    upstreamEtags: result.etags ?? cached?.upstreamEtags ?? {},
+    upstreamEtags,
     og,
     fetchedAt: Date.now(),
-    changedAt: cached?.etag === etag ? (cached.changedAt ?? Date.now()) : Date.now(),
+    changedAt: usableCache && cached.etag === etag ? (cached.changedAt ?? Date.now()) : Date.now(),
     status: 200,
     crawled,
   };

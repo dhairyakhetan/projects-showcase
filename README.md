@@ -117,6 +117,24 @@ To enable instant updates, add a repository or org webhook pointing at
 `GITHUB_WEBHOOK_SECRET` to the same secret. Without it the worker still works,
 just on cron and lazy-sync timing.
 
+### Testing the worker
+
+```bash
+npm run test:worker
+```
+
+65 assertions, no dependencies, no network. Each scenario builds its own
+in-memory KV, stubs `fetch`, and asserts on **counted operations** — KV reads,
+KV writes, upstream requests — since the design is entirely about keeping those
+numbers low. Covers the cheap paths (50 requests → 0 writes, 0 upstream calls)
+and the nasty ones: a 304 with an empty cache, a partially-changed multi-path
+project, an og entry expiring while upstream reports no change, a corrupt
+cached body, GitHub answering 200 with an error object, KV itself failing,
+unicode payloads, hostile project sites, and every webhook signature edge.
+
+Run it after any edit to `worker.js` — the worker is deployed by hand, so this
+suite is the only thing standing between a typo and production.
+
 ### Connecting to it
 
 The worker's CORS allowlist only contains production origins, so the browser
