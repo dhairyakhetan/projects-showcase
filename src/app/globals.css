@@ -264,6 +264,40 @@
   }
 }
 
+/* ---- featured stack ------------------------------------------------------
+ * Cards pile up: each one sticks a little lower than the last, so as you
+ * scroll the next slides over the previous and leaves its top edge showing.
+ *
+ * Pure position:sticky — no scroll listener, no IntersectionObserver, no
+ * scroll-linked JS at all. The browser does it on the compositor, which is why
+ * it stays smooth with full-bleed images in every card.
+ *
+ * Off below md: stacking needs vertical room to read as stacking, and on a
+ * phone it just looks like cards that won't scroll away.
+ */
+.stack {
+  --stack-top: 5.5rem;
+  --stack-step: 1.35rem;
+}
+
+@media (min-width: 768px) {
+  .stack-item {
+    position: sticky;
+    top: calc(var(--stack-top) + var(--stack-index) * var(--stack-step));
+  }
+}
+
+/* The card beneath should read as *behind*, not merely covered. */
+.stack-card {
+  transition: box-shadow 400ms ease, border-color 300ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stack-item {
+    position: static;
+  }
+}
+
 /* ---- project grid --------------------------------------------------------
  * Hover behaviour lives here rather than in utility classes because two of
  * these effects are relational — they depend on a sibling being hovered, or

@@ -6,6 +6,32 @@ Router, TypeScript, Tailwind v4, framer-motion. Deployed on Vercel.
 Five panels — Home / About / Qualification / Projects / Contact — each a real
 route (`/home`, `/about`, …), all statically prerendered.
 
+## The site makes no network calls on load
+
+Every panel renders from `src/lib/content.ts`. The curated projects, the ⌘K
+palette and the hero easter egg all read the same hand-written list, so
+visiting any page costs zero requests for project data.
+
+The full public repo list is fetched **only when someone clicks "show all
+public repos"** — `src/components/AllRepos.tsx` is the one place in the app
+that calls `/api/repos`, and it does so after a click, never on mount.
+
+Projects therefore has two halves:
+
+- **Featured** (`projects.featured` in content.ts) — hand-picked and
+  hand-written, rendered as a stack you scroll through. Each card sticks
+  slightly lower than the last, so the next slides over the previous and leaves
+  its edge showing. That is pure `position: sticky`, no scroll handler.
+- **Everything else** — the live grid, on demand.
+
+Two things about the stack are worth knowing before editing it. Each card must
+own most of the viewport, or the whole stack is visible at once and there is no
+scroll distance for cards to travel through. And the spacer `<li>` at the end
+is load-bearing: a sticky child is confined to its containing block's *content*
+box, so `padding-bottom` on the `<ul>` does nothing for it — without real
+content height the last card never reaches its offset and every card unsticks
+at once at the bottom of the scroll.
+
 ## Routing
 
 It reads as one page but every panel has a clean URL, because the persistent
@@ -88,7 +114,7 @@ waiting to be replaced.
 
 ## Where the projects come from
 
-The repo grid is pulled live from the Cloudflare Worker at
+The full repo list is pulled from the Cloudflare Worker at
 `logger.dhairyaplayz97.workers.dev`. `cloudflare/worker.js` is a **committed
 copy** of what's deployed there — editing it here deploys nothing.
 

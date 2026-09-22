@@ -9,9 +9,9 @@ import FlappyProjects from "@/components/FlappyProjects";
 import Magnetic from "@/components/Magnetic";
 import { Reveal, RevealWords } from "@/components/Reveal";
 import { identity } from "@/lib/content";
-import type { Project } from "@/lib/repos";
+import { featuredProjects } from "@/lib/featured";
 
-export default function HomePanel({ projects }: { projects: Project[] }) {
+export default function HomePanel() {
   const [roleIndex, setRoleIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
 
@@ -115,7 +115,7 @@ export default function HomePanel({ projects }: { projects: Project[] }) {
               transition={{ type: "spring", stiffness: 280, damping: 28 }}
               className="h-[min(560px,80vh)] w-full max-w-3xl"
             >
-              <FlappyProjects projects={projects} onClose={() => setPlaying(false)} />
+              <FlappyProjects projects={featuredProjects} onClose={() => setPlaying(false)} />
             </motion.div>
           </motion.div>
         ) : null}

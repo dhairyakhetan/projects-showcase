@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { panels } from "@/lib/content";
-import type { Project } from "@/lib/repos";
+import { featuredProjects } from "@/lib/featured";
 
 interface Command {
   id: string;
@@ -19,7 +19,7 @@ interface Command {
  * Project entries come from the same fetched data the grid renders, so it
  * can't drift out of sync with the site.
  */
-export default function CommandPalette({ projects }: { projects: Project[] }) {
+export default function CommandPalette() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -67,8 +67,10 @@ export default function CommandPalette({ projects }: { projects: Project[] }) {
       run: () => router.push(`/${panel.id}`),
     }));
 
-    const projectCommands: Command[] = projects.map(project => ({
-      id: `project-${project.id}`,
+    // Curated only. Listing every public repo here would mean fetching them
+    // on page load, which is exactly what this site no longer does.
+    const projectCommands: Command[] = featuredProjects.map(project => ({
+      id: `project-${project.name}`,
       label: project.title,
       hint: project.tech.map(tech => tech.label).join(" · ") || "repository",
       group: "Projects",
@@ -95,7 +97,7 @@ export default function CommandPalette({ projects }: { projects: Project[] }) {
         },
       },
     ];
-  }, [projects, router]);
+  }, [router]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

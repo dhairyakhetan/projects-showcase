@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import Chrome from "@/components/Chrome";
 import { identity } from "@/lib/content";
-import { getProjects } from "@/lib/repos";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -67,18 +66,14 @@ const THEME_INIT = `
  * rebuilding the background, cursor and palette — measurably, the DOM nodes
  * were different objects afterwards. Sitting above `[panel]`, it survives.
  */
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const data = await getProjects();
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
       <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
-        <Chrome projects={data.projects} degraded={data.degraded}>
-          {children}
-        </Chrome>
+        <Chrome>{children}</Chrome>
       </body>
     </html>
   );

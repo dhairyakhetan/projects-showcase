@@ -56,7 +56,8 @@ export const about = {
    */
   now: [
     { label: "preparing for", value: "JEE" },
-    { label: "writing", value: "C++ and JavaScript" },
+    { label: "writes", value: "HTML, Python" },
+    { label: "learning", value: "C++, JavaScript" },
     { label: "based in", value: "India" }, // TODO city if you want it public
     { label: "open to", value: "collabs & freelance" }, // TODO
   ],
@@ -145,12 +146,55 @@ export const contact = {
 export const projects = {
   heading: "Projects",
   intro:
-    "Pulled live from GitHub through my own Cloudflare Worker — no hardcoded list, " +
-    "no manual updates. What's here is what's actually on the account.",
-  /** Repos never shown, by exact name. */
+    "The ones worth your time, with the reasons I built them. Everything else " +
+    "is a click away.",
+
+  /**
+   * Hand-picked, hand-written, and rendered without touching the worker — the
+   * Projects panel makes no network call until someone asks for the full list.
+   *
+   * `name` must match the GitHub repo exactly: it builds the source link and,
+   * when `image` is null, the thumbnail (GitHub's own repo preview, which is a
+   * plain image URL and costs no API call).
+   *
+   * `tech` are slugs from src/lib/tech.ts — an unknown slug still renders, just
+   * without a colour.
+   */
+  featured: [
+    {
+      name: "hosting-opengraphs", // TODO confirm the repo name
+      title: "Opengraph Resolver",
+      blurb:
+        "TODO — what it actually does, what made it annoying to build, and why " +
+        "you wanted it. Two or three sentences; this is the part a grid of " +
+        "GitHub descriptions could never give you.",
+      tech: ["typescript", "cloudflare", "api"],
+      homepage: null as string | null, // TODO live URL if there is one
+      image: null as string | null, // TODO a file in public/ to override the GitHub preview
+    },
+    {
+      name: "Wisdom-Woods", // TODO confirm
+      title: "Wisdom Woods",
+      blurb: "TODO — replace with the real story.",
+      tech: ["html", "css", "javascript"],
+      homepage: null as string | null,
+      image: null as string | null,
+    },
+    {
+      name: "trophies", // TODO confirm the repo name for the Messi/Ronaldo site
+      title: "Trophies",
+      blurb: "TODO — replace with the real story.",
+      tech: ["astro", "typescript", "tailwind"],
+      homepage: null as string | null,
+      image: null as string | null,
+    },
+  ],
+
+  /** Never shown in the full list either, by exact repo name. */
   exclude: ["projects-showcase", "Wisdom-Woods"] as string[], // TODO add any others
-  /** Repos pinned to the front, in this order, regardless of sort. */
-  pinned: [] as string[], // TODO name your best work here
+
+  /** Ordered first in the full list. */
+  pinned: [] as string[],
 } as const;
 
 /** Panel order drives the nav, the ⌘K palette and the keyboard arrows. */

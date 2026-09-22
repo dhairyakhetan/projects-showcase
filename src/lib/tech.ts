@@ -120,7 +120,7 @@ const LANGUAGE_MAP: Record<string, string> = {
   "Jupyter Notebook": "jupyter", Astro: "astro", Vue: "vue", Svelte: "svelte",
 };
 
-function toTech(slug: string): Tech {
+export function toTech(slug: string): Tech {
   const entry = REGISTRY[slug];
   if (entry) return { slug, ...entry };
 
@@ -195,4 +195,9 @@ export function techIndex(repos: { tech: Tech[] }[]): { tech: Tech; count: numbe
   }
 
   return [...counts.values()].sort((a, b) => b.count - a.count || a.tech.label.localeCompare(b.tech.label));
+}
+
+/** Resolves a hand-written slug list, e.g. for a curated project entry. */
+export function techFromSlugs(slugs: readonly string[]): Tech[] {
+  return slugs.map(toTech);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Project } from "@/lib/repos";
+import type { FeaturedProject } from "@/lib/featured";
 
 /**
  * Flappy-bird where every gap is one of my projects, and crashing tells you
@@ -24,13 +24,13 @@ const BIRD_RADIUS = 13;
 interface Pipe {
   x: number;
   gapCenter: number;
-  project: Project;
+  project: FeaturedProject;
   scored: boolean;
 }
 
 type Phase = "ready" | "playing" | "dead";
 
-function iconUrlFor(project: Project): string | null {
+function iconUrlFor(project: FeaturedProject): string | null {
   if (!project.homepage) return null;
   try {
     const { hostname } = new URL(project.homepage);
@@ -44,14 +44,14 @@ export default function FlappyProjects({
   projects,
   onClose,
 }: {
-  projects: Project[];
+  projects: FeaturedProject[];
   onClose: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [phase, setPhase] = useState<Phase>("ready");
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(0);
-  const [hit, setHit] = useState<Project | null>(null);
+  const [hit, setHit] = useState<FeaturedProject | null>(null);
 
   // Read by the rAF loop without re-subscribing, so the effect runs once.
   const phaseRef = useRef<Phase>("ready");
@@ -92,7 +92,7 @@ export default function FlappyProjects({
     let frame = 0;
     let last = performance.now();
 
-    const icons = new Map<number, HTMLImageElement>();
+    const icons = new Map<string, HTMLImageElement>();
 
     for (const project of projects) {
       const url = iconUrlFor(project);
@@ -101,7 +101,7 @@ export default function FlappyProjects({
       const image = new Image();
       image.crossOrigin = "anonymous";
       // Registered only once decoded, so a broken icon falls through to the tile.
-      image.onload = () => icons.set(project.id, image);
+      image.onload = () => icons.set(project.name, image);
       image.src = url;
     }
 
@@ -175,7 +175,7 @@ export default function FlappyProjects({
       }
 
       // Sits in the gap, so you read the name while threading through it.
-      const icon = icons.get(pipe.project.id);
+      const icon = icons.get(pipe.project.name);
       const cx = pipe.x + PIPE_WIDTH / 2;
 
       if (icon) {
@@ -200,7 +200,7 @@ export default function FlappyProjects({
       ctx!.fillText(pipe.project.name.slice(0, 18), cx, pipe.gapCenter + 22);
     }
 
-    function die(project: Project | null) {
+    function die(project: FeaturedProject | null) {
       setPhaseBoth("dead");
       setHit(project);
 

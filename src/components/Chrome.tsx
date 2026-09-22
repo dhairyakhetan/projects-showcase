@@ -7,7 +7,6 @@ import CommandPalette from "@/components/CommandPalette";
 import CustomCursor from "@/components/CustomCursor";
 import ThemeToggle from "@/components/ThemeToggle";
 import { identity, panels } from "@/lib/content";
-import type { Project } from "@/lib/repos";
 
 /**
  * Everything that persists across panel routes: background texture, cursor,
@@ -17,15 +16,7 @@ import type { Project } from "@/lib/repos";
  * That keeps the canvas field running and lets the nav pill animate between
  * tabs — while every panel still has a real URL.
  */
-export default function Chrome({
-  projects,
-  degraded,
-  children,
-}: {
-  projects: Project[];
-  degraded: boolean;
-  children: React.ReactNode;
-}) {
+export default function Chrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const active = pathname.replace(/^\//, "") || "home";
 
@@ -33,7 +24,7 @@ export default function Chrome({
     <>
       <div className="texture" aria-hidden />
       <CustomCursor />
-      <CommandPalette projects={projects} />
+      <CommandPalette />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 sm:px-8">
         <header className="flex items-center justify-between gap-4 py-6">
@@ -104,9 +95,14 @@ export default function Chrome({
             </span>
           </span>
 
-          <span className={degraded ? "text-[var(--accent-3)]" : ""}>
-            {degraded ? "sample data" : `${projects.length} repos · live`}
-          </span>
+          <a
+            href={`https://github.com/${identity.handle}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-[var(--accent)]"
+          >
+            github ↗
+          </a>
         </footer>
       </div>
     </>
