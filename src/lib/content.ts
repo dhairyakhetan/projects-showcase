@@ -162,30 +162,49 @@ export const projects = {
    */
   featured: [
     {
-      name: "hosting-opengraphs", // TODO confirm the repo name
-      title: "Opengraph Resolver",
+      name: "shoppy",
+      title: "Shoppy",
       blurb:
-        "TODO — what it actually does, what made it annoying to build, and why " +
-        "you wanted it. Two or three sentences; this is the part a grid of " +
-        "GitHub descriptions could never give you.",
-      tech: ["typescript", "cloudflare", "api"],
-      homepage: null as string | null, // TODO live URL if there is one
-      image: null as string | null, // TODO a file in public/ to override the GitHub preview
+        "An online storefront for my mother's Tanjore art. The first thing I " +
+        "built for a real person with real customers instead of for myself, " +
+        "which quietly changes what \"finished\" means — nobody files a bug " +
+        "report, they just stop being able to buy something.",
+      tech: ["javascript"],
+      homepage: null as string | null, // TODO the live URL — GitHub has one, I couldn't read it
+      image: null as string | null,
     },
     {
-      name: "Wisdom-Woods", // TODO confirm
-      title: "Wisdom Woods",
-      blurb: "TODO — replace with the real story.",
-      tech: ["html", "css", "javascript"],
+      name: "omrakhi",
+      title: "Om Rakhi Udyog",
+      blurb:
+        "The site for my father's business. Still a work in progress and I'm " +
+        "not hiding that — it's up because a rough version people can actually " +
+        "use beats a polished one that never ships.",
+      tech: ["astro"],
+      homepage: "https://omrakhi.vercel.app",
+      image: null as string | null,
+    },
+    {
+      name: "GOAT-GPT",
+      title: "GOAT GPT",
+      blurb:
+        "Settles the Messi–Ronaldo argument with numbers instead of volume. " +
+        "Ask it anything about either career and it answers off their actual " +
+        "stats, which makes it more useful and significantly less fun than how " +
+        "that argument normally goes.",
+      tech: ["python"],
       homepage: null as string | null,
       image: null as string | null,
     },
     {
-      name: "trophies", // TODO confirm the repo name for the Messi/Ronaldo site
-      title: "Trophies",
-      blurb: "TODO — replace with the real story.",
-      tech: ["astro", "typescript", "tailwind"],
-      homepage: null as string | null,
+      name: "mcu-watchlist",
+      title: "MCU Watchlist",
+      blurb:
+        "Every Marvel release from Phase 1 onward, in release order or " +
+        "chronological order. The two disagree constantly and nobody can ever " +
+        "remember which one they're halfway through.",
+      tech: ["html"],
+      homepage: null as string | null, // TODO the live URL — GitHub has one, I couldn't read it
       image: null as string | null,
     },
   ],
