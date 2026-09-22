@@ -39,7 +39,7 @@ function Card({ project, index }: { project: FeaturedProject; index: number }) {
           viewport lets you see the whole stack at once, which leaves almost no
           scroll distance for cards to travel — they never visibly stack. Each
           card owning most of the viewport is what makes the effect read. */}
-      <article className="stack-card grid overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-raised)] shadow-[var(--shadow)] md:min-h-[min(30rem,64vh)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <article className="stack-card relative grid overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-raised)] shadow-[var(--shadow)] md:min-h-[min(30rem,64vh)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="relative aspect-[16/10] overflow-hidden bg-[var(--bg-inset)] md:aspect-auto">
           {failed ? (
             <div
@@ -58,7 +58,7 @@ function Card({ project, index }: { project: FeaturedProject; index: number }) {
               loading={index === 0 ? "eager" : "lazy"}
               decoding="async"
               onError={() => setFailed(true)}
-              className="h-full w-full object-cover"
+              className="stack-media h-full w-full object-cover"
             />
           )}
 
@@ -68,7 +68,7 @@ function Card({ project, index }: { project: FeaturedProject; index: number }) {
           />
         </div>
 
-        <div className="flex flex-col justify-center gap-4 p-6 sm:p-8">
+        <div className="stack-body flex flex-col justify-center gap-4 p-6 sm:p-8">
           <div className="flex items-center gap-3">
             <span className="font-mono text-[11px] text-[var(--text-faint)]">
               {String(index + 1).padStart(2, "0")}
@@ -139,16 +139,106 @@ function Card({ project, index }: { project: FeaturedProject; index: number }) {
             ) : null}
           </div>
         </div>
+        {/* Fades in as the next card covers this one. */}
+        <span aria-hidden className="stack-veil" />
       </article>
     </li>
   );
 }
 
 export default function FeaturedStack({ projects }: { projects: FeaturedProject[] }) {
+  const rootRef = useRef<HTMLUListElement>(null);
+
+  /**
+   * Writes --covered and --parallax onto each card as you scroll.
+   *
+   * `covered` is how far the *following* card has slid over this one: 0 when
+   * its top is still at this card's bottom edge, 1 when it has reached this
+   * card's top. CSS maps that onto a scale-down and a veil, so a covered card
+   * sinks back instead of just being obscured — without it the stack reads as
+   * flat panels swapping places.
+   *
+   * One listener for the whole stack, rAF-batched: scroll fires far more often
+   * than paint, and measuring every card per event would force layout on the
+   * scroll thread. Both properties feed transform and opacity only, so the
+   * browser composites them.
+   */
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const items = Array.from(root.querySelectorAll<HTMLElement>(".stack-item"));
+    if (items.length === 0) return;
+
+    // Each card's parked offset, read once rather than every frame — a
+    // getComputedStyle call per card per scroll event would force a style
+    // recalculation on the scroll thread, which is the whole cost this is
+    // trying to avoid.
+    let restTops: number[] = [];
+    function measureRestTops() {
+      restTops = items.map(item => parseFloat(getComputedStyle(item).top) || 0);
+    }
+
+    let queued = false;
+
+    function update() {
+      queued = false;
+      const viewport = window.innerHeight;
+
+      const rects = items.map(item => item.getBoundingClientRect());
+
+      items.forEach((item, index) => {
+        const rect = rects[index];
+        const next = rects[index + 1];
+
+        const covered = next
+          ? Math.min(1, Math.max(0, (rect.bottom - next.top) / rect.height))
+          : 0;
+
+        // Drift the media against the card's travel across the viewport.
+        const offCentre = (rect.top + rect.height / 2 - viewport / 2) / viewport;
+
+        // 0 while the card is still well below its parked position, 1 once it
+        // has settled — so the copy rises into place instead of arriving
+        // pre-composed.
+        const arrived = Math.min(
+          1,
+          Math.max(0, 1 - (rect.top - restTops[index]) / (viewport * 0.55)),
+        );
+
+        item.style.setProperty("--covered", covered.toFixed(3));
+        item.style.setProperty("--parallax", `${(offCentre * -20).toFixed(1)}px`);
+        item.style.setProperty("--arrived", arrived.toFixed(3));
+      });
+    }
+
+    function onScroll() {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(update);
+    }
+
+    function onResize() {
+      measureRestTops();
+      onScroll();
+    }
+
+    measureRestTops();
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [projects.length]);
+
   if (projects.length === 0) return null;
 
   return (
-    <ul className="stack mt-10">
+    <ul ref={rootRef} className="stack mt-10">
       {projects.map((project, index) => (
         <Card key={project.name} project={project} index={index} />
       ))}

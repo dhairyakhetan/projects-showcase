@@ -268,9 +268,11 @@
  * Cards pile up: each one sticks a little lower than the last, so as you
  * scroll the next slides over the previous and leaves its top edge showing.
  *
- * Pure position:sticky — no scroll listener, no IntersectionObserver, no
- * scroll-linked JS at all. The browser does it on the compositor, which is why
- * it stays smooth with full-bleed images in every card.
+ * The stacking itself is pure position:sticky — no scroll listener. The depth
+ * cues on top of it (recede, veil, parallax) are driven by two custom
+ * properties, --covered and --parallax, written by one rAF-batched scroll
+ * handler in FeaturedStack. Both map onto compositor-friendly properties
+ * (transform, opacity) so the work stays off the main thread.
  *
  * Off below md: stacking needs vertical room to read as stacking, and on a
  * phone it just looks like cards that won't scroll away.
@@ -280,21 +282,76 @@
   --stack-step: 1.35rem;
 }
 
+/* Opacity only — the card itself owns `transform` for the recede, and a
+   filled entrance animation would win the cascade and freeze it at scale(1). */
+@keyframes stack-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.stack-item {
+  animation: stack-in 700ms ease both;
+  animation-delay: calc(var(--stack-index) * 90ms);
+}
+
 @media (min-width: 768px) {
   .stack-item {
     position: sticky;
     top: calc(var(--stack-top) + var(--stack-index) * var(--stack-step));
   }
+
+  /* Covered cards sink back rather than merely being hidden. */
+  .stack-card {
+    transform: scale(calc(1 - var(--covered, 0) * 0.055));
+    transform-origin: 50% 0;
+  }
 }
 
-/* The card beneath should read as *behind*, not merely covered. */
 .stack-card {
   transition: box-shadow 400ms ease, border-color 300ms ease;
+}
+
+/* Painted in the page background, so it dims in dark and washes out in light
+   — a brightness() filter would darken both and read as wrong in light. */
+.stack-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: var(--bg);
+  opacity: calc(var(--covered, 0) * 0.5);
+}
+
+/* Copy rises into place as its card settles. Transform only — an opacity
+   fade here would collide with the veil already sitting over the card. */
+@media (min-width: 768px) {
+  .stack-body {
+    transform: translateY(calc((1 - var(--arrived, 1)) * 26px));
+  }
+}
+
+/* Over-scaled so the parallax shift never exposes an edge. */
+.stack-media {
+  transform: translate3d(0, var(--parallax, 0px), 0) scale(1.09);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .stack-item {
     position: static;
+    animation: none;
+  }
+
+  .stack-card {
+    transform: none;
+  }
+
+  .stack-veil {
+    display: none;
+  }
+
+  .stack-media,
+  .stack-body {
+    transform: none;
   }
 }
 

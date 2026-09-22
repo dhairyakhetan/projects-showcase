@@ -21,7 +21,16 @@ Projects therefore has two halves:
 - **Featured** (`projects.featured` in content.ts) — hand-picked and
   hand-written, rendered as a stack you scroll through. Each card sticks
   slightly lower than the last, so the next slides over the previous and leaves
-  its edge showing. That is pure `position: sticky`, no scroll handler.
+  its edge showing. The stacking itself is pure `position: sticky`.
+
+  The depth on top of it is scroll-driven: a covered card scales back and a
+  veil painted in the page background fades over it, its image drifts against
+  the card's travel, and its copy rises into place as the card settles. One
+  rAF-batched scroll listener for the whole stack writes three custom
+  properties (`--covered`, `--parallax`, `--arrived`); CSS maps them onto
+  transform and opacity only, so the browser composites them. Measured at
+  61fps while scrolling continuously, and the whole layer is inert under
+  `prefers-reduced-motion`.
 - **Everything else** — the live grid, on demand.
 
 Two things about the stack are worth knowing before editing it. Each card must
