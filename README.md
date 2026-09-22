@@ -108,6 +108,15 @@ and real work only happens when something actually changed.
 webhook and syncs within seconds. Cron is the safety net, and the request path
 has a slow lazy fallback if neither is configured.
 
+`GET /admin-panel` is a plain-text status page — state, last sync, repo count,
+payload size, og coverage, both ETags, and whether the webhook and token are
+configured. Text rather than HTML so it renders instantly and `curl | grep`
+works on it, which is how a status page for one service actually gets used.
+
+It serves exactly one dataset. It previously carried a second project with two
+upstream paths, which required assembling payloads from parts and reconciling
+per-path ETags; that consumer is gone and so is all of that machinery.
+
 Steady state: a visitor costs one KV read; an hour in which nothing was pushed
 costs one conditional request that 304s; a push costs one full fetch and one
 KV write.
@@ -123,14 +132,14 @@ just on cron and lazy-sync timing.
 npm run test:worker
 ```
 
-65 assertions, no dependencies, no network. Each scenario builds its own
+91 assertions, no dependencies, no network. Each scenario builds its own
 in-memory KV, stubs `fetch`, and asserts on **counted operations** — KV reads,
 KV writes, upstream requests — since the design is entirely about keeping those
 numbers low. Covers the cheap paths (50 requests → 0 writes, 0 upstream calls)
-and the nasty ones: a 304 with an empty cache, a partially-changed multi-path
-project, an og entry expiring while upstream reports no change, a corrupt
-cached body, GitHub answering 200 with an error object, KV itself failing,
-unicode payloads, hostile project sites, and every webhook signature edge.
+and the nasty ones: a 304 with an empty cache, an og entry expiring while
+upstream reports no change, a corrupt cached body, GitHub answering 200 with an
+error object, KV itself failing, unicode payloads, hostile project sites that
+hang until the abort fires, and every webhook signature edge.
 
 Run it after any edit to `worker.js` — the worker is deployed by hand, so this
 suite is the only thing standing between a typo and production.

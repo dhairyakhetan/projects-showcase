@@ -1,11 +1,11 @@
 /**
- * logger — serves portfolio data from KV, and keeps KV current with as few
- * upstream calls as possible.
+ * logger — serves the portfolio's repo list from KV, and keeps KV current with
+ * as few upstream calls as possible.
  *
  * Design, in order of importance:
  *
  * 1. THE REQUEST PATH NEVER WRITES TO KV. Serving a visitor costs one KV read
- *    and nothing else. The previous version wrote twice per request (a rate
+ *    and nothing else. An earlier version wrote twice per request (a rate
  *    counter and a request counter), which on the free tier's 1,000 writes/day
  *    meant roughly 500 visitors before the worker started failing.
  *
@@ -53,41 +53,18 @@ const OG_MISS_TTL_MS = 24 * 60 * 60 * 1000;
 const OG_MAX_PER_SYNC = 8;
 
 const GITHUB_API = "https://api.github.com";
+const GITHUB_OWNER = "dhairyakhetan";
+const REPOS_PATH = `/users/${GITHUB_OWNER}/repos?per_page=100&sort=updated`;
 
-const PROJECTS = {
-  trophies: {
-    upstreamHost: "https://www.messivsronaldo.app",
-    paths: {
-      ronaldo: "/page-data/match-histories/ronaldo-match-history/page-data.json",
-      messi: "/page-data/match-histories/messi-match-history/page-data.json",
-    },
-
-    /**
-     * Gatsby's page-data.json wraps the content in `result.data` and surrounds
-     * it with build bookkeeping — componentChunkName, staticQueryHashes,
-     * pageContext, the page path. None of that is useful downstream, and all
-     * of it was being stored in KV and shipped to the client on every request.
-     *
-     * Falls back to the whole object if the shape ever changes, so a Gatsby
-     * upgrade degrades to "bigger than necessary" rather than "empty".
-     */
-    transform: json => json?.result?.data ?? json,
-  },
-
-  showcase: {
-    upstreamHost: GITHUB_API,
-    paths: {
-      repos: "/users/dhairyakhetan/repos?per_page=100&sort=updated",
-    },
-    resolveOgImages: true,
-    /** GitHub answers errors with a JSON object; the repo list must be a list. */
-    expectsArray: true,
-    /** Repo events from this owner trigger a resync of this project. */
-    webhookOwner: "dhairyakhetan",
-  },
-};
-
-const dataKey = name => `data:${name}`;
+/**
+ * One project, one upstream path. This used to be a map of projects each with
+ * several paths, which meant assembling payloads from parts and reconciling
+ * per-path ETags. Only one consumer was ever left, so all of that is gone.
+ *
+ * The `?project=showcase` parameter stays because the site sends it.
+ */
+const PROJECT = "showcase";
+const KV_KEY = `data:${PROJECT}`;
 
 // ------------------------------------------------------------------ http ----
 
@@ -100,16 +77,16 @@ function corsHeaders(origin, extra = {}) {
   };
 }
 
-function html(body, status = 200) {
+function text(body, status = 200) {
   return new Response(body, {
     status,
-    headers: { "content-type": "text/html;charset=UTF-8" },
+    headers: { "content-type": "text/plain;charset=UTF-8" },
   });
 }
 
-async function readRecord(env, name) {
+async function readRecord(env) {
   try {
-    return await env.STATS_KV.get(dataKey(name), "json");
+    return await env.STATS_KV.get(KV_KEY, "json");
   } catch {
     return null;
   }
@@ -177,6 +154,14 @@ async function resolveOgImage(homepage) {
 }
 
 /**
+ * Identity for og state. `id` is preferred because it survives a rename, but
+ * it is not assumed present: keying on `id` alone turned every repo without
+ * one into the same `og[undefined]` entry, so they inherited each other's
+ * images — the wrong picture on the wrong card.
+ */
+const ogKey = repo => String(repo.id ?? repo.name ?? repo.html_url ?? "");
+
+/**
  * Attaches og:image to each repo, crawling as little as possible.
  *
  * A site is re-crawled only when its homepage changed, when the last attempt
@@ -185,14 +170,6 @@ async function resolveOgImage(homepage) {
  * Everything else is reused. Crawls are capped per sync so a cold cache with
  * twenty live projects doesn't turn one sync into twenty outbound requests.
  */
-/**
- * Identity for og state. `id` is preferred because it survives a rename, but
- * it is not assumed present: keying on `id` alone turned every repo without
- * one into the same `og[undefined]` entry, so they inherited each other's
- * images — the wrong picture on the wrong card.
- */
-const ogKey = repo => String(repo.id ?? repo.name ?? repo.html_url ?? "");
-
 async function attachOgImages(previousOg, repos) {
   const now = Date.now();
   const og = {};
@@ -251,61 +228,6 @@ async function computeEtag(body) {
   return `"${hex}"`;
 }
 
-function upstreamHeaders(env, project, etag) {
-  const headers = { "User-Agent": "logger-worker" };
-
-  // Token is GitHub-only — never attached to another upstream.
-  if (project.upstreamHost === GITHUB_API && env.GITHUB_TOKEN) {
-    headers.Authorization = `Bearer ${env.GITHUB_TOKEN}`;
-  }
-
-  // A 304 from this costs no GitHub rate-limit quota and transfers no body.
-  if (etag) headers["If-None-Match"] = etag;
-
-  return headers;
-}
-
-/**
- * Conditionally fetches every path of a project.
- *
- * Returns `{ unchanged: true }` when every path answered 304, which is the
- * common case and the whole point: no body parsed, no KV written, no quota
- * spent. A multi-path project where only some paths changed re-requests the
- * unchanged ones unconditionally, since the merged payload needs them all.
- */
-/**
- * Conditionally fetches every path, returning one result per path.
- *
- * A 304 result carries no body — the caller recovers that path's content from
- * the cached payload rather than re-requesting it, so a multi-path project
- * where only one path changed still costs exactly one body transfer.
- */
-async function fetchUpstream(env, project, previousEtags = {}) {
-  return Promise.all(
-    Object.entries(project.paths).map(async ([key, path]) => {
-      const response = await fetch(project.upstreamHost + path, {
-        headers: upstreamHeaders(env, project, previousEtags[key]),
-      });
-
-      if (response.status === 304) {
-        return { key, notModified: true, etag: previousEtags[key] ?? null };
-      }
-
-      // Never cache or serve an upstream error body as if it were real data.
-      if (!response.ok) throw new Error(`upstream ${response.status} for ${path}`);
-
-      const json = await response.json();
-
-      return {
-        key,
-        notModified: false,
-        etag: response.headers.get("etag"),
-        part: project.transform ? project.transform(json, key) : json,
-      };
-    }),
-  );
-}
-
 /** The stored payload, or null when absent or unparseable. */
 function parsePayload(record) {
   if (!record?.body) return null;
@@ -317,124 +239,88 @@ function parsePayload(record) {
   }
 }
 
-function sameEtags(a = {}, b = {}) {
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
-  for (const key of keys) {
-    if ((a[key] ?? null) !== (b[key] ?? null)) return false;
-  }
-  return true;
+/** Conditionally fetches the repo list. A 304 carries no body. */
+async function fetchRepos(env, previousEtag) {
+  const headers = { "User-Agent": "logger-worker" };
+  if (env.GITHUB_TOKEN) headers.Authorization = `Bearer ${env.GITHUB_TOKEN}`;
+  // A 304 from this costs no GitHub rate-limit quota and transfers no body.
+  if (previousEtag) headers["If-None-Match"] = previousEtag;
+
+  const response = await fetch(GITHUB_API + REPOS_PATH, { headers });
+
+  if (response.status === 304) return { notModified: true, etag: previousEtag ?? null };
+
+  // Never cache or serve an upstream error body as if it were real data.
+  if (!response.ok) throw new Error(`upstream ${response.status} for ${REPOS_PATH}`);
+
+  return { notModified: false, etag: response.headers.get("etag"), repos: await response.json() };
 }
 
 /**
- * Brings a project up to date, writing to KV only when the served body
- * actually changes.
+ * Brings the stored repo list up to date, writing to KV only when the served
+ * body actually changes.
  *
  * Conditional requests make "nothing changed" the cheap path, but they also
- * mean a 304 hands back no content — so anything the cache cannot supply has
- * to be re-requested rather than assumed. That is what `retried` guards.
+ * mean a 304 hands back no content — so a 304 we cannot reconstruct has to be
+ * re-asked rather than assumed. That is what `retried` guards.
  */
-async function sync(env, name, project, cached, { retried = false } = {}) {
+async function sync(env, cached, { retried = false } = {}) {
   const cachedPayload = parsePayload(cached);
   const usableCache = cached !== null && cachedPayload !== null;
-  const entries = Object.entries(project.paths);
-  const multiPath = entries.length > 1;
 
-  const results = await fetchUpstream(
-    env,
-    project,
-    usableCache ? (cached.upstreamEtags ?? {}) : {},
-  );
+  const result = await fetchRepos(env, usableCache ? cached.upstreamEtag : null);
 
-  // Rebuild every path: fresh bodies where upstream sent one, cached content
-  // where it answered 304.
-  const parts = {};
-  let unsupplied = null;
-
-  for (const result of results) {
-    if (!result.notModified) {
-      parts[result.key] = result.part;
-      continue;
-    }
-
-    const fromCache = multiPath ? cachedPayload?.[result.key] : cachedPayload;
-
-    if (fromCache === undefined || fromCache === null) {
-      unsupplied = result.key;
-      break;
-    }
-
-    parts[result.key] = fromCache;
-  }
-
-  if (unsupplied !== null) {
+  if (result.notModified && !usableCache) {
     // Upstream said "not modified" for something we cannot reconstruct. Writing
     // here would store an empty payload, so re-ask unconditionally instead.
-    if (retried) {
-      throw new Error(`upstream kept answering 304 for ${unsupplied} with nothing cached`);
-    }
-    return sync(env, name, project, null, { retried: true });
+    if (retried) throw new Error("upstream kept answering 304 with nothing cached");
+    return sync(env, null, { retried: true });
   }
 
-  // Single-path projects serve their payload bare; multi-path serve a keyed
-  // object, so the front-end doesn't have to know which shape to expect.
-  let payload = multiPath ? parts : parts[entries[0][0]];
+  const repos = result.notModified ? cachedPayload : result.repos;
 
-  if (project.expectsArray && !Array.isArray(payload)) {
-    throw new Error("upstream payload was not an array");
-  }
+  // GitHub answers errors with a JSON object; the repo list must be a list.
+  if (!Array.isArray(repos)) throw new Error("upstream payload was not an array");
 
-  let og = cached?.og ?? null;
-  let crawled = 0;
+  // Runs BEFORE the no-change decision, so an expiring og entry is still
+  // refreshed on a sync where upstream itself reported nothing new.
+  const resolved = await attachOgImages(cached?.og ?? null, repos);
 
-  if (project.resolveOgImages) {
-    const resolved = await attachOgImages(og, payload);
-    payload = resolved.repos;
-    og = resolved.og;
-    crawled = resolved.crawled;
-  }
-
-  const body = JSON.stringify(payload);
+  const body = JSON.stringify(resolved.repos);
   const etag = await computeEtag(body);
-  const upstreamEtags = Object.fromEntries(results.map(r => [r.key, r.etag ?? null]));
+  const upstreamEtag = result.etag ?? null;
 
-  // Nothing to record: the served body is byte-identical, no site was
-  // re-crawled, and upstream's validators are unchanged. Note this is checked
-  // AFTER the og pass, so an expiring og entry still gets refreshed on a sync
-  // where upstream itself reported no change.
   const unchanged =
     usableCache &&
     cached.etag === etag &&
-    crawled === 0 &&
-    sameEtags(cached.upstreamEtags, upstreamEtags);
+    resolved.crawled === 0 &&
+    (cached.upstreamEtag ?? null) === upstreamEtag;
 
   if (unchanged) return { record: cached, changed: false, crawled: 0 };
 
   const record = {
     body,
     etag,
-    upstreamEtags,
-    og,
+    upstreamEtag,
+    og: resolved.og,
     fetchedAt: Date.now(),
     changedAt: usableCache && cached.etag === etag ? (cached.changedAt ?? Date.now()) : Date.now(),
-    status: 200,
-    crawled,
+    crawled: resolved.crawled,
   };
 
-  await env.STATS_KV.put(dataKey(name), JSON.stringify(record));
-  return { record, changed: true, crawled };
+  await env.STATS_KV.put(KV_KEY, JSON.stringify(record));
+  return { record, changed: true, crawled: resolved.crawled };
 }
 
 /** Per-isolate memory of the last lazy check, so traffic can't fan out. */
-const lastLazyCheck = new Map();
+let lastLazyCheck = 0;
 
-function shouldLazySync(name, cached) {
+function shouldLazySync(cached) {
   if (!cached) return true;
   if (Date.now() - (cached.fetchedAt ?? 0) < LAZY_SYNC_AFTER_MS) return false;
+  if (Date.now() - lastLazyCheck < LAZY_SYNC_THROTTLE_MS) return false;
 
-  const last = lastLazyCheck.get(name) ?? 0;
-  if (Date.now() - last < LAZY_SYNC_THROTTLE_MS) return false;
-
-  lastLazyCheck.set(name, Date.now());
+  lastLazyCheck = Date.now();
   return true;
 }
 
@@ -479,8 +365,8 @@ async function verifySignature(secret, body, header) {
  * application/json and a secret matching GITHUB_WEBHOOK_SECRET.
  */
 async function handleWebhook(request, env, ctx) {
-  if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
-  if (!env.GITHUB_WEBHOOK_SECRET) return new Response("Webhook not configured", { status: 503 });
+  if (request.method !== "POST") return text("Method not allowed", 405);
+  if (!env.GITHUB_WEBHOOK_SECRET) return text("Webhook not configured", 503);
 
   const body = await request.text();
   const signed = await verifySignature(
@@ -489,55 +375,33 @@ async function handleWebhook(request, env, ctx) {
     request.headers.get("X-Hub-Signature-256"),
   );
 
-  if (!signed) return new Response("Bad signature", { status: 401 });
-
-  const event = request.headers.get("X-GitHub-Event");
-  if (event === "ping") return new Response("pong");
+  if (!signed) return text("Bad signature", 401);
+  if (request.headers.get("X-GitHub-Event") === "ping") return text("pong");
 
   let owner = null;
   try {
     owner = JSON.parse(body)?.repository?.owner?.login ?? null;
   } catch {
-    return new Response("Bad payload", { status: 400 });
+    return text("Bad payload", 400);
   }
 
-  const targets = Object.entries(PROJECTS).filter(
-    ([, project]) => project.webhookOwner && project.webhookOwner === owner,
-  );
-
-  if (targets.length === 0) return new Response("Ignored", { status: 202 });
+  if (owner !== GITHUB_OWNER) return text("Ignored", 202);
 
   // Respond immediately; GitHub times out webhook deliveries at 10s.
   ctx.waitUntil(
-    Promise.all(
-      targets.map(async ([name, project]) => {
-        try {
-          await sync(env, name, project, await readRecord(env, name));
-        } catch (error) {
-          console.error(`webhook sync failed for ${name}:`, error.message);
-        }
-      }),
-    ),
+    (async () => {
+      try {
+        await sync(env, await readRecord(env));
+      } catch (error) {
+        console.error("webhook sync failed:", error.message);
+      }
+    })(),
   );
 
-  return new Response("Syncing", { status: 202 });
+  return text("Syncing", 202);
 }
 
 // ----------------------------------------------------------------- admin ----
-
-function formatTimestamp(ms) {
-  const formatted = new Date(ms).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    timeZone: "UTC",
-  });
-
-  return `${formatted} UTC`;
-}
 
 function formatAge(ms) {
   const units = [
@@ -551,97 +415,57 @@ function formatAge(ms) {
   return `${Math.floor(ms / size)}${suffix} ago`;
 }
 
-const STATE_COLORS = { OK: "#3fb950", STALE: "#d29922", NEVER_FETCHED: "#888" };
-
-async function renderAdminPanel(env) {
-  const names = Object.keys(PROJECTS);
-
-  const [rows, keys] = await Promise.all([
-    Promise.all(
-      names.map(async name => {
-        const record = await readRecord(env, name);
-        if (!record) return { name, state: "NEVER_FETCHED" };
-
-        const age = Date.now() - record.fetchedAt;
-        return {
-          name,
-          age,
-          fetchedAt: record.fetchedAt,
-          changedAt: record.changedAt,
-          bytes: record.body?.length ?? 0,
-          ogKnown: record.og ? Object.keys(record.og).length : 0,
-          state: age > LAZY_SYNC_AFTER_MS ? "STALE" : "OK",
-        };
-      }),
-    ),
-    env.STATS_KV.list()
-      .then(list => list.keys.map(key => key.name))
-      .catch(error => [`(couldn't list KV: ${error.message})`]),
-  ]);
-
-  const body = rows
-    .map(
-      row => `
-    <tr>
-      <td>${row.name}</td>
-      <td style="white-space:nowrap;">${row.fetchedAt ? formatTimestamp(row.fetchedAt) : "—"}</td>
-      <td>${row.age == null ? "—" : formatAge(row.age)}</td>
-      <td style="white-space:nowrap;">${row.changedAt ? formatAge(Date.now() - row.changedAt) : "—"}</td>
-      <td>${row.bytes ? `${(row.bytes / 1024).toFixed(1)} KB` : "—"}</td>
-      <td>${row.ogKnown || "—"}</td>
-      <td style="color:${STATE_COLORS[row.state]};font-weight:bold;">${row.state}</td>
-    </tr>`,
-    )
-    .join("");
-
-  return html(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>logger admin</title>
-<style>
-  body{ font-family:monospace; background:#111; color:#ddd; padding:24px; }
-  table{ border-collapse:collapse; width:100%; max-width:900px; }
-  th,td{ border:1px solid #444; padding:7px 10px; text-align:left; font-size:.85rem; }
-  th{ background:#1a1a1a; }
-  tr:nth-child(even) td{ background:#161616; }
-  h3{ margin-top:32px; }
-  ul,p.note{ font-size:.82rem; color:#aaa; }
-  ul{ padding-left:18px; }
-</style>
-</head>
-<body>
-  <h2>logger — admin panel</h2>
-  <p>generated ${formatTimestamp(Date.now())}</p>
-  <table>
-    <tr>
-      <th>project</th><th>last synced</th><th>age</th><th>last change</th>
-      <th>payload</th><th>og cached</th><th>state</th>
-    </tr>
-    ${body}
-  </table>
-
-  <p class="note">
-    The request path never writes to KV. Syncs happen on webhook delivery and
-    on cron; "last synced" only advances when the served payload changed.
-    Webhook: ${env.GITHUB_WEBHOOK_SECRET ? "configured" : "NOT configured"}.
-  </p>
-
-  <h3>raw KV keys</h3>
-  <ul>
-    ${keys.length ? keys.map(key => `<li>${key}</li>`).join("") : "<li>(no keys in this namespace)</li>"}
-  </ul>
-</body>
-</html>`);
+function formatTimestamp(ms) {
+  return `${new Date(ms).toISOString().replace("T", " ").slice(0, 19)} UTC`;
 }
 
-const PLACEHOLDER_PAGE = `<!DOCTYPE html>
-<html>
-<head><title>watsup?</title><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
-<body style="margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0c0c0c;">
-  <h1 style="color:#f0ede6;font-family:sans-serif;font-size:4vw;text-align:center;">NOTHING TO LOOK AT HERE</h1>
-</body>
-</html>`;
+/**
+ * Plain text, not HTML. It renders instantly, reads the same in a terminal as
+ * in a browser, and curl/grep work on it — which is how a status page for one
+ * service actually gets used.
+ */
+async function renderAdminPanel(env) {
+  const started = Date.now();
+  const record = await readRecord(env);
+  const lines = [];
+
+  lines.push(`logger — ${formatTimestamp(Date.now())}`, "");
+
+  if (!record) {
+    lines.push("showcase   NEVER FETCHED", "", "No data in KV yet. The next request or cron run will sync.");
+  } else {
+    const payload = parsePayload(record);
+    const age = Date.now() - record.fetchedAt;
+    const ogEntries = Object.values(record.og ?? {});
+    const withImages = ogEntries.filter(entry => entry.image).length;
+    const withSites = ogEntries.filter(entry => entry.homepage).length;
+
+    lines.push(
+      `state          ${age > LAZY_SYNC_AFTER_MS ? "STALE" : "OK"}`,
+      `last synced    ${formatTimestamp(record.fetchedAt)}  (${formatAge(age)})`,
+      `last change    ${record.changedAt ? formatAge(Date.now() - record.changedAt) : "—"}`,
+      `repos          ${Array.isArray(payload) ? payload.length : "unreadable payload"}`,
+      `payload        ${(record.body.length / 1024).toFixed(1)} KB`,
+      `og images      ${withImages} resolved of ${withSites} live sites (${ogEntries.length} tracked)`,
+      `upstream etag  ${record.upstreamEtag ?? "none — upstream sends no validator"}`,
+      `served etag    ${record.etag}`,
+    );
+  }
+
+  lines.push(
+    "",
+    `webhook        ${env.GITHUB_WEBHOOK_SECRET ? "configured" : "NOT configured — updates wait for cron"}`,
+    `github token   ${env.GITHUB_TOKEN ? "set" : "not set — 60 req/hr unauthenticated"}`,
+    `lazy sync      after ${LAZY_SYNC_AFTER_MS / 3600000}h, throttled to once per ${LAZY_SYNC_THROTTLE_MS / 60000}m per isolate`,
+    "",
+    "The request path never writes to KV. Syncs happen on webhook delivery and",
+    "on cron; a sync that finds nothing new writes nothing.",
+    "",
+    `generated in ${Date.now() - started}ms`,
+  );
+
+  return text(lines.join("\n"));
+}
 
 // ---------------------------------------------------------------- routes ----
 
@@ -658,29 +482,28 @@ function handlePreflight(origin) {
   });
 }
 
-async function handleProject(request, env, ctx, origin, name) {
-  const project = PROJECTS[name];
-  if (!project) return new Response("Not found", { status: 404 });
-  if (!isAllowedOrigin(origin)) return new Response("Forbidden", { status: 403 });
+async function handleProject(request, env, origin, name) {
+  if (name !== PROJECT) return text("Not found", 404);
+  if (!isAllowedOrigin(origin)) return text("Forbidden", 403);
 
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   if (!withinRateLimit(ip)) {
     return new Response("Rate limited", { status: 429, headers: corsHeaders(origin) });
   }
 
-  let record = await readRecord(env, name);
+  let record = await readRecord(env);
 
-  if (shouldLazySync(name, record)) {
+  if (shouldLazySync(record)) {
     try {
-      record = (await sync(env, name, project, record)).record;
+      record = (await sync(env, record)).record;
     } catch (error) {
       // Stale data beats no data; only a cold cache turns this into a failure.
-      if (!record) return new Response("Upstream fetch failed", { status: 502 });
-      console.error(`lazy sync failed for ${name}:`, error.message);
+      if (!record) return text("Upstream fetch failed", 502);
+      console.error("lazy sync failed:", error.message);
     }
   }
 
-  if (!record) return new Response("No data", { status: 503 });
+  if (!record) return text("No data", 503);
 
   const headers = corsHeaders(origin, {
     // Short, so a webhook-driven update reaches visitors quickly; the ETag
@@ -703,15 +526,11 @@ async function handleProject(request, env, ctx, origin, name) {
 export default {
   /** Safety net behind the webhook. Conditional, so a no-op run is ~free. */
   async scheduled(event, env) {
-    await Promise.all(
-      Object.entries(PROJECTS).map(async ([name, project]) => {
-        try {
-          await sync(env, name, project, await readRecord(env, name));
-        } catch (error) {
-          console.error(`scheduled sync failed for ${name}:`, error.message);
-        }
-      }),
-    );
+    try {
+      await sync(env, await readRecord(env));
+    } catch (error) {
+      console.error("scheduled sync failed:", error.message);
+    }
   },
 
   async fetch(request, env, ctx) {
@@ -724,8 +543,8 @@ export default {
     if (path === "/admin-panel") return renderAdminPanel(env);
 
     const name = url.searchParams.get("project");
-    if (!name) return html(PLACEHOLDER_PAGE);
+    if (!name) return text("logger — nothing to see here.\n\n/admin-panel for status.");
 
-    return handleProject(request, env, ctx, origin, name);
+    return handleProject(request, env, origin, name);
   },
 };
