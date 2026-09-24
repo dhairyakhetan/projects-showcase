@@ -201,7 +201,7 @@ export default function ContactPanel() {
                 className={`${row} w-full items-center gap-6`}
               >
                 <span className="shrink-0 text-dim">email</span>
-                <span className="min-w-0 truncate">
+                <span className="min-w-0 truncate text-xs">
                   {copied ? <span className="text-accent">copied ✓</span> : contact.email}
                 </span>
               </button>
@@ -216,7 +216,7 @@ export default function ContactPanel() {
                   className={`${row} flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-6`}
                 >
                   <span className="shrink-0 text-dim">{link.label}</span>
-                  <span className="flex min-w-0 items-center gap-2 sm:text-right">
+                  <span className="flex min-w-0 items-center gap-2 text-xs sm:text-right">
                     <span className="min-w-0">{link.note}</span>
                     <ArrowUpRight className="shrink-0 text-dim" />
                   </span>
