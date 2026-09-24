@@ -3,14 +3,18 @@
 Personal site for [@dhairyakhetan](https://github.com/dhairyakhetan). Next.js App
 Router, TypeScript, Tailwind v4, framer-motion. Deployed on Vercel.
 
-Five panels — Home / About / Qualification / Projects / Contact — each a real
-route (`/home`, `/about`, …), all statically prerendered.
+Five pages — Home / About / Qualification / Projects / Contact — each a real
+route (`/home`, `/about`, …), all statically prerendered. The site is styled as
+an editor: the pages are tabs (`home.js`, `about.md`, `qualification.json`,
+`projects/`, `contact.sh`), there's a status bar along the bottom, and the home
+page has a working terminal (`help` lists what it knows). Behind every page is a
+fixed field of dots that parts around the pointer.
 
 ## The site makes no network calls on load
 
-Every panel renders from `src/lib/content.ts`. The curated projects, the ⌘K
-palette and the hero easter egg all read the same hand-written list, so
-visiting any page costs zero requests for project data.
+Every page renders from `src/lib/content.ts`. The curated projects, the ⌘K
+palette, the terminal and the flappy easter egg all read the same hand-written
+list, so visiting any page costs zero requests for project data.
 
 The full public repo list is fetched **only when someone clicks "show all
 public repos"** — `src/components/AllRepos.tsx` is the one place in the app
@@ -46,8 +50,8 @@ at once at the bottom of the scroll.
 It reads as one page but every panel has a clean URL, because the persistent
 chrome and the swapping content live at different levels of the tree:
 
-- `src/app/layout.tsx` renders **Chrome** (background, cursor, nav, palette,
-  footer) and never unmounts
+- `src/app/layout.tsx` renders **Chrome** (dot field, cursor, tabs, palette,
+  status bar) and never unmounts
 - `src/app/[panel]/page.tsx` renders just the active panel, and is the only
   thing that changes on navigation
 
@@ -78,14 +82,14 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   └── worker.js               # committed copy of the deployed worker
 │
 ├── public/
-│   ├── favicon.svg             # adapts to light/dark
+│   ├── favicon.svg             # "dk_", adapts to light/dark
 │   └── me.png                  # About photo (optional — falls back to initials)
 │
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx          # fonts, metadata, theme script — and Chrome
 │   │   ├── page.tsx            # "/" → redirects to /home
-│   │   ├── globals.css         # both themes + CSS entrance animations
+│   │   ├── globals.css         # design tokens, both themes, CSS animations
 │   │   ├── [panel]/
 │   │   │   └── page.tsx        # /home /about /qualification /projects /contact
 │   │   └── api/repos/route.ts  # same-origin JSON endpoint
@@ -97,15 +101,18 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   │   └── fixtures.ts         # stand-in data when the worker is unreachable
 │   │
 │   └── components/
-│       ├── Chrome.tsx          # persistent shell: nav, cursor, palette, footer
-│       ├── CommandPalette.tsx  # ⌘K over panels + live repos
-│       ├── CustomCursor.tsx    # dot + lagging ring, opt-in via data attrs
+│       ├── Chrome.tsx          # persistent shell: tabs, dot field, palette, status bar
+│       ├── CommandPalette.tsx  # ⌘K over pages, projects, a few actions
+│       ├── CustomCursor.tsx    # dot + lagging ring, labels via data-cursor-label
 │       ├── Magnetic.tsx        # pulls a child toward the pointer
 │       ├── Reveal.tsx          # CSS entrance animations
 │       ├── ThemeToggle.tsx     # dark ⇄ light
+│       ├── Terminal.tsx        # the shell on the home page
 │       ├── KineticName.tsx     # hero name, per-letter pointer reaction
-│       ├── ShaderField.tsx     # cursor-reactive canvas field
-│       ├── FlappyProjects.tsx  # the easter egg
+│       ├── ShaderField.tsx     # the background dot field, idle when nothing moves
+│       ├── FlappyProjects.tsx  # the easter egg (`play` in the terminal)
+│       ├── FeaturedStack.tsx   # the curated projects, stacked on scroll
+│       ├── AllRepos.tsx        # the full repo list, fetched on click
 │       ├── ProjectCard.tsx     # one repo
 │       └── panels/             # Home / About / Qualification / Projects / Contact
 │
@@ -221,13 +228,19 @@ export const OVERRIDES: Record<string, string[]> = {
 };
 ```
 
-## Themes
+## Design
 
-Two, meant to feel like different places rather than a palette inversion: dark
-is a late-night terminal (near-black, phosphor green, grid texture), light is
-warm cream with multi-hue sun washes. Both are the same CSS custom properties on
-`[data-theme]`, so components never branch on theme. A blocking script in
-`src/app/layout.tsx` applies the stored choice before first paint.
+Instrument Serif for statements, Martian Mono for everything else, sharp
+corners throughout. Dark is the default: warm near-black with one acid-green
+accent. Light is the same system on paper — cream, ink, and an amber accent
+dark enough to carry text. Both are CSS custom properties on `[data-theme]`,
+mapped into Tailwind in `globals.css`, so components never branch on theme. A
+blocking script in `src/app/layout.tsx` applies a stored choice before first
+paint.
+
+The dot field and the kinetic name only animate while something is moving:
+once the pointer is still and every dot has settled, their loops stop, so a
+reader sitting on a page costs no frames at all.
 
 ## Commands
 

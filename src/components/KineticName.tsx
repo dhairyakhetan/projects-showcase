@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 
 /**
- * The name at display scale, each letter reacting to pointer proximity.
+ * The name at display scale — first name upright, surname in italic, then an
+ * accent full stop — each letter reacting to pointer proximity.
  *
  * One shared rAF loop writing to the DOM directly, rather than a motion
  * component per letter — at ~15 characters a frame, per-letter spring
@@ -12,9 +13,12 @@ import { useEffect, useRef } from "react";
  * Letters stay real characters, so the name is still selectable text.
  */
 
-const RADIUS = 160;
+const RADIUS = 170;
 
 export default function KineticName({ name, className }: { name: string; className?: string }) {
+  const [first, ...rest] = name.split(" ");
+  const last = rest.join(" ");
+
   const containerRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -42,8 +46,12 @@ export default function KineticName({ name, className }: { name: string; classNa
     let pointerY = -9999;
     const energies = new Float32Array(letters.length);
     let frame = 0;
+    let running = false;
 
+    // Runs only while a letter is disturbed; the next pointermove restarts it.
     function loop() {
+      let busy = false;
+
       for (let i = 0; i < letters.length; i++) {
         const center = centers[i];
         const dist = Math.hypot(center.x - pointerX, center.y - pointerY);
@@ -51,6 +59,7 @@ export default function KineticName({ name, className }: { name: string; classNa
 
         energies[i] += (target - energies[i]) * 0.14;
         const energy = energies[i];
+        if (Math.abs(target - energy) > 0.002) busy = true;
 
         if (energy < 0.002) {
           letters[i].style.transform = "";
@@ -58,16 +67,20 @@ export default function KineticName({ name, className }: { name: string; classNa
           continue;
         }
 
-        letters[i].style.transform = `translateY(${(-energy * 14).toFixed(2)}px) scale(${(1 + energy * 0.14).toFixed(3)})`;
+        letters[i].style.transform = `translateY(${(-energy * 18).toFixed(2)}px) scale(${(1 + energy * 0.1).toFixed(3)})`;
         letters[i].style.color = energy > 0.12 ? "var(--accent)" : "";
       }
 
-      frame = requestAnimationFrame(loop);
+      if (busy) frame = requestAnimationFrame(loop);
+      else running = false;
     }
 
     function onMove(event: PointerEvent) {
       pointerX = event.clientX;
       pointerY = event.clientY;
+      if (running) return;
+      running = true;
+      frame = requestAnimationFrame(loop);
     }
 
     // Coalesced to one measurement per frame: scroll fires far more often
@@ -85,29 +98,42 @@ export default function KineticName({ name, className }: { name: string; classNa
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("resize", queueMeasure);
     window.addEventListener("scroll", queueMeasure, { passive: true });
-    frame = requestAnimationFrame(loop);
+
+    // The first measurement lands mid-entrance and possibly before the serif
+    // has loaded; both shift the letters, so measure again once each settles.
+    document.fonts?.ready.then(queueMeasure);
+    const settle = setTimeout(queueMeasure, 900);
 
     return () => {
       cancelAnimationFrame(frame);
+      clearTimeout(settle);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("resize", queueMeasure);
       window.removeEventListener("scroll", queueMeasure);
     };
   }, [name]);
 
+  const letters = (text: string, offset: number) =>
+    text.split("").map((char, index) => (
+      <span
+        key={offset + index}
+        data-letter
+        aria-hidden
+        className="inline-block will-change-transform"
+        style={{ transition: "color 200ms ease" }}
+      >
+        {char === " " ? "\u00a0" : char}
+      </span>
+    ));
+
   return (
-    <span ref={containerRef} className={className} aria-label={name}>
-      {name.split("").map((char, index) => (
-        <span
-          key={`${char}-${index}`}
-          data-letter
-          aria-hidden
-          className="inline-block will-change-transform"
-          style={{ transition: "color 200ms ease" }}
-        >
-          {char === " " ? " " : char}
-        </span>
-      ))}
+    <span ref={containerRef} className={className}>
+      <span className="sr-only">{name}</span>
+      <span className="block">{letters(first, 0)}</span>
+      <span className="block italic">
+        {letters(last, first.length)}
+        <span aria-hidden className="text-accent">.</span>
+      </span>
     </span>
   );
 }

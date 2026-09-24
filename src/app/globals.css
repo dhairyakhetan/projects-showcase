@@ -1,99 +1,131 @@
 @import "tailwindcss";
 
 /*
- * dark  — late-night terminal. Near-black, phosphor green, glow, hard edges.
- * light — sunshine and rainbows. Warm cream, saturated hues, soft shadows.
+ * An editor, not a brochure: warm near-black, one acid accent, a big serif
+ * for statements and a monospace for everything else. Sharp corners
+ * throughout — radius is zero by design, not by omission.
  *
- * Both are the same custom properties, so components never branch on theme.
- * Only the few places where the moods differ in kind rather than degree read
- * [data-theme] directly.
+ * Light is the same system on paper: identical structure and spacing, ink on
+ * cream, and the accent swapped for an amber dark enough to carry text.
  */
 
 @custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
+/* The sticky header's height: logo row + tab strip on small screens, one row
+   from lg. Anything that sticks beneath it (the project stack) offsets by it. */
+:root {
+  --header-h: 100px;
+  --status-h: 32px;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --header-h: 64px;
+  }
+}
 
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --bg: #07080b;
-  --bg-raised: #0d1016;
-  --bg-inset: #11151e;
-  --bg-overlay: rgba(7, 8, 11, 0.82);
+  --bg: #0b0c0a;
+  --panel: #0f110d;
+  --panel-hi: #121410;
+  --chip: #181a15;
 
-  --border: #1c222d;
-  --border-strong: #2b3342;
+  --rule: #23261f;
+  --line: #2c3027;
+  --line-strong: #3a3e33;
+  --line-soft: #1c1f19;
 
-  --text: #e4e9f1;
-  --text-dim: #8a93a4;
-  --text-faint: #565e6e;
+  --ink: #ebe8df;
+  --ink-soft: #c9c6bd;
+  --ink-mute: #b5b2a9;
+  --dim: #9fa294;
+  --faint: #6f7268;
+  --ghost: #4f5249;
 
-  --accent: #4ade80;
-  --accent-soft: rgba(74, 222, 128, 0.14);
-  --accent-2: #22d3ee;
-  --accent-3: #a78bfa;
+  --accent: #c8f55a;
+  --on-accent: #0b0c0a;
+  --pulse: rgba(200, 245, 90, 0.5);
 
-  --glow: rgba(74, 222, 128, 0.4);
-  --glow-wide: rgba(74, 222, 128, 0.09);
-  --shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.9);
+  --syn-key: #ffb35c;
+  --syn-num: #8fc7ff;
+  --err: #ff9b7a;
 
-  --selection-bg: rgba(74, 222, 128, 0.28);
-  --selection-fg: #ffffff;
+  /* The background field: dots at rest, brightening to --accent near the pointer. */
+  --dot-rest: #262a20;
 
-  --radius: 6px;
-  --radius-lg: 10px;
+  --shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  --selection-bg: rgba(200, 245, 90, 0.3);
+  --selection-fg: #0b0c0a;
+
+  /* modal scrims, and the cursor ring over links */
+  --bg-overlay: rgba(11, 12, 10, 0.86);
+  --accent-soft: rgba(200, 245, 90, 0.12);
 }
 
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg: #fff8ea;
-  --bg-raised: #ffffff;
-  --bg-inset: #fff2dc;
-  --bg-overlay: rgba(255, 248, 234, 0.85);
+  --bg: #f3f1e9;
+  --panel: #fbfaf6;
+  --panel-hi: #efece3;
+  --chip: #e8e5da;
 
-  --border: #f2dcba;
-  --border-strong: #e0be8e;
+  --rule: #dedacf;
+  --line: #d4d0c3;
+  --line-strong: #b8b3a4;
+  --line-soft: #e7e3d9;
 
-  --text: #2b1f12;
-  --text-dim: #6d5a42;
-  --text-faint: #a28c6e;
+  --ink: #17180f;
+  --ink-soft: #34362c;
+  --ink-mute: #4b4d43;
+  --dim: #5d6055;
+  --faint: #7d8073;
+  --ghost: #a3a697;
 
-  --accent: #f0870c;
-  --accent-soft: rgba(240, 135, 12, 0.14);
-  --accent-2: #e5357f;
-  --accent-3: #7c5cf5;
+  --accent: #b35900;
+  --on-accent: #fff8ee;
+  --pulse: rgba(179, 89, 0, 0.45);
 
-  --glow: rgba(240, 135, 12, 0.4);
-  --glow-wide: rgba(240, 135, 12, 0.12);
-  --shadow: 0 18px 44px -14px rgba(160, 104, 24, 0.34);
+  --syn-key: #a13c6b;
+  --syn-num: #1f5ea8;
+  --err: #b3261e;
 
-  --selection-bg: rgba(229, 53, 127, 0.24);
-  --selection-fg: #2b1f12;
+  --dot-rest: #d6d2c4;
 
-  --radius: 12px;
-  --radius-lg: 20px;
+  --shadow: 0 24px 60px rgba(60, 50, 20, 0.14);
+  --selection-bg: rgba(179, 89, 0, 0.2);
+  --selection-fg: #17180f;
+
+  --bg-overlay: rgba(243, 241, 233, 0.88);
+  --accent-soft: rgba(179, 89, 0, 0.1);
 }
 
-/* Expose the tokens to Tailwind. */
 @theme inline {
   --color-bg: var(--bg);
-  --color-raised: var(--bg-raised);
-  --color-inset: var(--bg-inset);
-  --color-edge: var(--border);
-  --color-edge-strong: var(--border-strong);
-  --color-ink: var(--text);
-  --color-dim: var(--text-dim);
-  --color-faint: var(--text-faint);
+  --color-panel: var(--panel);
+  --color-panel-hi: var(--panel-hi);
+  --color-chip: var(--chip);
+  --color-rule: var(--rule);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-line-soft: var(--line-soft);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-mute: var(--ink-mute);
+  --color-dim: var(--dim);
+  --color-faint: var(--faint);
+  --color-ghost: var(--ghost);
   --color-accent: var(--accent);
-  --color-accent-2: var(--accent-2);
-  --color-accent-3: var(--accent-3);
+  --color-on-accent: var(--on-accent);
+  --color-syn-key: var(--syn-key);
+  --color-syn-num: var(--syn-num);
+  --color-err: var(--err);
 
-  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
-  --font-body: var(--font-inter), system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
-
-  --radius-token: var(--radius);
-  --radius-token-lg: var(--radius-lg);
+  --font-display: var(--font-instrument-serif), Georgia, serif;
+  --font-mono: var(--font-martian-mono), ui-monospace, Menlo, Consolas, monospace;
 }
 
 /*
@@ -110,14 +142,14 @@
 
   html {
     -webkit-text-size-adjust: 100%;
-    scrollbar-color: var(--border-strong) transparent;
+    scrollbar-color: var(--line-strong) transparent;
   }
 
   body {
     margin: 0;
     background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
+    color: var(--ink);
+    font-family: var(--font-mono);
     font-synthesis-weight: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -135,9 +167,14 @@
     text-decoration: none;
   }
 
-  button {
+  button,
+  input,
+  textarea {
     font: inherit;
     color: inherit;
+  }
+
+  button {
     background: none;
     border: none;
     padding: 0;
@@ -147,7 +184,6 @@
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
-    border-radius: 3px;
   }
 }
 
@@ -160,59 +196,141 @@
   }
 }
 
-/* ---- texture -------------------------------------------------------------
- * Where the two themes stop being a palette swap: a terminal grid vs. sun-wash.
+/* ---- components ----------------------------------------------------------
+ * In a layer so a utility on the same element can still override them.
  */
-.texture {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  transition: opacity 420ms ease;
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    height: 52px;
+    padding: 0 26px;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease, opacity 200ms ease;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.88;
+  }
+
+  .btn-ghost {
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--dim);
+  }
+
+  .chip {
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    color: var(--dim);
+    font-size: 11px;
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+  }
+
+  .chip:hover {
+    border-color: var(--faint);
+    color: var(--ink);
+  }
+
+  .chip[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    padding: 6px 11px;
+    background: var(--chip);
+    color: var(--ink-mute);
+  }
+
+  .panel {
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+
+  .panel-bar {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  .row-link {
+    transition: padding-left 250ms ease, background-color 250ms ease;
+  }
+
+  .row-link:hover {
+    padding-left: 28px;
+    background-color: var(--panel-hi);
+  }
+
+  /* GitHub's repo previews are white cards; muted at rest they sit in the
+     design instead of blowing it out, and come back to colour on hover. */
+  .thumb {
+    filter: grayscale(1) brightness(0.78) contrast(1.05);
+    transition: filter 500ms ease;
+  }
+
+  [data-theme="light"] .thumb {
+    filter: grayscale(1) contrast(1.02);
+  }
+
+  .group:hover .thumb,
+  .group:focus-within .thumb {
+    filter: none;
+  }
 }
 
-[data-theme="dark"] .texture {
-  background-image:
-    linear-gradient(to right, rgba(74, 222, 128, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(74, 222, 128, 0.05) 1px, transparent 1px);
-  background-size: 46px 46px;
-  mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 20%, transparent 78%);
-  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 20%, transparent 78%);
+.caret {
+  animation: blink 1s steps(1) infinite;
 }
 
-[data-theme="light"] .texture {
-  background-image:
-    radial-gradient(circle 620px at 12% 8%, rgba(255, 196, 61, 0.34), transparent 62%),
-    radial-gradient(circle 560px at 88% 12%, rgba(255, 122, 181, 0.26), transparent 60%),
-    radial-gradient(circle 680px at 50% 100%, rgba(124, 92, 245, 0.16), transparent 62%);
+.live-dot {
+  animation: pulse 1.8s ease-out infinite;
 }
 
-/* ---- type ---------------------------------------------------------------- */
-.font-display { font-family: var(--font-display); }
-.font-mono { font-family: var(--font-mono); }
-
-.kicker {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
 
-/* Light earns its "rainbows" here; dark keeps a single phosphor glow. */
-.headline-accent {
-  color: var(--accent);
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--pulse);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
 }
 
-[data-theme="dark"] .headline-accent {
-  text-shadow: 0 0 26px var(--glow);
-}
-
-[data-theme="light"] .headline-accent {
-  background: linear-gradient(96deg, #f0870c, #e5357f 42%, #7c5cf5 78%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+@media (prefers-reduced-motion: reduce) {
+  .caret,
+  .live-dot {
+    animation: none;
+  }
 }
 
 /* ---- entrance animations -------------------------------------------------
@@ -236,29 +354,18 @@
   to { opacity: 1; transform: none; }
 }
 
-@keyframes rise-word {
-  from { opacity: 0; transform: translateY(110%); }
-  to { opacity: 1; transform: none; }
-}
-
 .reveal {
   animation: rise 620ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms) both;
 }
 
-.reveal-word {
-  display: inline-block;
-  animation: rise-word 660ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms) both;
-}
-
 /* Keyed on the route, so each panel swap replays it. */
 .panel-enter {
-  animation: rise 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rise 550ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
   --rise-from: 14px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal,
-  .reveal-word,
   .panel-enter {
     animation: none;
   }
@@ -278,7 +385,7 @@
  * phone it just looks like cards that won't scroll away.
  */
 .stack {
-  --stack-top: 5.5rem;
+  --stack-top: calc(var(--header-h) + 1.5rem);
   --stack-step: 1.35rem;
 }
 
@@ -443,23 +550,18 @@
   }
 }
 
-/* ---- surfaces ------------------------------------------------------------ */
-.surface {
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-}
 
 /* ---- scrollbar ----------------------------------------------------------- */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 99px;
+  background: var(--line-strong);
   border: 3px solid var(--bg);
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* ---- motion opt-out ------------------------------------------------------
  * Decoration stops; layout and legibility are untouched.

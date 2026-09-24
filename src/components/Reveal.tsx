@@ -32,37 +32,3 @@ export function Reveal({ children, delay = 0, y = 18, className }: RevealProps) 
     </div>
   );
 }
-
-interface RevealWordsProps {
-  text: string;
-  /** Milliseconds. */
-  delay?: number;
-  /** Milliseconds between consecutive words. */
-  stagger?: number;
-  className?: string;
-}
-
-/**
- * Reveals a line word by word. The inline-block spans still wrap and justify
- * like normal text, and aria-label keeps it one announcement rather than one
- * per word.
- */
-export function RevealWords({ text, delay = 0, stagger = 30, className }: RevealWordsProps) {
-  const words = text.split(" ");
-
-  return (
-    <span className={className} aria-label={text}>
-      {words.map((word, index) => (
-        <span key={`${word}-${index}`} aria-hidden className="inline-block overflow-hidden align-bottom">
-          <span
-            className="reveal-word"
-            style={{ "--reveal-delay": `${delay + index * stagger}ms` } as CSSProperties}
-          >
-            {word}
-            {index < words.length - 1 ? " " : ""}
-          </span>
-        </span>
-      ))}
-    </span>
-  );
-}

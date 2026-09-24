@@ -1,58 +1,125 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
 import ArrowUpRight from "@/components/ArrowUpRight";
-import { Reveal, RevealWords } from "@/components/Reveal";
+import { Reveal } from "@/components/Reveal";
 import { contact } from "@/lib/content";
 
 /**
- * My local time, so anyone deciding whether to message knows what they're
- * interrupting. Renders nothing until mounted: the server has no idea what
- * time it is for the visitor's render, and a mismatch would be a hydration
- * error.
+ * Hands the message to the visitor's own mail app rather than pretending to
+ * deliver it. There's no backend here, and a form that prints "delivered"
+ * without sending anything is worse than no form — so the success state says
+ * exactly what happened: a draft was opened, and they still have to hit send.
  */
-function LocalTime() {
-  const [now, setNow] = useState<Date | null>(null);
+function Composer() {
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [opened, setOpened] = useState(false);
 
-  useEffect(() => {
-    setNow(new Date());
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  function send(event?: FormEvent) {
+    event?.preventDefault();
 
-  if (!now) {
-    // Reserve the line so nothing shifts when the clock arrives.
-    return <span className="inline-block h-4" aria-hidden />;
+    if (!name.trim() || !message.trim()) {
+      setError("error: --name and --message are required");
+      return;
+    }
+
+    const subject = encodeURIComponent(`Hi from ${name.trim()}`);
+    const body = encodeURIComponent(message.trim());
+    window.location.href = `mailto:${contact.email}?subject=${subject}&body=${body}`;
+    setOpened(true);
   }
 
-  const time = new Intl.DateTimeFormat("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: contact.timezone,
-  }).format(now);
+  // ⌘/Ctrl+Enter sends from the message box, like most chat inputs.
+  function onMessageKey(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) send();
+  }
 
-  const hour = Number(
-    new Intl.DateTimeFormat("en-GB", {
-      hour: "2-digit",
-      hour12: false,
-      timeZone: contact.timezone,
-    }).format(now),
-  );
-
-  const status =
-    hour >= 1 && hour < 6
-      ? "almost certainly still awake"
-      : hour < 9
-        ? "asleep, probably"
-        : hour < 17
-          ? "buried in prep"
-          : "around";
+  const field =
+    "w-full border border-line bg-bg px-3.5 text-[13px] text-ink outline-none transition-colors focus:border-dim";
 
   return (
-    <span className="font-mono text-xs text-[var(--text-faint)]">
-      <span className="text-[var(--accent)]">{time}</span> where I am — {status}
-    </span>
+    <div className="panel">
+      <div className="panel-bar">
+        <span>./send_message.sh</span>
+        <span>{opened ? "exit 0" : "ready"}</span>
+      </div>
+
+      {opened ? (
+        <div role="status" className="panel-enter flex flex-col gap-3.5 px-7 py-10 text-[13px] leading-[1.8]">
+          <p className="text-dim">$ ./send_message.sh --name &quot;{name.trim()}&quot;</p>
+          <p>
+            packing message<span className="text-accent"> ........ done</span>
+          </p>
+          <p>
+            opening your mail app<span className="text-accent"> .. done</span>
+          </p>
+          <p className="mt-3 font-display text-[clamp(2rem,5vw,2.75rem)] leading-[1.05]">
+            Thanks, {name.trim()}. <span className="italic text-accent">Hit send there.</span>
+          </p>
+          <p className="text-xs text-dim">
+            Nothing opened? Write to{" "}
+            <a href={`mailto:${contact.email}`} className="text-ink underline underline-offset-4">
+              {contact.email}
+            </a>{" "}
+            directly.
+          </p>
+          <button
+            type="button"
+            onClick={() => setOpened(false)}
+            data-cursor-label="edit"
+            className="btn btn-ghost mt-2 h-[42px] self-start px-[18px] text-xs"
+          >
+            edit message
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={send} noValidate className="flex flex-col gap-5 p-7">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="f-name" className="text-[11px] text-dim">
+              <span className="text-accent">--</span>name
+            </label>
+            <input
+              id="f-name"
+              value={name}
+              onChange={event => {
+                setName(event.target.value);
+                setError("");
+              }}
+              autoComplete="name"
+              className={`${field} h-[46px]`}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="f-msg" className="text-[11px] text-dim">
+              <span className="text-accent">--</span>message
+            </label>
+            <textarea
+              id="f-msg"
+              value={message}
+              onChange={event => {
+                setMessage(event.target.value);
+                setError("");
+              }}
+              onKeyDown={onMessageKey}
+              rows={5}
+              className={`${field} resize-none py-3 leading-[1.7]`}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <span role="status" className="text-[11px] text-err">
+              {error}
+            </span>
+            <button type="submit" data-cursor-label="send" className="btn btn-primary h-[50px]">
+              run send <span aria-hidden>↵</span>
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }
 
@@ -65,90 +132,76 @@ export default function ContactPanel() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Blocked clipboard — the address is displayed in full anyway.
+      // Blocked clipboard — the address is on screen in full anyway.
     }
   }
 
+  const row =
+    "row-link flex justify-between border-b border-rule px-3 py-[18px] text-left text-[13px]";
+
   return (
-    <div className="max-w-4xl">
-      <Reveal>
-        <p className="kicker mb-3">04 — say hi</p>
-      </Reveal>
+    <section
+      aria-label="Contact"
+      className="grid min-h-[calc(100svh-var(--header-h)-var(--status-h)-7rem)] items-center gap-14 xl:grid-cols-[minmax(0,1fr)_560px] xl:gap-20"
+    >
+      <div className="flex flex-col gap-8">
+        <Reveal>
+          <p className="text-xs text-dim">
+            <span className="text-accent">05</span> / contact.sh
+          </p>
+        </Reveal>
 
-      <h2 className="font-display text-[clamp(2rem,6vw,3.4rem)] font-bold leading-tight">
-        <RevealWords text={contact.heading} delay={80} />
-      </h2>
+        <Reveal delay={80}>
+          <h2 className="font-display text-[clamp(4rem,14vw,7.5rem)] font-normal leading-[0.9] tracking-[-0.03em]">
+            Let&apos;s <span className="italic text-accent">talk.</span>
+          </h2>
+        </Reveal>
 
-      <Reveal delay={180}>
-        <p className="mt-5 max-w-xl text-[1.02rem] leading-relaxed text-[var(--text-dim)]">
-          {contact.intro}
-        </p>
-      </Reveal>
+        <Reveal delay={140}>
+          <p className="max-w-[480px] text-sm leading-[1.8] text-dim">{contact.intro}</p>
+        </Reveal>
 
-      <Reveal delay={260}>
-        <button
-          type="button"
-          onClick={copyEmail}
-          data-cursor-label={copied ? "copied" : "copy"}
-          className="group mt-10 flex w-full flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-[var(--border-strong)] pb-5 text-left transition-colors hover:border-[var(--accent)]"
-        >
-          <span className="min-w-0">
-            <span className="block font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--text-faint)]">
-              email
-            </span>
-            <span className="mt-2 block truncate font-display text-[clamp(1.3rem,4.5vw,2.3rem)] font-bold leading-none transition-colors group-hover:text-[var(--accent)]">
-              {contact.email}
-            </span>
-          </span>
-
-          <span className="shrink-0 font-mono text-xs text-[var(--accent)]">
-            {copied ? "copied ✓" : "click to copy"}
-          </span>
-        </button>
-      </Reveal>
-
-      {/* Each row says what the platform is for. The handle is my name on all
-          four of them, which this page already establishes. */}
-      <ul className="mt-2">
-        {contact.links.map((link, index) => (
-          <Reveal key={link.label} delay={340 + index * 70}>
+        <Reveal delay={200}>
+          {/* Each row says what the platform is for. The handle is my name on
+              every one of them, which the page already establishes. */}
+          <ul className="max-w-[560px] border-t border-rule">
             <li>
-              <a
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-cursor-label="open"
-                className="group flex items-baseline gap-4 border-b border-[var(--border)] py-5 transition-colors hover:border-[var(--accent)] sm:gap-6"
+              <button
+                type="button"
+                onClick={copyEmail}
+                data-cursor-label={copied ? "copied" : "copy"}
+                className={`${row} w-full items-center gap-6`}
               >
-                <span className="shrink-0 font-mono text-[11px] text-[var(--text-faint)]">
-                  0{index + 1}
+                <span className="shrink-0 text-dim">email</span>
+                <span className="min-w-0 truncate">
+                  {copied ? <span className="text-accent">copied ✓</span> : contact.email}
                 </span>
-
-                <span className="min-w-0 flex-1">
-                  <span className="font-display text-[clamp(1.15rem,3.4vw,1.7rem)] font-bold leading-tight transition-colors group-hover:text-[var(--accent)]">
-                    {link.label}
-                  </span>
-                  <span className="mt-1 block text-sm text-[var(--text-dim)] sm:hidden">
-                    {link.note}
-                  </span>
-                </span>
-
-                <span className="hidden max-w-[42%] text-right text-sm text-[var(--text-dim)] sm:block">
-                  {link.note}
-                </span>
-
-                <ArrowUpRight className="shrink-0 text-[var(--text-faint)] transition-[transform,color] duration-300 group-hover:translate-x-1 group-hover:text-[var(--accent)]" />
-              </a>
+              </button>
             </li>
-          </Reveal>
-        ))}
-      </ul>
+            {contact.links.map(link => (
+              <li key={link.label}>
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-cursor-label="open"
+                  className={`${row} flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-6`}
+                >
+                  <span className="shrink-0 text-dim">{link.label}</span>
+                  <span className="flex min-w-0 items-center gap-2 sm:text-right">
+                    <span className="min-w-0">{link.note}</span>
+                    <ArrowUpRight className="shrink-0 text-dim" />
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+      </div>
 
-      <Reveal delay={640}>
-        <p className="mt-8">
-          <LocalTime />
-        </p>
+      <Reveal delay={220} y={24}>
+        <Composer />
       </Reveal>
-    </div>
+    </section>
   );
 }

@@ -1,16 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Reveal, RevealWords } from "@/components/Reveal";
-import { about, identity } from "@/lib/content";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Reveal } from "@/components/Reveal";
+import { about, favourite, identity } from "@/lib/content";
+
+type Mode = "jee" | "code";
+type File = "dhairya.js" | "me.png";
+
+const str = (value: string) => <span className="text-accent">&quot;{value}&quot;</span>;
+const list = (values: readonly string[]) => (
+  <>
+    [
+    {values.map((value, index) => (
+      <span key={value}>
+        {str(value)}
+        {index < values.length - 1 ? ", " : ""}
+      </span>
+    ))}
+    ]
+  </>
+);
 
 /**
- * Optional photo. Missing means initials, not a broken image icon.
+ * The photo, as a file open in the editor. Muted at rest like every image on
+ * the site; colour comes back on hover.
  *
- * The markup is server-rendered, so a missing file fires `error` while the
- * HTML is still parsing — before React has attached onError. That event is
- * gone for good, so the miss is also detected on mount: a browser reports a
- * failed image as complete with zero natural width.
+ * A missing file means initials, not a broken-image icon. The markup is
+ * server-rendered, so a 404 can fire before React attaches onError — the
+ * mount check catches that case (a failed image is complete with no width).
  */
 function Portrait() {
   const [failed, setFailed] = useState(false);
@@ -22,105 +39,180 @@ function Portrait() {
   }, []);
 
   return (
-    <figure className="w-full max-w-[280px]">
-      <div className="aspect-[4/5] w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-inset)]">
+    <div className="group flex items-center justify-center p-6 sm:p-8">
+      <div className="aspect-[577/636] w-full max-w-[300px] overflow-hidden border border-line bg-chip">
         {failed ? (
-          <div className="flex h-full w-full items-center justify-center font-display text-5xl font-bold text-[var(--text-faint)]">
+          <div className="flex h-full w-full items-center justify-center font-display text-7xl text-faint">
             {identity.name
               .split(" ")
               .map(part => part[0])
               .join("")}
           </div>
         ) : (
-          /* Plain <img>: one local file, nothing to optimise remotely, and
-             next/image would swallow the missing-file fallback. */
+          /* Plain <img>: one local file, and next/image would swallow the
+             missing-file fallback. */
           <img
             ref={ref}
             src={about.portrait}
             alt={about.portraitAlt}
             onError={() => setFailed(true)}
-            className="h-full w-full object-cover"
+            className="thumb h-full w-full object-cover"
           />
         )}
       </div>
+    </div>
+  );
+}
 
-      <figcaption className="mt-3 font-mono text-[11px] leading-relaxed text-[var(--text-faint)]">
-        {about.portraitCaption}
-      </figcaption>
-    </figure>
+function Code({ onOpenPhoto }: { onOpenPhoto: () => void }) {
+  const { facts } = about;
+
+  const lines: ReactNode[] = [
+    <>
+      <span className="text-syn-key">const</span> dhairya = {"{"}
+    </>,
+    <>  name: {str(identity.name)},</>,
+    <>  based: {str(facts.based)},</>,
+    <>
+      {"  "}grade: <span className="text-syn-num">{facts.grade}</span>,
+    </>,
+    <>  preparingFor: {str(facts.preparingFor)},</>,
+    <>  writes: {list(facts.writes)},</>,
+    <>  learning: {list(facts.learning)},</>,
+    <>
+      {"  "}finest:{" "}
+      <a
+        href={favourite.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-cursor-label="visit"
+        className="text-accent underline decoration-1 underline-offset-4"
+      >
+        &quot;{favourite.name}&quot;
+      </a>
+      ,
+    </>,
+    <>
+      {"  "}face:{" "}
+      <button
+        type="button"
+        onClick={onOpenPhoto}
+        data-cursor-label="view"
+        className="text-accent underline decoration-1 underline-offset-4"
+      >
+        &quot;me.png&quot;
+      </button>
+      ,
+    </>,
+    <>  status: {str(facts.status)}</>,
+    <>{"};"}</>,
+    <span className="text-faint">{"// last updated: always"}</span>,
+  ];
+
+  return (
+    <div className="overflow-x-auto py-[18px] text-xs leading-[2.4] sm:text-sm sm:leading-[2.05]">
+      {lines.map((content, index) => (
+        <div key={index} className="grid grid-cols-[44px_minmax(0,1fr)] sm:grid-cols-[56px_minmax(0,1fr)]">
+          <span aria-hidden className="select-none pr-[18px] text-right text-xs text-ghost">
+            {index + 1}
+          </span>
+          <span className="whitespace-pre pl-1.5 pr-5">{content}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
 export default function AboutPanel() {
+  const [mode, setMode] = useState<Mode>("code");
+  const [file, setFile] = useState<File>("dhairya.js");
+  const files: File[] = ["dhairya.js", "me.png"];
+
   return (
-    <div>
-      <Reveal>
-        <p className="kicker mb-3">01 — who</p>
-      </Reveal>
-
-      <h2 className="font-display text-[clamp(2rem,6vw,3.4rem)] font-bold leading-tight">
-        <RevealWords text={about.heading} delay={80} />
-      </h2>
-
-      {/* The lead carries the panel; body copy supports it. */}
-      <Reveal delay={160}>
-        <p className="mt-7 max-w-3xl font-display text-[clamp(1.15rem,3vw,1.75rem)] font-medium leading-snug">
-          {about.lead}
-        </p>
-      </Reveal>
-
-      <div className="mt-12 grid gap-10 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-14">
-        <Reveal delay={240} className="order-1">
-          <Portrait />
+    <section
+      aria-label="About"
+      className="grid min-h-[calc(100svh-var(--header-h)-var(--status-h)-7rem)] items-center gap-14 xl:grid-cols-[minmax(0,1fr)_560px] xl:gap-20"
+    >
+      <div className="flex flex-col gap-8">
+        <Reveal>
+          <p className="text-xs text-dim">
+            <span className="text-accent">02</span> / about.md
+          </p>
         </Reveal>
 
-        <div className="order-2 max-w-[58ch] space-y-5 text-[1.02rem] leading-relaxed text-[var(--text-dim)]">
-          {about.paragraphs.map((paragraph, index) => (
-            <Reveal key={index} delay={300 + index * 80}>
-              <p>{paragraph}</p>
-            </Reveal>
-          ))}
+        <Reveal delay={80}>
+          <h2 className="font-display text-[clamp(2.9rem,8.5vw,5rem)] font-normal leading-[0.98] tracking-[-0.02em]">
+            {about.heading[0]}
+            <br />
+            {about.heading[1]} <span className="italic text-accent">{about.heading[2]}</span>
+          </h2>
+        </Reveal>
 
-          <Reveal delay={300 + about.paragraphs.length * 80}>
-            <ul className="space-y-3 pt-3">
-              {about.principles.map((principle, index) => (
-                <li key={index} className="flex gap-4">
-                  <span className="shrink-0 pt-[3px] font-mono text-[11px] text-[var(--text-faint)]">
-                    0{index + 1}
-                  </span>
-                  <span className="text-[0.97rem] leading-relaxed text-[var(--text)]">
-                    {principle}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-        </div>
+        <Reveal delay={160}>
+          <div role="group" aria-label="Mode" className="flex w-max border border-line">
+            {(["jee", "code"] as const).map(value => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setMode(value)}
+                aria-pressed={mode === value}
+                data-cursor-label="switch"
+                className={`h-11 px-[22px] text-xs font-medium transition-colors ${
+                  mode === value ? "bg-accent text-on-accent" : "text-dim hover:text-ink"
+                }`}
+              >
+                {value}_mode
+              </button>
+            ))}
+          </div>
+        </Reveal>
+
+        <Reveal delay={220}>
+          {/* Re-keyed so switching modes replays the page-in. */}
+          <p
+            key={mode}
+            className="panel-enter max-w-[580px] text-[15px] leading-[1.85] text-ink-soft [text-wrap:pretty]"
+          >
+            {about.modes[mode]}
+          </p>
+        </Reveal>
       </div>
 
-      {/* A snapshot rather than a CV table — the live dot marks it as current. */}
-      <Reveal delay={620}>
-        <div className="mt-14 border-t border-[var(--border)] pt-6">
-          <p className="mb-5 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-faint)]">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-70" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-            </span>
-            right now
-          </p>
+      <Reveal delay={200} y={24}>
+        <div className="panel">
+          <div className="panel-bar pl-0">
+            <div role="tablist" aria-label="Open files" className="flex h-full items-stretch">
+              {files.map(name => (
+                <button
+                  key={name}
+                  type="button"
+                  role="tab"
+                  aria-selected={file === name}
+                  onClick={() => setFile(name)}
+                  data-cursor-label="open"
+                  className={`relative border-r border-rule px-[18px] transition-colors ${
+                    file === name ? "bg-panel-hi text-ink" : "hover:text-ink"
+                  }`}
+                >
+                  {file === name ? <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-accent" /> : null}
+                  {name}
+                </button>
+              ))}
+            </div>
+            <span>{file === "me.png" ? "577 × 636" : "readonly"}</span>
+          </div>
 
-          <dl className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
-            {about.now.map(item => (
-              <div key={item.label}>
-                <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--text-faint)]">
-                  {item.label}
-                </dt>
-                <dd className="mt-1.5 font-display text-base font-bold">{item.value}</dd>
+          <div role="tabpanel" aria-label={file}>
+            {file === "dhairya.js" ? (
+              <Code onOpenPhoto={() => setFile("me.png")} />
+            ) : (
+              <div key="photo" className="panel-enter">
+                <Portrait />
               </div>
-            ))}
-          </dl>
+            )}
+          </div>
         </div>
       </Reveal>
-    </div>
+    </section>
   );
 }

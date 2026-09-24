@@ -1,24 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import { Instrument_Serif, Martian_Mono } from "next/font/google";
 import Chrome from "@/components/Chrome";
 import { identity } from "@/lib/content";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+/* Statements in the serif, everything else in the mono. */
+const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
   display: "swap",
 });
 
-const inter = Inter({
+const martianMono = Martian_Mono({
   subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
+  variable: "--font-martian-mono",
   display: "swap",
 });
 
@@ -36,24 +33,22 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#07080b" },
-    { media: "(prefers-color-scheme: light)", color: "#fff8ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0c0a" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f1e9" },
   ],
 };
 
 /**
- * Applies the stored theme before first paint. Has to be inline and blocking:
- * anything deferred is already too late and the wrong theme flashes.
+ * Applies a stored theme before first paint. Has to be inline and blocking:
+ * anything deferred is already too late and the wrong theme flashes. Dark is
+ * the site's default whatever the OS prefers — light is opt-in.
  */
 const THEME_INIT = `
 (function () {
   try {
     var stored = localStorage.getItem("theme");
-    var prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-    document.documentElement.dataset.theme = stored || (prefersLight ? "light" : "dark");
-  } catch (e) {
-    document.documentElement.dataset.theme = "dark";
-  }
+    if (stored === "light" || stored === "dark") document.documentElement.dataset.theme = stored;
+  } catch (e) {}
 })();
 `;
 
@@ -68,11 +63,18 @@ const THEME_INIT = `
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    // Font variables go on <html>, not <body>: --font-mono is declared on
+    // :root in globals.css, and a variable it references must exist there too.
+    <html
+      lang="en"
+      data-theme="dark"
+      className={`${instrumentSerif.variable} ${martianMono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
-      <body className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
+      <body>
         <Chrome>{children}</Chrome>
       </body>
     </html>

@@ -1,35 +1,56 @@
 "use client";
 
+import Link from "next/link";
 import AllRepos from "@/components/AllRepos";
 import FeaturedStack from "@/components/FeaturedStack";
-import { Reveal, RevealWords } from "@/components/Reveal";
-import { projects as projectsContent } from "@/lib/content";
+import { Reveal } from "@/components/Reveal";
 import { featuredProjects } from "@/lib/featured";
+
+function OpenSlot() {
+  return (
+    <Link
+      href="/contact"
+      data-cursor-label="hi"
+      className="flex min-h-[240px] flex-col justify-between gap-8 border border-dashed border-line-strong bg-bg/60 p-7 transition-[transform,border-color] duration-300 hover:-translate-y-1 hover:border-dim"
+    >
+      <span className="text-[11px] text-dim">open slot</span>
+      <span className="font-display text-[2.25rem] leading-[1.05]">
+        Got an idea?
+        <br />
+        <span className="italic text-accent">Let&apos;s build it.</span>
+      </span>
+      <span className="text-xs text-dim">contact.sh →</span>
+    </Link>
+  );
+}
 
 export default function ProjectsPanel() {
   return (
-    <div>
+    <section aria-label="Projects">
       <div className="flex flex-wrap items-end justify-between gap-6">
-        <div>
+        <div className="flex flex-col gap-3.5">
           <Reveal>
-            <p className="kicker mb-3">03 — the work</p>
+            <p className="text-xs text-dim">
+              <span className="text-accent">04</span> / projects/
+            </p>
           </Reveal>
-
-          <h2 className="font-display text-[clamp(2rem,6vw,3.4rem)] font-bold leading-tight">
-            <RevealWords text={projectsContent.heading} delay={80} />
-          </h2>
+          <Reveal delay={80}>
+            <h2 className="font-display text-[clamp(2.9rem,8vw,4.5rem)] font-normal leading-none tracking-[-0.02em]">
+              Things I&apos;ve <span className="italic">made.</span>
+            </h2>
+          </Reveal>
         </div>
 
-        <Reveal delay={200}>
-          <p className="max-w-sm text-sm leading-relaxed text-[var(--text-dim)]">
-            {projectsContent.intro}
+        <Reveal delay={140}>
+          <p className="max-w-sm text-xs leading-[1.8] text-dim">
+            The ones worth your time, with the reasons I built them. Scroll — they stack.
           </p>
         </Reveal>
       </div>
 
       <FeaturedStack projects={featuredProjects} />
 
-      <AllRepos />
-    </div>
+      <AllRepos openSlot={<OpenSlot />} />
+    </section>
   );
 }

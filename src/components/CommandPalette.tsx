@@ -3,8 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { panels } from "@/lib/content";
+import { toggleTheme } from "@/components/ThemeToggle";
+import { contact, favourite, panels } from "@/lib/content";
 import { featuredProjects } from "@/lib/featured";
+
+const OPEN_EVENT = "palette:open";
+
+/** For buttons elsewhere (the status bar) that open the palette. */
+export function openPalette() {
+  window.dispatchEvent(new Event(OPEN_EVENT));
+}
 
 interface Command {
   id: string;
@@ -15,9 +23,8 @@ interface Command {
 }
 
 /**
- * ⌘K palette over the panels, the live project list and a couple of actions.
- * Project entries come from the same fetched data the grid renders, so it
- * can't drift out of sync with the site.
+ * ⌘K palette over the pages, the curated projects and a couple of actions.
+ * Everything in it is static content — opening it never makes a request.
  */
 export default function CommandPalette() {
   const router = useRouter();
@@ -47,8 +54,14 @@ export default function CommandPalette() {
       }
     }
 
+    const onOpen = () => setOpen(true);
+
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_EVENT, onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_EVENT, onOpen);
+    };
   }, []);
 
   useEffect(() => {
@@ -62,7 +75,7 @@ export default function CommandPalette() {
     const panelCommands: Command[] = panels.map(panel => ({
       id: `panel-${panel.id}`,
       label: panel.label,
-      hint: `/${panel.id}`,
+      hint: panel.file,
       group: "Panels",
       run: () => router.push(`/${panel.id}`),
     }));
@@ -72,7 +85,7 @@ export default function CommandPalette() {
     const projectCommands: Command[] = featuredProjects.map(project => ({
       id: `project-${project.name}`,
       label: project.title,
-      hint: project.tech.map(tech => tech.label).join(" · ") || "repository",
+      hint: project.homepage ? "visit ↗" : "source ↗",
       group: "Projects",
       run: () => window.open(project.homepage ?? project.url, "_blank", "noopener,noreferrer"),
     }));
@@ -81,20 +94,25 @@ export default function CommandPalette() {
       ...panelCommands,
       ...projectCommands,
       {
+        id: `project-${favourite.name}`,
+        label: favourite.title,
+        hint: "visit ↗",
+        group: "Projects",
+        run: () => window.open(favourite.url, "_blank", "noopener,noreferrer"),
+      },
+      {
         id: "action-theme",
         label: "Toggle theme",
         hint: "dark ⇄ light",
         group: "Actions",
-        run: () => {
-          const root = document.documentElement;
-          const next = root.dataset.theme === "light" ? "dark" : "light";
-          root.dataset.theme = next;
-          try {
-            localStorage.setItem("theme", next);
-          } catch {
-            // Not persisted; the switch itself still applied.
-          }
-        },
+        run: () => void toggleTheme(),
+      },
+      {
+        id: "action-email",
+        label: "Copy email address",
+        hint: contact.email,
+        group: "Actions",
+        run: () => void navigator.clipboard?.writeText(contact.email).catch(() => {}),
       },
     ];
   }, [router]);
@@ -161,29 +179,28 @@ export default function CommandPalette() {
             exit={{ opacity: 0, y: -8, scale: 0.99 }}
             transition={{ type: "spring", stiffness: 340, damping: 30 }}
             onClick={event => event.stopPropagation()}
-            className="w-full max-w-lg overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--bg-raised)] shadow-[var(--shadow)]"
+            className="w-full max-w-lg overflow-hidden border border-line-strong bg-panel shadow-[var(--shadow)]"
           >
-            <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3">
-              <span className="font-mono text-xs text-[var(--accent)]">⌘</span>
+            <div className="panel-bar">
+              <span>~/dhairya — commands</span>
+              <kbd className="text-faint">esc</kbd>
+            </div>
+            <div className="flex items-center gap-3 border-b border-rule px-4 py-3.5">
+              <span className="text-xs text-accent">$</span>
               <input
                 autoFocus
                 value={query}
                 onChange={event => setQuery(event.target.value)}
                 onKeyDown={onInputKey}
-                placeholder="jump to a panel or a project..."
+                placeholder="jump to a page or a project"
                 aria-label="Search commands"
-                className="w-full bg-transparent font-mono text-sm outline-none placeholder:text-[var(--text-faint)]"
+                className="w-full bg-transparent text-[13px] outline-none placeholder:text-faint"
               />
-              <kbd className="rounded border border-[var(--border)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-faint)]">
-                esc
-              </kbd>
             </div>
 
             <div ref={listRef} className="max-h-[52vh] overflow-y-auto py-2">
               {results.length === 0 ? (
-                <p className="px-4 py-6 text-center font-mono text-xs text-[var(--text-faint)]">
-                  no matches
-                </p>
+                <p className="px-4 py-6 text-xs text-err">command not found — try a page name</p>
               ) : (
                 results.map((command, index) => {
                   const showGroup = command.group !== lastGroup;
@@ -192,8 +209,8 @@ export default function CommandPalette() {
                   return (
                     <div key={command.id}>
                       {showGroup ? (
-                        <p className="px-4 pb-1 pt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-faint)]">
-                          {command.group}
+                        <p className="px-4 pb-1.5 pt-3 text-[10px] text-faint">
+                          <span className="text-accent">//</span> {command.group.toLowerCase()}
                         </p>
                       ) : null}
 
@@ -205,20 +222,14 @@ export default function CommandPalette() {
                           command.run();
                           setOpen(false);
                         }}
-                        className={`flex w-full items-center justify-between gap-4 px-4 py-2.5 text-left transition-colors ${
-                          index === active ? "bg-[var(--accent-soft)]" : ""
+                        className={`flex w-full items-center justify-between gap-4 border-l-2 px-4 py-2.5 text-left transition-colors ${
+                          index === active ? "border-accent bg-panel-hi" : "border-transparent"
                         }`}
                       >
-                        <span
-                          className={`truncate font-display text-sm font-medium ${
-                            index === active ? "text-[var(--accent)]" : ""
-                          }`}
-                        >
+                        <span className={`truncate text-[13px] ${index === active ? "text-ink" : "text-ink-soft"}`}>
                           {command.label}
                         </span>
-                        <span className="shrink-0 truncate font-mono text-[10px] text-[var(--text-faint)]">
-                          {command.hint}
-                        </span>
+                        <span className="shrink-0 truncate text-[10px] text-faint">{command.hint}</span>
                       </button>
                     </div>
                   );

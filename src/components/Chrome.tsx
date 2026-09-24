@@ -1,110 +1,155 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import CommandPalette from "@/components/CommandPalette";
+import CommandPalette, { openPalette } from "@/components/CommandPalette";
 import CustomCursor from "@/components/CustomCursor";
+import ShaderField from "@/components/ShaderField";
 import ThemeToggle from "@/components/ThemeToggle";
-import { identity, panels } from "@/lib/content";
+import { contact, identity, panels } from "@/lib/content";
+
+/** Renders nothing time-dependent on the server — a mismatch would be a hydration error. */
+function Clock() {
+  const [now, setNow] = useState<string | null>(null);
+
+  useEffect(() => {
+    const format = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Kolkata",
+    });
+
+    const tick = () => setNow(format.format(new Date()));
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return <span className="tabular-nums">{now ?? "--:--:--"}</span>;
+}
+
+function Tabs({ active, compact }: { active: string; compact?: boolean }) {
+  return (
+    <>
+      {panels.map((panel, index) => {
+        const on = active === panel.id;
+
+        return (
+          <Link
+            key={panel.id}
+            href={`/${panel.id}`}
+            aria-current={on ? "page" : undefined}
+            data-cursor-label="open"
+            className={`relative flex shrink-0 items-center gap-2.5 border-r border-rule px-4 text-xs transition-colors lg:px-[22px] ${
+              on ? "text-ink" : "text-dim hover:text-ink"
+            }`}
+          >
+            {/* One shared element slides between tabs: the lit background and
+                its accent top edge. */}
+            {on ? (
+              <motion.span
+                layoutId={compact ? "tab-compact" : "tab"}
+                aria-hidden
+                className="absolute inset-0 border-t-2 border-accent bg-panel-hi"
+                transition={{ type: "spring", stiffness: 480, damping: 38 }}
+              />
+            ) : null}
+            <span className={`relative text-[10px] ${on ? "text-accent" : "text-faint"}`}>
+              0{index + 1}
+            </span>
+            <span className="relative">{panel.file}</span>
+          </Link>
+        );
+      })}
+    </>
+  );
+}
 
 /**
- * Everything that persists across panel routes: background texture, cursor,
- * command palette, header, nav, footer.
- *
- * Lives in the shared layout, so a panel swap replaces only the page content.
- * That keeps the canvas field running and lets the nav pill animate between
- * tabs — while every panel still has a real URL.
+ * Everything that persists across pages: the dot field, cursor, palette,
+ * header tabs and status bar. Mounted once in the root layout, so a page swap
+ * replaces only the content between the header and the status bar.
  */
 export default function Chrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const active = pathname.replace(/^\//, "") || "home";
+  const active = pathname.replace(/^\//, "").split("/")[0] || "home";
+  const file = panels.find(panel => panel.id === active)?.file ?? "home.js";
 
   return (
     <>
-      <div className="texture" aria-hidden />
+      <ShaderField className="pointer-events-none fixed inset-x-0 top-0 h-lvh w-full" />
       <CustomCursor />
       <CommandPalette />
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 sm:px-8">
-        <header className="flex items-center justify-between gap-4 py-6">
-          <Link href="/home" className="font-mono text-sm font-semibold tracking-tight">
-            <span className="text-[var(--accent)]">~/</span>
-            {identity.handle}
+      <header className="sticky top-0 z-40 border-b border-rule bg-bg/85 backdrop-blur-md">
+        <div className="flex h-14 items-stretch lg:h-16">
+          <Link
+            href="/home"
+            aria-label={`${identity.name}, home`}
+            data-cursor-label="home"
+            className="flex items-center gap-0.5 px-5 text-lg font-bold tracking-tight md:px-8 md:pr-6"
+          >
+            <span>dk</span>
+            <span className="caret text-accent">_</span>
           </Link>
 
-          <nav aria-label="Sections" className="hidden items-center gap-1 md:flex">
-            {panels.map(panel => (
-              <Link
-                key={panel.id}
-                href={`/${panel.id}`}
-                aria-current={active === panel.id ? "page" : undefined}
-                className={`relative rounded-full px-3.5 py-1.5 font-mono text-xs transition-colors ${
-                  active === panel.id
-                    ? "text-[var(--accent)]"
-                    : "text-[var(--text-dim)] hover:text-[var(--text)]"
-                }`}
-              >
-                {/* One shared element slides between tabs. */}
-                {active === panel.id ? (
-                  <motion.span
-                    layoutId="nav-pill"
-                    className="absolute inset-0 rounded-full bg-[var(--accent-soft)]"
-                    transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                  />
-                ) : null}
-                <span className="relative">{panel.label.toLowerCase()}</span>
-              </Link>
-            ))}
+          <nav aria-label="Pages" className="hidden flex-1 items-stretch border-l border-rule lg:flex">
+            <Tabs active={active} />
           </nav>
 
-          <ThemeToggle />
-        </header>
+          <div className="ml-auto flex items-stretch border-l border-rule">
+            <span className="hidden items-center gap-2 px-6 text-[11px] text-dim xl:flex">
+              <span className="live-dot h-[7px] w-[7px] rounded-full bg-accent" />
+              India · IST <Clock />
+            </span>
+            <ThemeToggle className="border-l border-rule px-5 xl:px-6" />
+          </div>
+        </div>
 
-        <main className="flex-1 py-8 sm:py-12">{children}</main>
-
-        {/* Bottom-anchored on mobile, scrolling sideways rather than wrapping. */}
+        {/* Below lg the tabs get their own row and scroll sideways, like an
+            editor with more files open than fit. */}
         <nav
-          aria-label="Sections"
-          className="sticky bottom-0 z-20 -mx-5 flex gap-1 overflow-x-auto border-t border-[var(--border)] bg-[var(--bg-overlay)] px-5 py-3 backdrop-blur md:hidden"
+          aria-label="Pages"
+          className="no-scrollbar flex h-11 items-stretch overflow-x-auto border-t border-rule lg:hidden"
         >
-          {panels.map(panel => (
-            <Link
-              key={panel.id}
-              href={`/${panel.id}`}
-              aria-current={active === panel.id ? "page" : undefined}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 font-mono text-xs transition-colors ${
-                active === panel.id
-                  ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                  : "text-[var(--text-dim)]"
-              }`}
-            >
-              {panel.label.toLowerCase()}
-            </Link>
-          ))}
+          <Tabs active={active} compact />
         </nav>
+      </header>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] py-5 font-mono text-[11px] text-[var(--text-faint)]">
-          <span>
+      <main className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-[calc(var(--status-h)+3rem)] pt-10 md:px-10 md:pt-14 xl:px-[72px]">
+        {children}
+      </main>
+
+      <footer className="fixed inset-x-0 bottom-0 z-40 flex h-[var(--status-h)] items-center justify-between gap-4 border-t border-rule bg-panel px-4 text-[10px] text-dim md:px-5">
+        <div className="flex min-w-0 items-center gap-[22px]">
+          <a href={`mailto:${contact.email}`} className="flex items-center gap-2 hover:text-ink">
+            <span className="h-1.5 w-1.5 bg-accent" />
+            open to collabs
+          </a>
+          <span className="hidden sm:inline">⎇ main*</span>
+          <span className="hidden md:inline">class 11 · jee prep</span>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-[22px]">
+          <span className="text-ink-mute">{file}</span>
+          <span className="hidden md:inline">UTF-8</span>
+          <button
+            type="button"
+            onClick={openPalette}
+            data-cursor-label="⌘K"
+            className="hidden transition-colors hover:text-ink md:inline"
+          >
+            ⌘K commands
+          </button>
+          <span className="hidden lg:inline">
             © {new Date().getFullYear()} {identity.name}
           </span>
-
-          <span className="hidden items-center gap-3 sm:flex">
-            <span>
-              <kbd className="rounded border border-[var(--border)] px-1 py-0.5">⌘K</kbd> search
-            </span>
-          </span>
-
-          <a
-            href={`https://github.com/${identity.handle}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="transition-colors hover:text-[var(--accent)]"
-          >
-            github ↗
-          </a>
-        </footer>
-      </div>
+        </div>
+      </footer>
     </>
   );
 }

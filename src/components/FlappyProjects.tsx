@@ -144,13 +144,19 @@ export default function FlappyProjects({
     resize();
     reset();
 
+    // Canvas can't resolve CSS variables in ctx.font, so the loaded family
+    // name is read off the body once.
+    const mono =
+      getComputedStyle(document.body).getPropertyValue("--font-martian-mono").trim() || "monospace";
+
     function styles() {
       const root = getComputedStyle(document.documentElement);
       return {
-        accent: root.getPropertyValue("--accent").trim() || "#4ade80",
-        ink: root.getPropertyValue("--text").trim() || "#e4e9f1",
-        dim: root.getPropertyValue("--text-faint").trim() || "#565e6e",
-        edge: root.getPropertyValue("--border-strong").trim() || "#2b3342",
+        accent: root.getPropertyValue("--accent").trim() || "#c8f55a",
+        onAccent: root.getPropertyValue("--on-accent").trim() || "#0b0c0a",
+        ink: root.getPropertyValue("--ink").trim() || "#ebe8df",
+        dim: root.getPropertyValue("--faint").trim() || "#6f7268",
+        edge: root.getPropertyValue("--line-strong").trim() || "#3a3e33",
       };
     }
 
@@ -168,10 +174,8 @@ export default function FlappyProjects({
         [bottomY, height - bottomY],
       ] as const) {
         if (h <= 0) continue;
-        ctx!.beginPath();
-        ctx!.roundRect(pipe.x, y, PIPE_WIDTH, h, 7);
-        ctx!.fill();
-        ctx!.stroke();
+        ctx!.fillRect(pipe.x, y, PIPE_WIDTH, h);
+        ctx!.strokeRect(pipe.x + 0.75, y + 0.75, PIPE_WIDTH - 1.5, h - 1.5);
       }
 
       // Sits in the gap, so you read the name while threading through it.
@@ -182,19 +186,17 @@ export default function FlappyProjects({
         ctx!.drawImage(icon, cx - 14, pipe.gapCenter - 14, 28, 28);
       } else {
         ctx!.fillStyle = color;
-        ctx!.beginPath();
-        ctx!.roundRect(cx - 15, pipe.gapCenter - 15, 30, 30, 8);
-        ctx!.fill();
+        ctx!.fillRect(cx - 15, pipe.gapCenter - 15, 30, 30);
 
-        ctx!.fillStyle = "#04060a";
-        ctx!.font = "700 16px var(--font-jetbrains-mono), monospace";
+        ctx!.fillStyle = "#0b0c0a";
+        ctx!.font = `700 15px ${mono}`;
         ctx!.textAlign = "center";
         ctx!.textBaseline = "middle";
         ctx!.fillText(pipe.project.name[0].toUpperCase(), cx, pipe.gapCenter + 1);
       }
 
       ctx!.fillStyle = theme.dim;
-      ctx!.font = "500 10px var(--font-jetbrains-mono), monospace";
+      ctx!.font = `400 10px ${mono}`;
       ctx!.textAlign = "center";
       ctx!.textBaseline = "top";
       ctx!.fillText(pipe.project.name.slice(0, 18), cx, pipe.gapCenter + 22);
@@ -275,7 +277,7 @@ export default function FlappyProjects({
       ctx!.beginPath();
       ctx!.arc(0, 0, BIRD_RADIUS, 0, Math.PI * 2);
       ctx!.fill();
-      ctx!.fillStyle = "#04060a";
+      ctx!.fillStyle = theme.onAccent;
       ctx!.beginPath();
       ctx!.arc(5, -4, 2.4, 0, Math.PI * 2);
       ctx!.fill();
@@ -347,7 +349,7 @@ export default function FlappyProjects({
   }
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-inset)]">
+    <div className="relative h-full w-full overflow-hidden border border-line-strong bg-bg shadow-[var(--shadow)]">
       <canvas
         ref={canvasRef}
         onPointerDown={onPointer}
@@ -355,15 +357,16 @@ export default function FlappyProjects({
         data-cursor-label={phase === "playing" ? "flap" : "play"}
       />
 
-      <div className="pointer-events-none absolute left-4 top-3 font-mono text-xs text-[var(--text-dim)]">
-        <span className="text-[var(--accent)]">{score}</span>
-        {best > 0 ? <span className="ml-3 text-[var(--text-faint)]">best {best}</span> : null}
+      <div className="pointer-events-none absolute left-4 top-3 text-xs text-dim">
+        <span className="text-accent">{score}</span>
+        {best > 0 ? <span className="ml-3 text-faint">best {best}</span> : null}
       </div>
 
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-3 top-2.5 font-mono text-xs text-[var(--text-faint)] transition-colors hover:text-[var(--accent)]"
+        data-cursor-label="quit"
+        className="absolute right-3 top-2.5 text-xs text-faint transition-colors hover:text-accent"
       >
         close ✕
       </button>
@@ -371,30 +374,31 @@ export default function FlappyProjects({
       {phase !== "playing" ? (
         /* A scrim, not a cover — the pipes you just died on stay visible. */
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center backdrop-blur-[1.5px]">
-          <div className="flex flex-col items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--bg-overlay)] px-8 py-6 backdrop-blur-md">
+          <div className="panel flex flex-col items-center gap-3 px-8 py-6">
             {phase === "ready" ? (
               <>
-                <p className="font-display text-xl font-bold">fly through my projects</p>
-                <p className="font-mono text-xs text-[var(--text-dim)]">
+                <p className="font-display text-3xl">fly through my <span className="italic text-accent">projects.</span></p>
+                <p className="text-xs text-dim">
                   click or press space · esc to leave
                 </p>
               </>
             ) : (
               <>
-                <p className="font-display text-xl font-bold">
-                  {hit ? "crashed into" : "hit the floor"}
+                <p className="font-display text-3xl">
+                  {hit ? "crashed into" : <>hit the <span className="italic text-accent">floor.</span></>}
                 </p>
                 {hit ? (
                   <a
                     href={hit.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="pointer-events-auto font-mono text-sm text-[var(--accent)] underline underline-offset-4"
+                    data-cursor-label="source"
+                    className="pointer-events-auto text-sm text-accent underline underline-offset-4"
                   >
                     {hit.name}
                   </a>
                 ) : null}
-                <p className="font-mono text-xs text-[var(--text-dim)]">
+                <p className="text-xs text-dim">
                   scored {score} · space or click to retry
                 </p>
               </>

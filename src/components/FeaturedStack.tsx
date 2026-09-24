@@ -13,7 +13,7 @@ import type { FeaturedProject } from "@/lib/featured";
  * no scroll handler — so it stays smooth regardless of how many cards there
  * are or how heavy their images get.
  */
-function Card({ project, index }: { project: FeaturedProject; index: number }) {
+function Card({ project, index, total }: { project: FeaturedProject; index: number; total: number }) {
   const [failed, setFailed] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const accent = project.tech[0]?.color ?? "#8B8FA3";
@@ -39,14 +39,14 @@ function Card({ project, index }: { project: FeaturedProject; index: number }) {
           viewport lets you see the whole stack at once, which leaves almost no
           scroll distance for cards to travel — they never visibly stack. Each
           card owning most of the viewport is what makes the effect read. */}
-      <article className="stack-card relative grid overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-raised)] shadow-[var(--shadow)] md:min-h-[min(30rem,64vh)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="relative aspect-[16/10] overflow-hidden bg-[var(--bg-inset)] md:aspect-auto">
+      <article className="stack-card group relative grid overflow-hidden border border-line bg-panel shadow-[var(--shadow)] md:min-h-[min(30rem,64vh)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="relative aspect-[16/10] overflow-hidden border-b border-line bg-chip md:aspect-auto md:border-b-0 md:border-r">
           {failed ? (
             <div
-              className="flex h-full w-full items-center justify-center font-display text-5xl font-bold text-[var(--text-faint)]"
+              className="flex h-full w-full items-center justify-center font-display text-7xl text-faint"
               style={{ background: `${accent}1f` }}
             >
-              {project.name.slice(0, 2).toUpperCase()}
+              {project.title.slice(0, 2)}
             </div>
           ) : (
             /* Plain <img>: GitHub's preview endpoint and any override live on
@@ -58,85 +58,65 @@ function Card({ project, index }: { project: FeaturedProject; index: number }) {
               loading={index === 0 ? "eager" : "lazy"}
               decoding="async"
               onError={() => setFailed(true)}
-              className="stack-media h-full w-full object-cover"
+              className="stack-media thumb h-full w-full object-cover"
             />
           )}
-
-          <span
-            aria-hidden
-            className="absolute inset-y-0 right-0 hidden w-px bg-[var(--border)] md:block"
-          />
         </div>
 
-        <div className="stack-body flex flex-col justify-center gap-4 p-6 sm:p-8">
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-[11px] text-[var(--text-faint)]">
-              {String(index + 1).padStart(2, "0")}
+        <div className="stack-body flex flex-col justify-center gap-5 p-6 sm:p-10">
+          <div className="flex items-center justify-between gap-4 text-[11px] text-dim">
+            <span className="flex items-center gap-2">
+              {project.homepage ? <span className="live-dot h-1.5 w-1.5 rounded-full bg-accent" /> : null}
+              {project.kind}
             </span>
-            <span
-              aria-hidden
-              className="h-px flex-1"
-              style={{ background: `${accent}55` }}
-            />
-            {project.homepage ? (
-              <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--text-dim)]">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-70" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                </span>
-                live
-              </span>
-            ) : null}
+            <span>
+              {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+            </span>
           </div>
 
-          <h3 className="font-display text-[clamp(1.4rem,3.5vw,2rem)] font-bold leading-tight">
+          <h3 className="font-display text-[clamp(2.2rem,4.4vw,3rem)] font-normal leading-none tracking-[-0.01em]">
             {project.title}
           </h3>
 
-          <p className="max-w-[46ch] text-[0.95rem] leading-relaxed text-[var(--text-dim)]">
+          <p className="max-w-[46ch] text-[13px] leading-[1.8] text-ink-mute [text-wrap:pretty] sm:text-sm">
             {project.blurb}
           </p>
 
           {project.tech.length ? (
             <ul className="flex flex-wrap gap-1.5">
               {project.tech.map(tech => (
-                /* Colour in the dot and border, never the label — tech palettes
-                   run from pure yellow to near-black and fail contrast as text
-                   in one theme or the other whichever shade is picked. */
-                <li
-                  key={tech.slug}
-                  className="flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] text-[var(--text-dim)]"
-                  style={{ borderColor: `${tech.color}55`, background: `${tech.color}12` }}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: tech.color }} />
-                  {tech.label}
+                /* Colour in the dot, never the label — tech palettes run from
+                   pure yellow to near-black and fail contrast as text in one
+                   theme or the other. */
+                <li key={tech.slug} className="tag gap-2">
+                  <span className="h-1.5 w-1.5" style={{ background: tech.color }} />
+                  {tech.label.toLowerCase()}
                 </li>
               ))}
             </ul>
           ) : null}
 
-          <div className="flex flex-wrap gap-2 pt-2">
-            <a
-              href={project.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-cursor-label="code"
-              className="rounded-[var(--radius)] border border-[var(--border-strong)] px-5 py-2.5 font-mono text-xs transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-            >
-              source
-            </a>
-
+          <div className="flex flex-wrap gap-3 pt-1">
             {project.homepage ? (
               <a
                 href={project.homepage}
                 target="_blank"
                 rel="noopener noreferrer"
                 data-cursor-label="visit"
-                className="flex items-center gap-1.5 rounded-[var(--radius)] bg-[var(--accent)] px-5 py-2.5 font-mono text-xs font-semibold text-[#06070a] transition-opacity hover:opacity-85"
+                className="btn btn-primary h-11 px-5 text-xs"
               >
                 visit <ArrowUpRight />
               </a>
             ) : null}
+            <a
+              href={project.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cursor-label="code"
+              className="btn btn-ghost h-11 px-5 text-xs"
+            >
+              source
+            </a>
           </div>
         </div>
         {/* Fades in as the next card covers this one. */}
@@ -238,9 +218,9 @@ export default function FeaturedStack({ projects }: { projects: FeaturedProject[
   if (projects.length === 0) return null;
 
   return (
-    <ul ref={rootRef} className="stack mt-10">
+    <ul ref={rootRef} className="stack mt-12">
       {projects.map((project, index) => (
-        <Card key={project.name} project={project} index={index} />
+        <Card key={project.name} project={project} index={index} total={projects.length} />
       ))}
 
       {/* A real element, not padding.

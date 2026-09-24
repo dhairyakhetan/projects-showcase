@@ -61,15 +61,15 @@ export default function ProjectCard({ project, index }: { project: Project; inde
     <div className="reveal" style={style}>
       <article
         data-card
-        className="project-card group relative flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-raised)]"
+        className="project-card group relative flex h-full flex-col overflow-hidden border border-line bg-panel"
       >
-        <div className="relative aspect-[16/10] overflow-hidden border-b border-[var(--border)] bg-[var(--bg-inset)]">
+        <div className="relative aspect-[16/10] overflow-hidden border-b border-line bg-chip">
           {failed ? (
             <div
-              className="flex h-full w-full items-center justify-center font-display text-3xl font-bold text-[var(--text-faint)]"
+              className="flex h-full w-full items-center justify-center font-display text-4xl text-faint"
               style={{ background: `${accent}1f` }}
             >
-              {project.name.slice(0, 2).toUpperCase()}
+              {project.title.slice(0, 2)}
             </div>
           ) : (
             /* Plain <img>, not next/image: og:image URLs resolve to arbitrary
@@ -82,85 +82,71 @@ export default function ProjectCard({ project, index }: { project: Project; inde
               loading="lazy"
               decoding="async"
               onError={handleError}
-              className="h-full w-full object-cover transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.07]"
+              className="thumb h-full w-full object-cover transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.06]"
             />
           )}
 
-          {/* No scrim here — the pills carry their own backdrop, and a dark
-              wash over a pale letter-tile fallback just looks muddy. */}
-          <div className="absolute inset-x-0 top-0 z-[2] flex items-start justify-between gap-2 p-2.5">
+          <div className="absolute inset-x-0 top-0 z-[2] flex items-start justify-between gap-2 p-2.5 text-[9px]">
             {project.isPinned ? (
-              <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-[#06070a]">
-                pinned
-              </span>
+              <span className="bg-accent px-2 py-1 font-bold text-on-accent">pinned</span>
             ) : (
               <span />
             )}
 
             {project.isLive ? (
-              <span className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/45 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-white backdrop-blur-sm">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-70" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                </span>
+              <span className="flex items-center gap-1.5 bg-bg/80 px-2 py-1 text-ink backdrop-blur-sm">
+                <span className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />
                 live
               </span>
             ) : null}
           </div>
 
           {/* Overlaid so the card stays short at four-across. */}
-          <div className="card-actions absolute inset-x-0 bottom-0 z-[2] flex gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-2.5 pt-8">
-            <a
-              href={project.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-cursor-label="code"
-              className="flex-1 rounded-[var(--radius)] border border-white/25 bg-black/40 py-1.5 text-center font-mono text-[11px] text-white backdrop-blur-sm transition-colors hover:border-white hover:bg-black/70"
-            >
-              source
-            </a>
-
+          <div className="card-actions absolute inset-x-0 bottom-0 z-[2] flex gap-1.5 p-2.5">
             {project.homepage ? (
               <a
                 href={project.homepage}
                 target="_blank"
                 rel="noopener noreferrer"
                 data-cursor-label="visit"
-                className="flex flex-1 items-center justify-center gap-1 rounded-[var(--radius)] bg-[var(--accent)] py-1.5 font-mono text-[11px] font-semibold text-[#06070a] transition-opacity hover:opacity-85"
+                className="flex flex-1 items-center justify-center gap-1 bg-accent py-2 text-[11px] font-bold text-on-accent transition-opacity hover:opacity-85"
               >
                 visit <ArrowUpRight />
               </a>
             ) : null}
+            <a
+              href={project.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cursor-label="code"
+              className="flex-1 border border-line-strong bg-bg/85 py-2 text-center text-[11px] text-ink backdrop-blur-sm transition-colors hover:border-dim"
+            >
+              source
+            </a>
           </div>
         </div>
 
-        <div className="relative z-[2] flex flex-1 flex-col gap-2.5 p-3.5">
-          <div className="flex items-baseline justify-between gap-2">
-            <h3 className="truncate font-display text-[0.95rem] font-bold leading-tight">
-              {project.title}
-            </h3>
-            <span className="shrink-0 font-mono text-[10px] text-[var(--text-faint)]">
-              {timeAgo(project.pushedAt)}
-            </span>
+        <div className="relative z-[2] flex flex-1 flex-col gap-3 p-4">
+          <div className="flex items-baseline justify-between gap-2 text-[10px] text-dim">
+            <span className="truncate">{project.name}</span>
+            <span className="shrink-0">{timeAgo(project.pushedAt)}</span>
           </div>
 
-          <p className="line-clamp-2 min-h-[2.4rem] text-[0.8rem] leading-relaxed text-[var(--text-dim)]">
+          <h3 className="truncate font-display text-[1.7rem] leading-none">{project.title}</h3>
+
+          <p className="line-clamp-2 min-h-[2.6rem] text-xs leading-[1.75] text-ink-mute">
             {project.description ?? "No description yet."}
           </p>
 
           {project.tech.length ? (
             <ul className="mt-auto flex flex-wrap gap-1">
               {project.tech.slice(0, 3).map(tech => (
-                /* Colour in the dot and border, never the label — tech palettes
-                   run from pure yellow to near-black and fail contrast as text
-                   in one theme or the other whichever shade is picked. */
-                <li
-                  key={tech.slug}
-                  className="flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-mono text-[9px] text-[var(--text-dim)]"
-                  style={{ borderColor: `${tech.color}55`, background: `${tech.color}12` }}
-                >
-                  <span className="h-1 w-1 rounded-full" style={{ background: tech.color }} />
-                  {tech.label}
+                /* Colour in the dot, never the label — tech palettes run from
+                   pure yellow to near-black and fail contrast as text in one
+                   theme or the other. */
+                <li key={tech.slug} className="tag gap-1.5 px-2 py-1 text-[10px]">
+                  <span className="h-1.5 w-1.5" style={{ background: tech.color }} />
+                  {tech.label.toLowerCase()}
                 </li>
               ))}
             </ul>

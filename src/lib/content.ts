@@ -4,116 +4,126 @@
  * Nothing else in the codebase hardcodes a name, a link, a date or a sentence
  * about you — components read from this file. Edit here, the whole site updates.
  *
- * ⚠️  PLACEHOLDERS: anything marked `// TODO` is invented filler standing in
- * until the real thing lands. Search this file for "TODO" to find them all.
+ * ⚠️  Anything marked `// TODO` is a guess or a gap waiting on the real thing.
+ * Search this file for "TODO" to find them all.
  */
 
 export const GITHUB_USERNAME = "dhairyakhetan";
 
 export const identity = {
-  /** Shown at full size in the hero. Kept short — it gets set very large. */
-  name: "Dhairya Khetan", // TODO confirm spelling / preferred display form
-  /** Used in <title>, the command palette, and the footer. */
+  name: "Dhairya Khetan",
   handle: "dhairyakhetan",
-  /** One line under the name. Swap freely — the hero adapts to its length. */
-  tagline: "Building things I wasn't asked to build.", // TODO your call
-  /** Rotating words the hero cycles through after the tagline. */
-  roles: ["self-taught developer", "IIT aspirant", "perpetual tinkerer", "still learning"], // TODO
-  /** Two or three sentences. Shown on Home under the tagline. */
+  /** <title> and link previews. */
+  tagline: "Class 11, preparing for JEE, building things in between",
   blurb:
-    "No degree yet, no job title yet — just a long list of things I got curious about and " +
-    "decided to build instead of bookmark. Most of what's here started at 2am as a bad idea " +
-    "and somehow shipped.", // TODO
+    "Class 11 student in India, preparing for JEE. I learn to code the fun way — by " +
+    "building things in my free time and putting them on the internet.",
+} as const;
+
+export const home = {
+  greeting: "hello, world — i'm",
+  /** Typed out after "I build", one at a time. */
+  typed: [
+    "websites",
+    "side projects",
+    "things between mock tests",
+    "stuff I want to exist",
+    "my place on the internet",
+  ],
+} as const;
+
+/** The project I'm proudest of that isn't mine alone, so it isn't in the repo list. */
+export const favourite = {
+  name: "terranotes",
+  title: "Terranotes",
+  url: "https://terranotes-testing.vercel.app",
 } as const;
 
 export const about = {
-  heading: "About",
+  /** Two lines; the second is set in the accent italic. */
+  heading: ["A student first.", "A programmer", "every other hour."],
 
-  /**
-   * Any file in `public/`. If it's missing the panel shows initials instead,
-   * so a wrong path degrades rather than breaking.
-   */
+  modes: {
+    jee:
+      "I'm in Class 11 with Physics, Chemistry and Maths, and most of my day belongs to JEE " +
+      "prep — problem sets, mock tests and the occasional long argument with rotational " +
+      "mechanics. It teaches me the thing coding needs most: sitting with a hard problem " +
+      "until it gives in.",
+    code:
+      "When the books close, the editor opens. I don't have a stack of official projects " +
+      "yet — I learn by building small sites and experiments, breaking them, and fixing " +
+      "them. My favourite so far is Terranotes, a magazine site where I built the mobile " +
+      "version alongside a friend.",
+  },
+
+  /** Any file in `public/`. Missing means initials, not a broken image. */
   portrait: "/me.png",
   portraitAlt: "Dhairya Khetan",
-  portraitCaption: "somewhere between a mock test and a merge conflict", // TODO
 
-  /** One sentence, set large. This is the line people actually read. */
-  lead:
-    "I'm seventeen, preparing for an exam that decides a lot, and building things " +
-    "at every hour that exam prep leaves over.", // TODO your words
-
-  /** Body copy. Add or remove freely. */
-  paragraphs: [
-    "None of this is coursework. Every project here started because I wanted the thing to " +
-      "exist and nobody was going to build it for me.",
-    "I learn by making the whole thing badly first, then rebuilding until it stops " +
-      "embarrassing me. This site is on its second life for exactly that reason.",
-  ], // TODO replace with your actual words
-
-  /**
-   * A snapshot of right now, shown with a live dot. Keep values short — this
-   * is the section most worth keeping current.
-   */
-  now: [
-    { label: "preparing for", value: "JEE" },
-    { label: "writes", value: "HTML, Python" },
-    { label: "learning", value: "C++, JavaScript" },
-    { label: "based in", value: "India" }, // TODO city if you want it public
-    { label: "open to", value: "collabs & freelance" }, // TODO
-  ],
-
-  /** Short declarative lines. Opinions, not credentials. */
-  principles: [
-    "Ship it ugly, then make it good. Nothing gets better in a planning doc.",
-    "If I can't explain how it works, I haven't finished building it.",
-    "Being early is the only real advantage I have, so I'd rather be wrong loudly than quiet.",
-  ], // TODO make these yours — they're the most personal thing on the site
+  /** The `dhairya.js` object on the About page. */
+  facts: {
+    based: "India",
+    grade: 11,
+    preparingFor: "JEE",
+    writes: ["HTML", "Python"],
+    learning: ["C++", "JavaScript"],
+    status: "figuring it out",
+  },
 } as const;
 
+export interface QualificationEntry {
+  year: string;
+  title: string;
+  status: string;
+  detail: string;
+  tags: string[];
+}
+
 export const qualification = {
-  heading: "Qualification",
-  /**
-   * Rendered as a vertical timeline. `ongoing: true` gets a live pulse dot.
-   * Order matters — newest first reads best.
-   */
+  /** Newest first. The first entry is open when the page loads. */
   entries: [
     {
-      period: "2024 — present", // TODO
-      title: "JEE Preparation", // TODO
-      org: "Self-study + coaching", // TODO
+      year: "2028 · upcoming",
+      title: "JEE Main & Advanced",
+      status: "in prep",
       detail:
-        "Physics, Chemistry and Mathematics at the depth the exam demands. The long game.", // TODO
-      ongoing: true,
+        "The main quest. Physics, Chemistry and Maths, every single day — mock tests, " +
+        "error logs, repeat.", // TODO add the target college / branch if you want it public
+      tags: ["physics", "chemistry", "maths"],
     },
     {
-      period: "2023 — present", // TODO
-      title: "Self-taught Web Development", // TODO
-      org: "Documentation, failure, and repetition",
+      year: "2026 — now",
+      title: "Class 11 · PCM",
+      status: "ongoing",
       detail:
-        "Started with plain HTML and CSS, worked through JavaScript, and now spend most of " +
-        "my build time in TypeScript and React. Everything in Projects is the coursework.", // TODO
-      ongoing: true,
+        "Science stream with Physics, Chemistry and Maths, running alongside JEE " +
+        "preparation.", // TODO school name and board
+      tags: ["science stream", "pcm"],
     },
     {
-      period: "TODO", // TODO school / board / class + year
-      title: "Higher Secondary",
-      org: "TODO — school name",
-      detail: "TODO — board, stream, anything worth noting.",
-      ongoing: false,
+      year: "always · self-taught",
+      title: "Programming",
+      status: "learning",
+      detail:
+        "No course certificate here — just docs, videos and breaking things until they " +
+        "work. I learn by shipping small sites, and Terranotes is the proof.",
+      tags: ["html", "python", "c++ · learning", "javascript · learning"],
     },
-  ],
-  /** Honest framing note shown at the end of the timeline. Set to null to hide. */
-  footnote:
-    "Short list on purpose. The credentials are still in progress — the projects aren't.",
+    {
+      year: "2026",
+      title: "Class 10",
+      status: "completed",
+      detail: "Board exams, done. Next stop: the science stream.", // TODO school, board, score
+      tags: ["boards"],
+    },
+  ] as QualificationEntry[],
 } as const;
 
 export const contact = {
-  heading: "Contact",
-  intro: "Email is the one I actually check. Everything else, take your chances.",
+  intro:
+    "Want to build something together, have feedback on a project, or just want to say " +
+    "hi? I reply after homework — usually.",
   email: "dhairyaplayz97@proton.me", // TODO confirm this is the address you want public
-
-  /** Drives the local-time line. Any IANA zone. */
-  timezone: "Asia/Kolkata",
 
   /**
    * `note` says what the platform is FOR — never the handle. On a page with my
@@ -121,22 +131,22 @@ export const contact = {
    */
   links: [
     {
-      label: "GitHub",
+      label: "github",
       note: "everything on this site comes from here",
       href: "https://github.com/dhairyakhetan",
     },
     {
-      label: "LinkedIn",
+      label: "linkedin",
       note: "the one with a collar on",
       href: "https://www.linkedin.com/in/dhairya-khetan-aa6392364/",
     },
     {
-      label: "LeetCode",
-      note: "very much a beginner, and not hiding it",
+      label: "leetcode",
+      note: "very much a beginner, not hiding it",
       href: "https://leetcode.com/u/anWtedW7Hw/",
     },
     {
-      label: "Instagram",
+      label: "instagram",
       note: "proof I occasionally leave the editor",
       href: "https://instagram.com/dhairyakhetan",
     },
@@ -144,14 +154,9 @@ export const contact = {
 } as const;
 
 export const projects = {
-  heading: "Projects",
-  intro:
-    "The ones worth your time, with the reasons I built them. Everything else " +
-    "is a click away.",
-
   /**
    * Hand-picked, hand-written, and rendered without touching the worker — the
-   * Projects panel makes no network call until someone asks for the full list.
+   * Projects page makes no network call until someone asks for the full list.
    *
    * `name` must match the GitHub repo exactly: it builds the source link and,
    * when `image` is null, the thumbnail (GitHub's own repo preview, which is a
@@ -164,6 +169,7 @@ export const projects = {
     {
       name: "shoppy",
       title: "Shoppy",
+      kind: "family business",
       blurb:
         "An online storefront for my mother's Tanjore art. The first thing I " +
         "built for a real person with real customers instead of for myself, " +
@@ -176,17 +182,19 @@ export const projects = {
     {
       name: "omrakhi",
       title: "Om Rakhi Udyog",
+      kind: "family business · wip",
       blurb:
         "The site for my father's business. Still a work in progress and I'm " +
         "not hiding that — it's up because a rough version people can actually " +
         "use beats a polished one that never ships.",
       tech: ["astro"],
-      homepage: "https://omrakhi.vercel.app",
+      homepage: "https://omrakhi.vercel.app" as string | null,
       image: null as string | null,
     },
     {
       name: "GOAT-GPT",
       title: "GOAT GPT",
+      kind: "ai · side project",
       blurb:
         "Settles the Messi–Ronaldo argument with numbers instead of volume. " +
         "Ask it anything about either career and it answers off their actual " +
@@ -199,6 +207,7 @@ export const projects = {
     {
       name: "mcu-watchlist",
       title: "MCU Watchlist",
+      kind: "side project",
       blurb:
         "Every Marvel release from Phase 1 onward, in release order or " +
         "chronological order. The two disagree constantly and nobody can ever " +
@@ -216,13 +225,13 @@ export const projects = {
   pinned: [] as string[],
 } as const;
 
-/** Panel order drives the nav, the ⌘K palette and the keyboard arrows. */
+/** Order drives the tabs, the ⌘K palette and the terminal's `ls`. */
 export const panels = [
-  { id: "home", label: "Home" },
-  { id: "about", label: "About" },
-  { id: "qualification", label: "Qualification" },
-  { id: "projects", label: "Projects" },
-  { id: "contact", label: "Contact" },
+  { id: "home", label: "Home", file: "home.js" },
+  { id: "about", label: "About", file: "about.md" },
+  { id: "qualification", label: "Qualification", file: "qualification.json" },
+  { id: "projects", label: "Projects", file: "projects/" },
+  { id: "contact", label: "Contact", file: "contact.sh" },
 ] as const;
 
 export type PanelId = (typeof panels)[number]["id"];

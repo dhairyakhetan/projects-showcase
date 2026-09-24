@@ -15,6 +15,7 @@ import { techFromSlugs, type Tech } from "./tech";
 export interface FeaturedProject {
   name: string;
   title: string;
+  kind: string;
   blurb: string;
   tech: Tech[];
   url: string;
@@ -25,6 +26,7 @@ export interface FeaturedProject {
 export const featuredProjects: FeaturedProject[] = projects.featured.map(entry => ({
   name: entry.name,
   title: entry.title,
+  kind: entry.kind,
   blurb: entry.blurb,
   tech: techFromSlugs(entry.tech),
   url: `https://github.com/${GITHUB_USERNAME}/${entry.name}`,

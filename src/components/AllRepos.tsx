@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import ProjectCard from "@/components/ProjectCard";
 import { techIndex } from "@/lib/tech";
 import type { ProjectsResult } from "@/lib/repos";
@@ -12,7 +12,7 @@ import type { ProjectsResult } from "@/lib/repos";
  * content.ts, and so does the ⌘K palette. This component is the single point
  * where a network request for repo data happens, and only after a click.
  */
-export default function AllRepos() {
+export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
   const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [data, setData] = useState<ProjectsResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -110,60 +110,70 @@ export default function AllRepos() {
 
   if (state === "idle" || state === "loading" || state === "error") {
     return (
-      <div className="mt-16 border-t border-[var(--border)] pt-10 text-center">
-        <p className="mb-5 text-sm text-[var(--text-dim)]">
-          That&apos;s the curated set. The rest is public too.
-        </p>
-
+      <div className="mt-6 grid gap-5 md:grid-cols-2">
         <button
           type="button"
           onClick={load}
           disabled={state === "loading"}
           data-cursor-label={state === "loading" ? "wait" : "load"}
-          className="rounded-[var(--radius)] border border-[var(--border-strong)] px-6 py-3 font-mono text-sm transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-60"
+          className="panel group flex min-h-[240px] flex-col justify-between gap-8 p-7 text-left transition-[transform,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong disabled:translate-y-0"
         >
-          {state === "loading" ? "pulling from github..." : "show all public repos →"}
+          <span className="text-[11px] text-dim">
+            <span className="text-accent">$</span> ls -a projects/
+          </span>
+
+          <span className="font-display text-[2.25rem] leading-[1.05]">
+            That&apos;s the curated set.
+            <br />
+            <span className="italic text-accent">The rest is public too.</span>
+          </span>
+
+          <span className={`text-xs ${state === "error" ? "text-err" : "text-dim"}`}>
+            {state === "loading" ? (
+              <>
+                pulling from github<span className="caret">…</span>
+              </>
+            ) : state === "error" ? (
+              <>couldn&apos;t load that{error ? ` (${error})` : ""} — try again →</>
+            ) : (
+              <>show all public repos → <span className="text-faint">· only fetched when you ask</span></>
+            )}
+          </span>
         </button>
 
-        {state === "error" ? (
-          <p className="mt-4 font-mono text-xs text-[var(--accent-3)]">
-            couldn&apos;t load that{error ? ` (${error})` : ""} — try again?
-          </p>
-        ) : (
-          <p className="mt-4 font-mono text-[11px] text-[var(--text-faint)]">
-            pulled live, only when you ask
-          </p>
-        )}
+        {openSlot}
       </div>
     );
   }
 
   return (
-    <div className="mt-16 border-t border-[var(--border)] pt-10">
+    <div className="mt-6">
       <div ref={headingRef} tabIndex={-1} className="outline-none">
-        <p className="kicker mb-2">everything public</p>
-        <h3 className="font-display text-2xl font-bold">
-          {data!.projects.length} repositories
+        <p className="text-xs text-dim">
+          <span className="text-accent">$</span> ls -a projects/
+        </p>
+        <h3 className="mt-3 font-display text-[2.6rem] leading-none">
+          {data!.projects.length} <span className="italic">repositories.</span>
         </h3>
       </div>
 
       {data!.degraded ? (
-        <p className="mt-6 rounded-[var(--radius)] border border-[var(--accent-3)]/40 bg-[var(--accent-3)]/10 px-4 py-3 font-mono text-xs text-[var(--text-dim)]">
+        <p className="mt-6 border border-err/40 bg-err/10 px-4 py-3 text-xs text-ink-mute">
           couldn&apos;t reach the worker{data!.error ? ` (${data!.error})` : ""} — showing sample
           data until the next sync
         </p>
       ) : null}
 
       <div className="mt-6 flex flex-col gap-4">
-        <div className="flex items-center gap-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-raised)] px-4 py-2.5 focus-within:border-[var(--accent)]">
-          <span className="font-mono text-xs text-[var(--text-faint)]">/</span>
+        <label className="flex items-center gap-3 border border-line bg-panel px-4 py-3 transition-colors focus-within:border-dim">
+          <span className="text-xs text-accent">grep</span>
           <input
             ref={searchRef}
             value={query}
             onChange={event => setQuery(event.target.value)}
-            placeholder="search repos, tech, descriptions..."
+            placeholder="search repos, tech, descriptions"
             aria-label="Search repositories"
-            className="w-full bg-transparent font-mono text-sm outline-none placeholder:text-[var(--text-faint)]"
+            className="w-full bg-transparent text-[13px] outline-none placeholder:text-faint"
           />
           {query ? (
             <button
@@ -173,14 +183,15 @@ export default function AllRepos() {
                 searchRef.current?.focus();
               }}
               aria-label="Clear search"
-              className="font-mono text-xs text-[var(--text-faint)] hover:text-[var(--accent)]"
+              data-cursor-label="clear"
+              className="text-xs text-faint hover:text-accent"
             >
               ✕
             </button>
           ) : null}
-        </div>
+        </label>
 
-        <div className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Filter by tech" className="flex flex-wrap gap-2">
           <FilterChip
             label="all"
             count={data!.projects.length}
@@ -190,7 +201,7 @@ export default function AllRepos() {
           {techs.map(({ tech, count }) => (
             <FilterChip
               key={tech.slug}
-              label={tech.label}
+              label={tech.label.toLowerCase()}
               count={count}
               color={tech.color}
               active={activeTech === tech.slug}
@@ -201,22 +212,21 @@ export default function AllRepos() {
       </div>
 
       {visible.length === 0 ? (
-        <p className="mt-16 text-center font-mono text-sm text-[var(--text-faint)]">
-          nothing matches that.
-        </p>
-      ) : (
-        /* Re-keyed on the filter so a changed result set replays the entrance
-           stagger instead of snapping. */
-        <div
-          ref={gridRef}
-          key={`${activeTech ?? "all"}:${deferredQuery}`}
-          className="project-grid mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-        >
-          {visible.map((project, index) => (
-            <ProjectCard key={project.id} project={project} index={index} />
-          ))}
-        </div>
-      )}
+        <p className="mt-12 text-sm text-err">grep: nothing matches that.</p>
+      ) : null}
+
+      {/* Re-keyed on the filter so a changed result set replays the entrance
+          stagger instead of snapping. The open slot always ends the grid. */}
+      <div
+        ref={gridRef}
+        key={`${activeTech ?? "all"}:${deferredQuery}`}
+        className="project-grid mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      >
+        {visible.map((project, index) => (
+          <ProjectCard key={project.id} project={project} index={index} />
+        ))}
+        {openSlot}
+      </div>
     </div>
   );
 }
@@ -239,15 +249,11 @@ function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-xs transition-colors ${
-        active
-          ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
-          : "border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--border-strong)] hover:text-[var(--text)]"
-      }`}
+      className="chip flex items-center gap-2"
     >
-      {color ? <span className="h-2 w-2 rounded-full" style={{ background: color }} /> : null}
+      {color ? <span className="h-1.5 w-1.5" style={{ background: color }} /> : null}
       {label}
-      <span className="text-[var(--text-faint)]">{count}</span>
+      <span className="opacity-60">{count}</span>
     </button>
   );
 }
