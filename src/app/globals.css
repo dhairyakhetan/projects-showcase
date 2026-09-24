@@ -187,6 +187,28 @@
   }
 }
 
+/* ---- audience ------------------------------------------------------------
+ * Both views are in the DOM; this shows one. Anything but "plain" — including
+ * a first visit, or no JS at all — gets the dev view.
+ */
+.dev-only,
+.plain-only {
+  display: contents;
+}
+
+[data-audience="plain"] .dev-only,
+:root:not([data-audience="plain"]) .plain-only {
+  display: none;
+}
+
+.audience-prompt {
+  display: none;
+}
+
+[data-audience="unset"] .audience-prompt {
+  display: flex;
+}
+
 /* Only hide the native cursor where a real pointer exists AND the custom one
    has mounted — never on touch, never pre-hydration. */
 @media (hover: hover) and (pointer: fine) {
@@ -287,19 +309,25 @@
   }
 
   /* GitHub's repo previews are white cards; muted at rest they sit in the
-     design instead of blowing it out, and come back to colour on hover. */
+     design instead of blowing it out, and come back to colour on hover.
+     Only where hover exists — on a phone they'd be stuck grey. */
   .thumb {
-    filter: grayscale(1) brightness(0.78) contrast(1.05);
     transition: filter 500ms ease;
   }
 
-  [data-theme="light"] .thumb {
-    filter: grayscale(1) contrast(1.02);
-  }
+  @media (hover: hover) {
+    .thumb {
+      filter: grayscale(1) brightness(0.78) contrast(1.05);
+    }
 
-  .group:hover .thumb,
-  .group:focus-within .thumb {
-    filter: none;
+    [data-theme="light"] .thumb {
+      filter: grayscale(1) contrast(1.02);
+    }
+
+    .group:hover .thumb,
+    .group:focus-within .thumb {
+      filter: none;
+    }
   }
 }
 

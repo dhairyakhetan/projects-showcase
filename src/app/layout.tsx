@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, Martian_Mono } from "next/font/google";
 import Chrome from "@/components/Chrome";
+import { AUDIENCE_INIT } from "@/lib/audience";
 import { identity } from "@/lib/content";
 import "./globals.css";
 
@@ -72,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT + AUDIENCE_INIT }} />
       </head>
       <body>
         <Chrome>{children}</Chrome>

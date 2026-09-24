@@ -3,6 +3,7 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import ArrowUpRight from "@/components/ArrowUpRight";
 import { Reveal } from "@/components/Reveal";
+import Variant from "@/components/Variant";
 import { contact } from "@/lib/content";
 
 /**
@@ -14,14 +15,14 @@ import { contact } from "@/lib/content";
 function Composer() {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [missing, setMissing] = useState(false);
   const [opened, setOpened] = useState(false);
 
   function send(event?: FormEvent) {
     event?.preventDefault();
 
     if (!name.trim() || !message.trim()) {
-      setError("error: --name and --message are required");
+      setMissing(true);
       return;
     }
 
@@ -42,19 +43,27 @@ function Composer() {
   return (
     <div className="panel">
       <div className="panel-bar">
-        <span>./send_message.sh</span>
-        <span>{opened ? "exit 0" : "ready"}</span>
+        <Variant dev="./send_message.sh" plain="send me a message" />
+        <Variant dev={<span>{opened ? "exit 0" : "ready"}</span>} plain={null} />
       </div>
 
       {opened ? (
         <div role="status" className="panel-enter flex flex-col gap-3.5 px-7 py-10 text-[13px] leading-[1.8]">
-          <p className="text-dim">$ ./send_message.sh --name &quot;{name.trim()}&quot;</p>
-          <p>
-            packing message<span className="text-accent"> ........ done</span>
-          </p>
-          <p>
-            opening your mail app<span className="text-accent"> .. done</span>
-          </p>
+          <Variant
+            block
+            dev={
+              <>
+                <p className="text-dim">$ ./send_message.sh --name &quot;{name.trim()}&quot;</p>
+                <p>
+                  packing message<span className="text-accent"> ........ done</span>
+                </p>
+                <p>
+                  opening your mail app<span className="text-accent"> .. done</span>
+                </p>
+              </>
+            }
+            plain={<p className="text-dim">Your email app should have opened with the message ready to go.</p>}
+          />
           <p className="mt-3 font-display text-[clamp(2rem,5vw,2.75rem)] leading-[1.05]">
             Thanks, {name.trim()}. <span className="italic text-accent">Hit send there.</span>
           </p>
@@ -78,14 +87,21 @@ function Composer() {
         <form onSubmit={send} noValidate className="flex flex-col gap-5 p-7">
           <div className="flex flex-col gap-2">
             <label htmlFor="f-name" className="text-[11px] text-dim">
-              <span className="text-accent">--</span>name
+              <Variant
+                dev={
+                  <>
+                    <span className="text-accent">--</span>name
+                  </>
+                }
+                plain="your name"
+              />
             </label>
             <input
               id="f-name"
               value={name}
               onChange={event => {
                 setName(event.target.value);
-                setError("");
+                setMissing(false);
               }}
               autoComplete="name"
               className={`${field} h-[46px]`}
@@ -94,14 +110,21 @@ function Composer() {
 
           <div className="flex flex-col gap-2">
             <label htmlFor="f-msg" className="text-[11px] text-dim">
-              <span className="text-accent">--</span>message
+              <Variant
+                dev={
+                  <>
+                    <span className="text-accent">--</span>message
+                  </>
+                }
+                plain="message"
+              />
             </label>
             <textarea
               id="f-msg"
               value={message}
               onChange={event => {
                 setMessage(event.target.value);
-                setError("");
+                setMissing(false);
               }}
               onKeyDown={onMessageKey}
               rows={5}
@@ -111,10 +134,15 @@ function Composer() {
 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <span role="status" className="text-[11px] text-err">
-              {error}
+              {missing ? (
+                <Variant
+                  dev="error: --name and --message are required"
+                  plain="Add your name and a message first."
+                />
+              ) : null}
             </span>
             <button type="submit" data-cursor-label="send" className="btn btn-primary h-[50px]">
-              run send <span aria-hidden>↵</span>
+              <Variant dev="run send" plain="send" /> <span aria-hidden>↵</span>
             </button>
           </div>
         </form>
@@ -147,7 +175,7 @@ export default function ContactPanel() {
       <div className="flex flex-col gap-8">
         <Reveal>
           <p className="text-xs text-dim">
-            <span className="text-accent">05</span> / contact.sh
+            <span className="text-accent">05</span> / <Variant dev="contact.sh" plain="Contact" />
           </p>
         </Reveal>
 

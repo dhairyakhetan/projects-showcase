@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import ArrowUpRight from "@/components/ArrowUpRight";
+import Variant from "@/components/Variant";
 import type { Project } from "@/lib/repos";
 
 /**
@@ -121,7 +122,7 @@ export default function ProjectCard({ project, index }: { project: Project; inde
               data-cursor-label="code"
               className="flex-1 border border-line-strong bg-bg/85 py-2 text-center text-[11px] text-ink backdrop-blur-sm transition-colors hover:border-dim"
             >
-              source
+              <Variant dev="source" plain="code" />
             </a>
           </div>
         </div>

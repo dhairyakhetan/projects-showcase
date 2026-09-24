@@ -2,6 +2,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import ProjectCard from "@/components/ProjectCard";
+import Variant from "@/components/Variant";
 import { techIndex } from "@/lib/tech";
 import type { ProjectsResult } from "@/lib/repos";
 
@@ -119,7 +120,14 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
           className="panel group flex min-h-[240px] flex-col justify-between gap-8 p-7 text-left transition-[transform,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong disabled:translate-y-0"
         >
           <span className="text-[11px] text-dim">
-            <span className="text-accent">$</span> ls -a projects/
+            <Variant
+              dev={
+                <>
+                  <span className="text-accent">$</span> ls -a projects/
+                </>
+              }
+              plain="everything else"
+            />
           </span>
 
           <span className="font-display text-[2.25rem] leading-[1.05]">
@@ -131,12 +139,20 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
           <span className={`text-xs ${state === "error" ? "text-err" : "text-dim"}`}>
             {state === "loading" ? (
               <>
-                pulling from github<span className="caret">…</span>
+                <Variant dev="pulling from github" plain="loading" />
+                <span className="caret">…</span>
               </>
             ) : state === "error" ? (
               <>couldn&apos;t load that{error ? ` (${error})` : ""} — try again →</>
             ) : (
-              <>show all public repos → <span className="text-faint">· only fetched when you ask</span></>
+              <Variant
+                dev={
+                  <>
+                    show all public repos → <span className="text-faint">· only fetched when you ask</span>
+                  </>
+                }
+                plain="show every project →"
+              />
             )}
           </span>
         </button>
@@ -150,23 +166,42 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
     <div className="mt-6">
       <div ref={headingRef} tabIndex={-1} className="outline-none">
         <p className="text-xs text-dim">
-          <span className="text-accent">$</span> ls -a projects/
+          <Variant
+            dev={
+              <>
+                <span className="text-accent">$</span> ls -a projects/
+              </>
+            }
+            plain="everything else"
+          />
         </p>
         <h3 className="mt-3 font-display text-[2.6rem] leading-none">
-          {data!.projects.length} <span className="italic">repositories.</span>
+          {data!.projects.length}{" "}
+          <span className="italic">
+            <Variant dev="repositories." plain="projects." />
+          </span>
         </h3>
       </div>
 
       {data!.degraded ? (
         <p className="mt-6 border border-err/40 bg-err/10 px-4 py-3 text-xs text-ink-mute">
-          couldn&apos;t reach the worker{data!.error ? ` (${data!.error})` : ""} — showing sample
-          data until the next sync
+          <Variant
+            dev={
+              <>
+                couldn&apos;t reach the worker{data!.error ? ` (${data!.error})` : ""} — showing
+                sample data until the next sync
+              </>
+            }
+            plain="Couldn't load the live list just now, so these are examples."
+          />
         </p>
       ) : null}
 
       <div className="mt-6 flex flex-col gap-4">
         <label className="flex items-center gap-3 border border-line bg-panel px-4 py-3 transition-colors focus-within:border-dim">
-          <span className="text-xs text-accent">grep</span>
+          <span className="text-xs text-accent">
+            <Variant dev="grep" plain="search" />
+          </span>
           <input
             ref={searchRef}
             value={query}
@@ -212,7 +247,9 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
       </div>
 
       {visible.length === 0 ? (
-        <p className="mt-12 text-sm text-err">grep: nothing matches that.</p>
+        <p className="mt-12 text-sm text-err">
+          <Variant dev="grep: nothing matches that." plain="Nothing matches that." />
+        </p>
       ) : null}
 
       {/* Re-keyed on the filter so a changed result set replays the entrance

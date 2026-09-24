@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import ArrowUpRight from "@/components/ArrowUpRight";
+import Variant from "@/components/Variant";
 import type { FeaturedProject } from "@/lib/featured";
 
 /**
@@ -115,7 +116,7 @@ function Card({ project, index, total }: { project: FeaturedProject; index: numb
               data-cursor-label="code"
               className="btn btn-ghost h-11 px-5 text-xs"
             >
-              source
+              <Variant dev="source" plain="see the code" />
             </a>
           </div>
         </div>

@@ -45,6 +45,21 @@ box, so `padding-bottom` on the `<ul>` does nothing for it — without real
 content height the last card never reaches its offset and every card unsticks
 at once at the bottom of the scroll.
 
+## Two views
+
+First-time visitors get one question: do you write code? **Yes** keeps the
+editor look — file-name tabs, the terminal, the bio as `dhairya.js`. **No**
+shows the same content in plain words: page names, a "start here" list instead
+of the terminal, the bio as a short list next to the photo. Either can switch
+later from the ⌘K menu (the `menu` button in the status bar on phones), or
+with `mode` in the terminal.
+
+The answer lives in `localStorage` and on `<html data-audience>`, set by a
+blocking script before first paint. Pages render **both** versions through
+`src/components/Variant.tsx` and CSS shows one, so the right view is there at
+first paint instead of swapping in after hydration. The question itself is in
+the server HTML too, shown only while the attribute is `unset`.
+
 ## Routing
 
 It reads as one page but every panel has a clean URL, because the persistent
@@ -96,6 +111,7 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   │
 │   ├── lib/
 │   │   ├── content.ts          # ⭐ ALL personal content — edit this one
+│   │   ├── audience.ts         # dev / plain view: read, set, pre-paint script
 │   │   ├── repos.ts            # server-side worker fetch + normalise
 │   │   ├── tech.ts             # tech tags + OVERRIDES (ignores GitHub's guess)
 │   │   └── fixtures.ts         # stand-in data when the worker is unreachable
@@ -107,6 +123,8 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │       ├── Magnetic.tsx        # pulls a child toward the pointer
 │       ├── Reveal.tsx          # CSS entrance animations
 │       ├── ThemeToggle.tsx     # dark ⇄ light
+│       ├── AudiencePrompt.tsx  # "do you write code?" on first visit
+│       ├── Variant.tsx         # renders the dev and plain version of something
 │       ├── Terminal.tsx        # the shell on the home page
 │       ├── KineticName.tsx     # hero name, per-letter pointer reaction
 │       ├── ShaderField.tsx     # the background dot field, idle when nothing moves

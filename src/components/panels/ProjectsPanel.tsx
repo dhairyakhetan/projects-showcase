@@ -4,6 +4,7 @@ import Link from "next/link";
 import AllRepos from "@/components/AllRepos";
 import FeaturedStack from "@/components/FeaturedStack";
 import { Reveal } from "@/components/Reveal";
+import Variant from "@/components/Variant";
 import { featuredProjects } from "@/lib/featured";
 
 function OpenSlot() {
@@ -19,7 +20,9 @@ function OpenSlot() {
         <br />
         <span className="italic text-accent">Let&apos;s build it.</span>
       </span>
-      <span className="text-xs text-dim">contact.sh →</span>
+      <span className="text-xs text-dim">
+        <Variant dev="contact.sh" plain="get in touch" /> →
+      </span>
     </Link>
   );
 }
@@ -31,7 +34,7 @@ export default function ProjectsPanel() {
         <div className="flex flex-col gap-3.5">
           <Reveal>
             <p className="text-xs text-dim">
-              <span className="text-accent">04</span> / projects/
+              <span className="text-accent">04</span> / <Variant dev="projects/" plain="Projects" />
             </p>
           </Reveal>
           <Reveal delay={80}>

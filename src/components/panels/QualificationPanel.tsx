@@ -2,6 +2,7 @@
 
 import { useRef, useState, type KeyboardEvent } from "react";
 import { Reveal } from "@/components/Reveal";
+import Variant from "@/components/Variant";
 import { qualification } from "@/lib/content";
 
 /**
@@ -31,7 +32,7 @@ export default function QualificationPanel() {
         <div className="flex flex-col gap-3.5">
           <Reveal>
             <p className="text-xs text-dim">
-              <span className="text-accent">03</span> / qualification.json
+              <span className="text-accent">03</span> / <Variant dev="qualification.json" plain="Qualification" />
             </p>
           </Reveal>
           <Reveal delay={80}>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Reveal } from "@/components/Reveal";
+import Variant from "@/components/Variant";
 import { about, favourite, identity } from "@/lib/content";
 
 type Mode = "jee" | "code";
@@ -29,7 +30,7 @@ const list = (values: readonly string[]) => (
  * server-rendered, so a 404 can fire before React attaches onError — the
  * mount check catches that case (a failed image is complete with no width).
  */
-function Portrait() {
+function Portrait({ className = "p-6 sm:p-8" }: { className?: string }) {
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLImageElement>(null);
 
@@ -39,7 +40,7 @@ function Portrait() {
   }, []);
 
   return (
-    <div className="group flex items-center justify-center p-6 sm:p-8">
+    <div className={`group flex items-center justify-center ${className}`}>
       <div className="aspect-[577/636] w-full max-w-[300px] overflow-hidden border border-line bg-chip">
         {failed ? (
           <div className="flex h-full w-full items-center justify-center font-display text-7xl text-faint">
@@ -55,6 +56,8 @@ function Portrait() {
             ref={ref}
             src={about.portrait}
             alt={about.portraitAlt}
+            // Lazy, so the view that isn't showing it (display: none) never downloads it.
+            loading="lazy"
             onError={() => setFailed(true)}
             className="thumb h-full w-full object-cover"
           />
@@ -123,6 +126,54 @@ function Code({ onOpenPhoto }: { onOpenPhoto: () => void }) {
   );
 }
 
+/** The simple view's stand-in for dhairya.js: the same facts, as a list. */
+function Facts() {
+  const { facts } = about;
+
+  const rows: [string, ReactNode][] = [
+    ["lives in", facts.based],
+    ["school", `Class ${facts.grade}`],
+    ["preparing for", facts.preparingFor],
+    ["knows", facts.writes.join(", ")],
+    ["learning", facts.learning.join(", ")],
+    [
+      "favourite project",
+      <a
+        key="fav"
+        href={favourite.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-cursor-label="visit"
+        className="text-accent underline decoration-1 underline-offset-4"
+      >
+        {favourite.title} ↗
+      </a>,
+    ],
+    ["status", facts.status],
+  ];
+
+  return (
+    <div className="panel">
+      <div className="panel-bar">
+        <span>in short</span>
+      </div>
+
+      <div className="grid items-center gap-2 sm:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+        <Portrait className="p-6 pb-0 sm:pb-6 sm:pr-0" />
+
+        <dl className="px-6 py-5 sm:py-6">
+          {rows.map(([term, value]) => (
+            <div key={term} className="flex flex-col gap-1 border-b border-line-soft py-2.5 last:border-b-0">
+              <dt className="text-[11px] text-dim">{term}</dt>
+              <dd className="text-sm text-ink">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </div>
+  );
+}
+
 export default function AboutPanel() {
   const [mode, setMode] = useState<Mode>("code");
   const [file, setFile] = useState<File>("dhairya.js");
@@ -136,7 +187,7 @@ export default function AboutPanel() {
       <div className="flex flex-col gap-8">
         <Reveal>
           <p className="text-xs text-dim">
-            <span className="text-accent">02</span> / about.md
+            <span className="text-accent">02</span> / <Variant dev="about.md" plain="About" />
           </p>
         </Reveal>
 
@@ -161,7 +212,7 @@ export default function AboutPanel() {
                   mode === value ? "bg-accent text-on-accent" : "text-dim hover:text-ink"
                 }`}
               >
-                {value}_mode
+                <Variant dev={`${value}_mode`} plain={value === "jee" ? "school" : "coding"} />
               </button>
             ))}
           </div>
@@ -179,39 +230,45 @@ export default function AboutPanel() {
       </div>
 
       <Reveal delay={200} y={24}>
-        <div className="panel">
-          <div className="panel-bar pl-0">
-            <div role="tablist" aria-label="Open files" className="flex h-full items-stretch">
-              {files.map(name => (
-                <button
-                  key={name}
-                  type="button"
-                  role="tab"
-                  aria-selected={file === name}
-                  onClick={() => setFile(name)}
-                  data-cursor-label="open"
-                  className={`relative border-r border-rule px-[18px] transition-colors ${
-                    file === name ? "bg-panel-hi text-ink" : "hover:text-ink"
-                  }`}
-                >
-                  {file === name ? <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-accent" /> : null}
-                  {name}
-                </button>
-              ))}
-            </div>
-            <span>{file === "me.png" ? "577 × 636" : "readonly"}</span>
-          </div>
-
-          <div role="tabpanel" aria-label={file}>
-            {file === "dhairya.js" ? (
-              <Code onOpenPhoto={() => setFile("me.png")} />
-            ) : (
-              <div key="photo" className="panel-enter">
-                <Portrait />
+        <Variant
+          block
+          plain={<Facts />}
+          dev={
+            <div className="panel">
+              <div className="panel-bar pl-0">
+                <div role="tablist" aria-label="Open files" className="flex h-full items-stretch">
+                  {files.map(name => (
+                    <button
+                      key={name}
+                      type="button"
+                      role="tab"
+                      aria-selected={file === name}
+                      onClick={() => setFile(name)}
+                      data-cursor-label="open"
+                      className={`relative border-r border-rule px-[18px] transition-colors ${
+                        file === name ? "bg-panel-hi text-ink" : "hover:text-ink"
+                      }`}
+                    >
+                      {file === name ? <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-accent" /> : null}
+                      {name}
+                    </button>
+                  ))}
+                </div>
+                <span>{file === "me.png" ? "577 × 636" : "readonly"}</span>
               </div>
-            )}
-          </div>
-        </div>
+
+              <div role="tabpanel" aria-label={file}>
+                {file === "dhairya.js" ? (
+                  <Code onOpenPhoto={() => setFile("me.png")} />
+                ) : (
+                  <div key="photo" className="panel-enter">
+                    <Portrait />
+                  </div>
+                )}
+              </div>
+            </div>
+          }
+        />
       </Reveal>
     </section>
   );

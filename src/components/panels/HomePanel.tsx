@@ -8,6 +8,7 @@ import KineticName from "@/components/KineticName";
 import Magnetic from "@/components/Magnetic";
 import { Reveal } from "@/components/Reveal";
 import Terminal from "@/components/Terminal";
+import Variant from "@/components/Variant";
 import { home, identity } from "@/lib/content";
 import { featuredProjects } from "@/lib/featured";
 
@@ -64,6 +65,51 @@ function Typewriter({ words }: { words: readonly string[] }) {
   );
 }
 
+/** The simple view's stand-in for the terminal: the same places, as plain links. */
+function StartHere({ onPlay }: { onPlay: () => void }) {
+  const row =
+    "row-link flex w-full items-center justify-between gap-4 border-b border-rule px-6 py-[18px] text-left";
+
+  const links = [
+    { href: "/about", title: "About me", note: "who I am, in short" },
+    { href: "/projects", title: "Things I've made", note: "four projects, and why I built each" },
+    { href: "/qualification", title: "Where I'm at", note: "school, JEE, and coding" },
+    { href: "/contact", title: "Say hi", note: "email, socials, or a quick message" },
+  ];
+
+  return (
+    <div className="panel shadow-[var(--shadow)]">
+      <div className="panel-bar">
+        <span>start here</span>
+        <span>5 stops</span>
+      </div>
+
+      <ul>
+        {links.map(link => (
+          <li key={link.href}>
+            <Link href={link.href} data-cursor-label="go" className={row}>
+              <span className="flex flex-col gap-1">
+                <span className="text-sm text-ink">{link.title}</span>
+                <span className="text-[11px] text-dim">{link.note}</span>
+              </span>
+              <span aria-hidden className="text-dim">→</span>
+            </Link>
+          </li>
+        ))}
+        <li>
+          <button type="button" onClick={onPlay} data-cursor-label="play" className={`${row} border-b-0`}>
+            <span className="flex flex-col gap-1">
+              <span className="text-sm text-ink">Play a little game</span>
+              <span className="text-[11px] text-dim">fly a dot through my projects</span>
+            </span>
+            <span aria-hidden className="text-accent">▸</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
 export default function HomePanel() {
   const [playing, setPlaying] = useState(false);
 
@@ -75,7 +121,18 @@ export default function HomePanel() {
       <div className="flex flex-col gap-7">
         <Reveal>
           <p className="text-[13px] text-dim">
-            <span className="text-accent">//</span> {home.greeting}
+            <Variant
+              dev={
+                <>
+                  <span className="text-accent">//</span> {home.greeting}
+                </>
+              }
+              plain={
+                <>
+                  <span className="text-accent">●</span> hi, i&apos;m
+                </>
+              }
+            />
           </p>
         </Reveal>
 
@@ -112,7 +169,11 @@ export default function HomePanel() {
       </div>
 
       <Reveal delay={220} y={24}>
-        <Terminal onPlay={() => setPlaying(true)} />
+        <Variant
+          block
+          dev={<Terminal onPlay={() => setPlaying(true)} />}
+          plain={<StartHere onPlay={() => setPlaying(true)} />}
+        />
       </Reveal>
 
       {/* Opt-in from the terminal, so it never competes with the page. */}

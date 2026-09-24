@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toggleTheme } from "@/components/ThemeToggle";
+import { setAudience } from "@/lib/audience";
 import { favourite, panels } from "@/lib/content";
 import { featuredProjects } from "@/lib/featured";
 
@@ -59,7 +60,7 @@ export default function Terminal({ onPlay }: { onPlay: () => void }) {
     switch (name) {
       case "help":
         return [
-          line("out", "whoami · ls · cd <page> · jee · open <project> · play · theme · clear"),
+          line("out", "whoami · ls · cd <page> · jee · open <project> · play · theme · mode · clear"),
           line("out", "tip: typing a page name works too. ↑ recalls history."),
         ];
 
@@ -94,6 +95,10 @@ export default function Terminal({ onPlay }: { onPlay: () => void }) {
       case "flappy":
         later(onPlay, 350);
         return [line("out", "launching flappy-projects… space to flap, esc to quit.")];
+
+      case "mode":
+        later(() => setAudience("plain"), 500);
+        return [line("out", "switching to the simple view… (⌘K switches back)")];
 
       case "theme": {
         const next = toggleTheme();

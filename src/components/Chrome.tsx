@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import AudiencePrompt from "@/components/AudiencePrompt";
 import CommandPalette, { openPalette } from "@/components/CommandPalette";
 import CustomCursor from "@/components/CustomCursor";
 import ShaderField from "@/components/ShaderField";
 import ThemeToggle from "@/components/ThemeToggle";
+import Variant from "@/components/Variant";
 import { contact, identity, panels } from "@/lib/content";
 
 /** Renders nothing time-dependent on the server — a mismatch would be a hydration error. */
@@ -61,7 +63,9 @@ function Tabs({ active, compact }: { active: string; compact?: boolean }) {
             <span className={`relative text-[10px] ${on ? "text-accent" : "text-faint"}`}>
               0{index + 1}
             </span>
-            <span className="relative">{panel.file}</span>
+            <span className="relative">
+              <Variant dev={panel.file} plain={panel.label} />
+            </span>
           </Link>
         );
       })}
@@ -77,13 +81,14 @@ function Tabs({ active, compact }: { active: string; compact?: boolean }) {
 export default function Chrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const active = pathname.replace(/^\//, "").split("/")[0] || "home";
-  const file = panels.find(panel => panel.id === active)?.file ?? "home.js";
+  const current = panels.find(panel => panel.id === active) ?? panels[0];
 
   return (
     <>
       <ShaderField className="pointer-events-none fixed inset-x-0 top-0 h-lvh w-full" />
       <CustomCursor />
       <CommandPalette />
+      <AudiencePrompt />
 
       <header className="sticky top-0 z-40 border-b border-rule bg-bg/85 backdrop-blur-md">
         <div className="flex h-14 items-stretch lg:h-16">
@@ -130,20 +135,26 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
             <span className="h-1.5 w-1.5 bg-accent" />
             open to collabs
           </a>
-          <span className="hidden sm:inline">⎇ main*</span>
+          <Variant dev={<span className="hidden sm:inline">⎇ main*</span>} plain={null} />
           <span className="hidden md:inline">class 11 · jee prep</span>
         </div>
 
         <div className="flex shrink-0 items-center gap-[22px]">
-          <span className="text-ink-mute">{file}</span>
-          <span className="hidden md:inline">UTF-8</span>
+          <span className="text-ink-mute">
+            <Variant dev={current.file} plain={current.label} />
+          </span>
+          <Variant dev={<span className="hidden md:inline">UTF-8</span>} plain={null} />
+          {/* The only way into the palette on a phone, so it shows at every size. */}
           <button
             type="button"
             onClick={openPalette}
-            data-cursor-label="⌘K"
-            className="hidden transition-colors hover:text-ink md:inline"
+            data-cursor-label="menu"
+            className="transition-colors hover:text-ink"
           >
-            ⌘K commands
+            <span className="md:hidden">menu</span>
+            <span className="hidden md:inline">
+              ⌘K <Variant dev="commands" plain="menu" />
+            </span>
           </button>
           <span className="hidden lg:inline">
             © {new Date().getFullYear()} {identity.name}
