@@ -10,6 +10,9 @@
 export type Audience = "dev" | "plain";
 
 const KEY = "audience";
+
+/** Set by middleware.ts on a hard refresh; tells the script below to forget. */
+export const RESET_COOKIE = "audience-reset";
 export const AUDIENCE_EVENT = "audience:change";
 
 export function getAudience(): Audience {
@@ -34,10 +37,18 @@ export function toggleAudience(): Audience {
   return next;
 }
 
-/** Inline, blocking, in <head>. Anything later and the wrong view flashes. */
+/**
+ * Inline, blocking, in <head>. Anything later and the wrong view flashes.
+ * A hard refresh (see middleware.ts) clears the stored answer first, so the
+ * question is asked again.
+ */
 export const AUDIENCE_INIT = `
 (function () {
   try {
+    if (document.cookie.indexOf("${RESET_COOKIE}=1") !== -1) {
+      localStorage.removeItem("${KEY}");
+      document.cookie = "${RESET_COOKIE}=; Max-Age=0; path=/";
+    }
     var a = localStorage.getItem("${KEY}");
     document.documentElement.dataset.audience = a === "dev" || a === "plain" ? a : "unset";
   } catch (e) {}

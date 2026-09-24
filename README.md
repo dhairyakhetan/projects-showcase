@@ -55,7 +55,12 @@ later from the ⌘K menu (the `menu` button in the status bar on phones), or
 with `mode` in the terminal.
 
 The answer lives in `localStorage` and on `<html data-audience>`, set by a
-blocking script before first paint. Pages render **both** versions through
+blocking script before first paint. A **hard refresh** (⌘/Ctrl+Shift+R) forgets
+it and asks again; a normal refresh doesn't. Only the request can tell those
+apart — a hard refresh sends `Cache-Control: no-cache` — so
+`src/middleware.ts` flags it with a short-lived cookie that the script reads.
+The middleware's matcher only fires on that header, so ordinary page loads
+never invoke it. Pages render **both** versions through
 `src/components/Variant.tsx` and CSS shows one, so the right view is there at
 first paint instead of swapping in after hydration. The question itself is in
 the server HTML too, shown only while the attribute is `unset`.
@@ -101,6 +106,7 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   └── me.png                  # About photo (optional — falls back to initials)
 │
 ├── src/
+│   ├── middleware.ts           # hard refresh → ask "do you write code?" again
 │   ├── app/
 │   │   ├── layout.tsx          # fonts, metadata, theme script — and Chrome
 │   │   ├── page.tsx            # "/" → redirects to /home
