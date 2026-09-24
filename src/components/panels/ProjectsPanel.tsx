@@ -12,7 +12,7 @@ function OpenSlot() {
     <Link
       href="/contact"
       data-cursor-label="hi"
-      className="flex min-h-[240px] flex-col justify-between gap-8 border border-dashed border-line-strong bg-bg/60 p-7 transition-[transform,border-color] duration-300 hover:-translate-y-1 hover:border-dim"
+      className="flex min-h-[240px] flex-col justify-between gap-8 border border-dashed border-line-strong bg-bg/60 p-7 lift"
     >
       <span className="text-[11px] text-dim">open slot</span>
       <span className="font-display text-[2.25rem] leading-[1.05]">
@@ -21,7 +21,7 @@ function OpenSlot() {
         <span className="italic text-accent">Let&apos;s build it.</span>
       </span>
       <span className="text-xs text-dim">
-        <Variant dev="contact.sh" plain="get in touch" /> →
+        <Variant dev="contact.sh" plain="get in touch" /> <span className="nudge inline-block">→</span>
       </span>
     </Link>
   );

@@ -46,7 +46,7 @@ function Tabs({ active, compact }: { active: string; compact?: boolean }) {
             href={`/${panel.id}`}
             aria-current={on ? "page" : undefined}
             data-cursor-label="open"
-            className={`relative flex shrink-0 items-center gap-2.5 border-r border-rule px-4 text-xs transition-colors lg:px-[22px] ${
+            className={`group relative flex shrink-0 items-center gap-2.5 border-r border-rule px-4 text-xs transition-colors lg:px-[22px] ${
               on ? "text-ink" : "text-dim hover:text-ink"
             }`}
           >
@@ -60,10 +60,14 @@ function Tabs({ active, compact }: { active: string; compact?: boolean }) {
                 transition={{ type: "spring", stiffness: 480, damping: 38 }}
               />
             ) : null}
-            <span className={`relative text-[10px] ${on ? "text-accent" : "text-faint"}`}>
+            <span
+              className={`relative text-[10px] transition-colors ${
+                on ? "text-accent" : "text-faint group-hover:text-accent"
+              }`}
+            >
               0{index + 1}
             </span>
-            <span className="relative">
+            <span className="relative transition-transform duration-200 group-hover:-translate-y-px group-active:translate-y-px">
               <Variant dev={panel.file} plain={panel.label} />
             </span>
           </Link>

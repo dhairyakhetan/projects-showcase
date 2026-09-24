@@ -117,7 +117,7 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
           onClick={load}
           disabled={state === "loading"}
           data-cursor-label={state === "loading" ? "wait" : "load"}
-          className="panel group flex min-h-[240px] flex-col justify-between gap-8 p-7 text-left transition-[transform,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong disabled:translate-y-0"
+          className="panel group flex min-h-[240px] flex-col justify-between gap-8 p-7 text-left lift"
         >
           <span className="text-[11px] text-dim">
             <Variant

@@ -112,7 +112,7 @@ export default function ProjectCard({ project, index }: { project: Project; inde
                 data-cursor-label="visit"
                 className="flex flex-1 items-center justify-center gap-1 bg-accent py-2 text-[11px] font-bold text-on-accent transition-opacity hover:opacity-85"
               >
-                visit <ArrowUpRight />
+                visit <ArrowUpRight className="nudge" />
               </a>
             ) : null}
             <a

@@ -92,7 +92,7 @@ function StartHere({ onPlay }: { onPlay: () => void }) {
                 <span className="text-sm text-ink">{link.title}</span>
                 <span className="text-[11px] text-dim">{link.note}</span>
               </span>
-              <span aria-hidden className="text-dim">→</span>
+              <span aria-hidden className="nudge text-dim">→</span>
             </Link>
           </li>
         ))}
@@ -102,7 +102,7 @@ function StartHere({ onPlay }: { onPlay: () => void }) {
               <span className="text-sm text-ink">Play a little game</span>
               <span className="text-[11px] text-dim">fly a dot through my projects</span>
             </span>
-            <span aria-hidden className="text-accent">▸</span>
+            <span aria-hidden className="nudge text-accent">▸</span>
           </button>
         </li>
       </ul>
@@ -156,7 +156,7 @@ export default function HomePanel() {
           <div className="flex flex-wrap items-center gap-3.5">
             <Magnetic strength={6}>
               <Link href="/projects" data-cursor-label="go" className="btn btn-primary">
-                see projects <span aria-hidden>→</span>
+                see projects <span aria-hidden className="nudge">→</span>
               </Link>
             </Magnetic>
             <Magnetic strength={6}>

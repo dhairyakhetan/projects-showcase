@@ -74,7 +74,9 @@ function Card({
           viewport lets you see the whole stack at once, which leaves almost no
           scroll distance for cards to travel — they never visibly stack. Each
           card owning most of the viewport is what makes the effect read. */}
-      <article className="stack-card group relative grid overflow-hidden border border-line bg-panel shadow-[var(--shadow)] md:min-h-[min(30rem,64vh)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <article
+        className={`stack-card group relative ${stacked ? "" : "lift "} grid overflow-hidden border border-line bg-panel shadow-[var(--shadow)] md:min-h-[min(30rem,64vh)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]`}
+      >
         <div
           className={`relative overflow-hidden border-b border-line bg-chip md:aspect-auto md:border-b-0 md:border-r ${
             framed ? "aspect-[4/3]" : "aspect-[16/10]"
@@ -171,7 +173,7 @@ function Card({
                 data-cursor-label="visit"
                 className="btn btn-primary h-11 px-5 text-xs"
               >
-                visit <ArrowUpRight />
+                visit <ArrowUpRight className="nudge" />
               </a>
             ) : null}
             {project.source ? (

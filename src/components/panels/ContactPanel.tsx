@@ -218,7 +218,7 @@ export default function ContactPanel() {
                   <span className="shrink-0 text-dim">{link.label}</span>
                   <span className="flex min-w-0 items-center gap-2 text-xs sm:text-right">
                     <span className="min-w-0">{link.note}</span>
-                    <ArrowUpRight className="shrink-0 text-dim" />
+                    <ArrowUpRight className="nudge shrink-0 text-dim" />
                   </span>
                 </a>
               </li>

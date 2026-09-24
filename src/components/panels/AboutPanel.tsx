@@ -208,7 +208,7 @@ export default function AboutPanel() {
                 onClick={() => setMode(value)}
                 aria-pressed={mode === value}
                 data-cursor-label="switch"
-                className={`h-11 px-[22px] text-xs font-medium transition-colors ${
+                className={`h-11 px-[22px] text-xs font-medium transition-[color,background-color,transform] active:scale-95 ${
                   mode === value ? "bg-accent text-on-accent" : "text-dim hover:text-ink"
                 }`}
               >

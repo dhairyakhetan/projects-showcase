@@ -231,7 +231,6 @@
     padding: 0 26px;
     font-size: 13px;
     white-space: nowrap;
-    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease, opacity 200ms ease;
   }
 
   .btn-primary {
@@ -259,7 +258,6 @@
     border: 1px solid var(--line);
     color: var(--dim);
     font-size: 11px;
-    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
   }
 
   .chip:hover {
@@ -578,6 +576,77 @@
   }
 }
 
+
+/* ---- object feedback -----------------------------------------------------
+ * Things respond themselves, not just the cursor. Buttons and chips rise onto
+ * a hard shadow like a key and sink when pressed; cards lift; arrows nudge
+ * toward where they go.
+ *
+ * Unlayered on purpose: the featured card's scroll-driven `transform` in the
+ * stack section above is unlayered too, and a layered hover rule would lose to
+ * it. Hover movement only where hovering exists and motion is welcome; the
+ * press works everywhere, touch included.
+ */
+.btn,
+.chip,
+.lift,
+.nudge {
+  transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.lift {
+  transition-duration: 320ms;
+}
+
+/* Transforms don't apply to plain inline text. */
+.nudge {
+  display: inline-block;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .btn:hover {
+    transform: translateY(-3px);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 3px 0 0 color-mix(in oklab, var(--accent) 45%, #000);
+  }
+
+  .btn-ghost:hover {
+    box-shadow: 0 3px 0 0 var(--line-strong);
+  }
+
+  .chip:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 0 0 var(--line-strong);
+  }
+
+  .lift:hover {
+    transform: translateY(-5px);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow);
+  }
+
+  .btn:hover .nudge,
+  .row-link:hover .nudge,
+  .lift:hover .nudge {
+    transform: translate(3px, -1px);
+  }
+}
+
+.btn:active,
+.chip:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: none;
+  transition-duration: 60ms;
+}
+
+.lift:active {
+  transform: translateY(-1px);
+  transition-duration: 80ms;
+}
 
 /* ---- scrollbar ----------------------------------------------------------- */
 ::-webkit-scrollbar { width: 10px; height: 10px; }

@@ -72,14 +72,14 @@ export default function QualificationPanel() {
                   tabIndex={on ? 0 : -1}
                   onClick={() => setCurrent(index)}
                   data-cursor-label="open"
-                  className={`relative flex flex-col gap-2 border-b border-line-soft py-[22px] pl-8 pr-6 text-left transition-colors ${
-                    on ? "bg-panel-hi" : "hover:bg-panel-hi/60"
+                  className={`group relative flex flex-col gap-2 border-b border-line-soft py-[22px] pl-8 pr-6 text-left transition-[background-color,padding] duration-300 ${
+                    on ? "bg-panel-hi" : "hover:bg-panel-hi/60 hover:pl-10 motion-reduce:hover:pl-8"
                   }`}
                 >
                   <span
                     aria-hidden
-                    className={`absolute -left-[6px] top-7 h-[11px] w-[11px] rounded-full border transition-colors ${
-                      on ? "border-accent bg-accent" : "border-ghost bg-bg"
+                    className={`absolute -left-[6px] top-7 h-[11px] w-[11px] rounded-full border transition-[background-color,border-color,transform] duration-300 ${
+                      on ? "border-accent bg-accent" : "border-ghost bg-bg group-hover:scale-125 group-hover:border-accent"
                     }`}
                   />
                   <span className={`text-[11px] ${on ? "text-accent" : "text-dim"}`}>{item.year}</span>
