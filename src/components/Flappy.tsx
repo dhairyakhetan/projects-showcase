@@ -1,16 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FeaturedProject } from "@/lib/featured";
 
-/**
- * Flappy-bird where every gap is one of my projects, and crashing tells you
- * which one you hit.
- *
- * A project with a live site gets its favicon from a public icon service;
- * everything else falls back to a letter tile in its own tech colour. That
- * fallback is the common case, not an error path.
- */
+/** Plain Flappy Bird, drawn in the site's colours. */
 
 const GRAVITY = 1500;
 const FLAP = -420;
@@ -20,38 +12,24 @@ const PIPE_WIDTH = 66;
 const PIPE_SPACING = 260;
 const BIRD_X = 96;
 const BIRD_RADIUS = 13;
+/** The lip at each pipe's mouth: how far it overhangs and how deep it is. */
+const LIP_OVERHANG = 5;
+const LIP_HEIGHT = 18;
 
 interface Pipe {
   x: number;
   gapCenter: number;
-  project: FeaturedProject;
   scored: boolean;
 }
 
 type Phase = "ready" | "playing" | "dead";
 
-function iconUrlFor(project: FeaturedProject): string | null {
-  if (!project.homepage) return null;
-  try {
-    const { hostname } = new URL(project.homepage);
-    return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
-  } catch {
-    return null;
-  }
-}
-
-export default function FlappyProjects({
-  projects,
-  onClose,
-}: {
-  projects: FeaturedProject[];
-  onClose: () => void;
-}) {
+export default function Flappy({ onClose }: { onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [phase, setPhase] = useState<Phase>("ready");
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(0);
-  const [hit, setHit] = useState<FeaturedProject | null>(null);
+  const [hitPipe, setHitPipe] = useState(false);
 
   // Read by the rAF loop without re-subscribing, so the effect runs once.
   const phaseRef = useRef<Phase>("ready");
@@ -79,7 +57,7 @@ export default function FlappyProjects({
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx || projects.length === 0) return;
+    if (!canvas || !ctx) return;
 
     let width = 0;
     let height = 0;
@@ -87,23 +65,9 @@ export default function FlappyProjects({
     let birdY = 0;
     let velocity = 0;
     let pipes: Pipe[] = [];
-    let nextProject = 0;
     let localScore = 0;
     let frame = 0;
     let last = performance.now();
-
-    const icons = new Map<string, HTMLImageElement>();
-
-    for (const project of projects) {
-      const url = iconUrlFor(project);
-      if (!url) continue;
-
-      const image = new Image();
-      image.crossOrigin = "anonymous";
-      // Registered only once decoded, so a broken icon falls through to the tile.
-      image.onload = () => icons.set(project.name, image);
-      image.src = url;
-    }
 
     function resize() {
       const rect = canvas!.getBoundingClientRect();
@@ -117,14 +81,10 @@ export default function FlappyProjects({
     }
 
     function spawnPipe(x: number) {
-      const project = projects[nextProject % projects.length];
-      nextProject++;
-
       const margin = GAP / 2 + 42;
       pipes.push({
         x,
         gapCenter: margin + Math.random() * Math.max(1, height - margin * 2),
-        project,
         scored: false,
       });
     }
@@ -133,10 +93,9 @@ export default function FlappyProjects({
       birdY = height / 2;
       velocity = 0;
       pipes = [];
-      nextProject = 0;
       localScore = 0;
       setScore(0);
-      setHit(null);
+      setHitPipe(false);
 
       for (let i = 0; i < 4; i++) spawnPipe(width + 140 + i * PIPE_SPACING);
     }
@@ -144,18 +103,12 @@ export default function FlappyProjects({
     resize();
     reset();
 
-    // Canvas can't resolve CSS variables in ctx.font, so the loaded family
-    // name is read off the body once.
-    const mono =
-      getComputedStyle(document.body).getPropertyValue("--font-martian-mono").trim() || "monospace";
-
     function styles() {
       const root = getComputedStyle(document.documentElement);
       return {
         accent: root.getPropertyValue("--accent").trim() || "#c8f55a",
         onAccent: root.getPropertyValue("--on-accent").trim() || "#0b0c0a",
-        ink: root.getPropertyValue("--ink").trim() || "#ebe8df",
-        dim: root.getPropertyValue("--faint").trim() || "#6f7268",
+        pipe: root.getPropertyValue("--chip").trim() || "#181a15",
         edge: root.getPropertyValue("--line-strong").trim() || "#3a3e33",
       };
     }
@@ -163,48 +116,27 @@ export default function FlappyProjects({
     function drawPipe(pipe: Pipe, theme: ReturnType<typeof styles>) {
       const topHeight = pipe.gapCenter - GAP / 2;
       const bottomY = pipe.gapCenter + GAP / 2;
-      const color = pipe.project.tech[0]?.color ?? theme.accent;
 
-      ctx!.fillStyle = `${color}26`;
-      ctx!.strokeStyle = color;
+      ctx!.fillStyle = theme.pipe;
+      ctx!.strokeStyle = theme.edge;
       ctx!.lineWidth = 1.5;
 
-      for (const [y, h] of [
-        [0, topHeight],
-        [bottomY, height - bottomY],
-      ] as const) {
-        if (h <= 0) continue;
-        ctx!.fillRect(pipe.x, y, PIPE_WIDTH, h);
-        ctx!.strokeRect(pipe.x + 0.75, y + 0.75, PIPE_WIDTH - 1.5, h - 1.5);
-      }
+      const block = (x: number, y: number, w: number, h: number) => {
+        if (h <= 0) return;
+        ctx!.fillRect(x, y, w, h);
+        ctx!.strokeRect(x + 0.75, y + 0.75, w - 1.5, h - 1.5);
+      };
 
-      // Sits in the gap, so you read the name while threading through it.
-      const icon = icons.get(pipe.project.name);
-      const cx = pipe.x + PIPE_WIDTH / 2;
-
-      if (icon) {
-        ctx!.drawImage(icon, cx - 14, pipe.gapCenter - 14, 28, 28);
-      } else {
-        ctx!.fillStyle = color;
-        ctx!.fillRect(cx - 15, pipe.gapCenter - 15, 30, 30);
-
-        ctx!.fillStyle = "#0b0c0a";
-        ctx!.font = `700 15px ${mono}`;
-        ctx!.textAlign = "center";
-        ctx!.textBaseline = "middle";
-        ctx!.fillText(pipe.project.title[0].toUpperCase(), cx, pipe.gapCenter + 1);
-      }
-
-      ctx!.fillStyle = theme.dim;
-      ctx!.font = `400 10px ${mono}`;
-      ctx!.textAlign = "center";
-      ctx!.textBaseline = "top";
-      ctx!.fillText(pipe.project.title.slice(0, 18), cx, pipe.gapCenter + 22);
+      // Body, then a wider lip at the mouth facing the gap.
+      block(pipe.x, 0, PIPE_WIDTH, topHeight - LIP_HEIGHT);
+      block(pipe.x - LIP_OVERHANG, topHeight - LIP_HEIGHT, PIPE_WIDTH + LIP_OVERHANG * 2, LIP_HEIGHT);
+      block(pipe.x, bottomY + LIP_HEIGHT, PIPE_WIDTH, height - bottomY - LIP_HEIGHT);
+      block(pipe.x - LIP_OVERHANG, bottomY, PIPE_WIDTH + LIP_OVERHANG * 2, LIP_HEIGHT);
     }
 
-    function die(project: FeaturedProject | null) {
+    function die(byPipe: boolean) {
       setPhaseBoth("dead");
-      setHit(project);
+      setHitPipe(byPipe);
 
       setBest(previous => {
         const next = Math.max(previous, localScore);
@@ -243,12 +175,15 @@ export default function FlappyProjects({
         }
 
         for (const pipe of pipes) {
-          const withinX = BIRD_X + BIRD_RADIUS > pipe.x && BIRD_X - BIRD_RADIUS < pipe.x + PIPE_WIDTH;
+          // The lip overhangs, so it counts toward the hit box.
+          const withinX =
+            BIRD_X + BIRD_RADIUS > pipe.x - LIP_OVERHANG &&
+            BIRD_X - BIRD_RADIUS < pipe.x + PIPE_WIDTH + LIP_OVERHANG;
           const outsideGap =
             birdY - BIRD_RADIUS < pipe.gapCenter - GAP / 2 ||
             birdY + BIRD_RADIUS > pipe.gapCenter + GAP / 2;
 
-          if (withinX && outsideGap) die(pipe.project);
+          if (withinX && outsideGap) die(true);
 
           if (!pipe.scored && pipe.x + PIPE_WIDTH < BIRD_X - BIRD_RADIUS) {
             pipe.scored = true;
@@ -265,7 +200,7 @@ export default function FlappyProjects({
           velocity = Math.max(velocity, 0);
         }
 
-        if (birdY + BIRD_RADIUS > height) die(null);
+        if (birdY + BIRD_RADIUS > height) die(false);
       }
 
       for (const pipe of pipes) drawPipe(pipe, theme);
@@ -315,7 +250,7 @@ export default function FlappyProjects({
       canvas.removeEventListener("flappy:restart", onRestart);
       window.removeEventListener("resize", onResize);
     };
-  }, [projects, setPhaseBoth]);
+  }, [setPhaseBoth]);
 
   // Bound at window level because the canvas isn't focusable and shouldn't
   // take a place in the tab order.
@@ -377,7 +312,9 @@ export default function FlappyProjects({
           <div className="panel flex flex-col items-center gap-3 px-8 py-6">
             {phase === "ready" ? (
               <>
-                <p className="font-display text-3xl">fly through my <span className="italic text-accent">projects.</span></p>
+                <p className="font-display text-3xl">
+                  flap<span className="italic text-accent">.</span>
+                </p>
                 <p className="text-xs text-dim">
                   click or press space · esc to leave
                 </p>
@@ -385,19 +322,8 @@ export default function FlappyProjects({
             ) : (
               <>
                 <p className="font-display text-3xl">
-                  {hit ? "crashed into" : <>hit the <span className="italic text-accent">floor.</span></>}
+                  hit the <span className="italic text-accent">{hitPipe ? "pipe." : "floor."}</span>
                 </p>
-                {hit ? (
-                  <a
-                    href={hit.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-cursor-label="source"
-                    className="pointer-events-auto text-sm text-accent underline underline-offset-4"
-                  >
-                    {hit.title}
-                  </a>
-                ) : null}
                 <p className="text-xs text-dim">
                   scored {score} · space or click to retry
                 </p>

@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import FlappyProjects from "@/components/FlappyProjects";
+import Flappy from "@/components/Flappy";
 import KineticName from "@/components/KineticName";
 import Magnetic from "@/components/Magnetic";
 import { Reveal } from "@/components/Reveal";
 import Terminal from "@/components/Terminal";
 import Variant from "@/components/Variant";
 import { home, identity } from "@/lib/content";
-import { featuredProjects } from "@/lib/featured";
 
 const TICK = 75;
 const HOLD_FULL = 26;
@@ -100,7 +99,7 @@ function StartHere({ onPlay }: { onPlay: () => void }) {
           <button type="button" onClick={onPlay} data-cursor-label="play" className={`${row} border-b-0`}>
             <span className="flex flex-col gap-1">
               <span className="text-sm text-ink">Play a little game</span>
-              <span className="text-[11px] text-dim">fly a dot through my projects</span>
+              <span className="text-[11px] text-dim">flappy bird, but you're a dot</span>
             </span>
             <span aria-hidden className="nudge text-accent">▸</span>
           </button>
@@ -193,7 +192,7 @@ export default function HomePanel() {
               transition={{ type: "spring", stiffness: 280, damping: 28 }}
               className="h-[min(560px,80vh)] w-full max-w-3xl"
             >
-              <FlappyProjects projects={featuredProjects} onClose={() => setPlaying(false)} />
+              <Flappy onClose={() => setPlaying(false)} />
             </motion.div>
           </motion.div>
         ) : null}

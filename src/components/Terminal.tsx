@@ -91,7 +91,7 @@ export default function Terminal({ onPlay }: { onPlay: () => void }) {
       case "play":
       case "flappy":
         later(onPlay, 350);
-        return [line("out", "launching flappy-projects… space to flap, esc to quit.")];
+        return [line("out", "launching flappy… space to flap, esc to quit.")];
 
       case "mode":
         later(() => setAudience("plain"), 500);

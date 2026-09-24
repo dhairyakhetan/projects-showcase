@@ -13,7 +13,7 @@ fixed field of dots that parts around the pointer.
 ## The site makes no network calls on load
 
 Every page renders from `src/lib/content.ts`. The curated projects, the ⌘K
-palette, the terminal and the flappy easter egg all read the same hand-written
+palette and the terminal all read the same hand-written
 list, so visiting any page costs zero requests for project data.
 
 The full public repo list is fetched **only when someone clicks "show all
@@ -137,7 +137,7 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │       ├── Terminal.tsx        # the shell on the home page
 │       ├── KineticName.tsx     # hero name, per-letter pointer reaction
 │       ├── ShaderField.tsx     # the background dot field, idle when nothing moves
-│       ├── FlappyProjects.tsx  # the easter egg (`play` in the terminal)
+│       ├── Flappy.tsx          # the easter egg (`play` in the terminal)
 │       ├── FeaturedStack.tsx   # the curated projects, stacked on scroll
 │       ├── AllRepos.tsx        # the full repo list, fetched on click
 │       ├── ProjectCard.tsx     # one repo
