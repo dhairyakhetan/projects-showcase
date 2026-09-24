@@ -6,6 +6,25 @@ import Variant from "@/components/Variant";
 import type { FeaturedProject } from "@/lib/featured";
 
 /**
+ * Stands in for a screenshot: the title set large on the card's own surface.
+ * Used when a project has no picture, or its picture fails to load.
+ */
+function Cover({ project }: { project: FeaturedProject }) {
+  const host = project.homepage ? new URL(project.homepage).hostname : null;
+
+  return (
+    <div className="flex h-full min-h-[240px] w-full flex-col justify-between gap-10 bg-[radial-gradient(120%_90%_at_0%_100%,var(--accent-soft),transparent_60%)] p-7 sm:p-10">
+      <span className="text-[11px] text-dim">{host ?? project.name}</span>
+      <span className="font-display text-[clamp(3.25rem,8vw,6.5rem)] italic leading-[0.9] tracking-[-0.02em] text-ink">
+        {project.title}
+        <span className="text-accent">.</span>
+      </span>
+      <span className="text-[11px] text-dim">{project.homepage ? "visit the site ↗" : project.kind}</span>
+    </div>
+  );
+}
+
+/**
  * The curated projects, as a stack you scroll through.
  *
  * Each card sticks slightly lower than the one before it (see .stack in
@@ -13,8 +32,20 @@ import type { FeaturedProject } from "@/lib/featured";
  * sliver of each previous one visible. The whole effect is position:sticky —
  * no scroll handler — so it stays smooth regardless of how many cards there
  * are or how heavy their images get.
+ *
+ * With a single project there's nothing to stack, so it renders as one card
+ * in the normal flow — no sticking, no scroll tracking, no spacer.
  */
-function Card({ project, index, total }: { project: FeaturedProject; index: number; total: number }) {
+function Card({
+  project,
+  index,
+  total,
+}: {
+  project: FeaturedProject;
+  index: number;
+  total: number;
+}) {
+  const stacked = total > 1;
   const [failed, setFailed] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const accent = project.tech[0]?.color ?? "#8B8FA3";
@@ -35,20 +66,28 @@ function Card({ project, index, total }: { project: FeaturedProject; index: numb
   } as CSSProperties;
 
   return (
-    <li className="stack-item mb-8 last:mb-0" style={style}>
+    <li className={stacked ? "stack-item mb-8 last:mb-0" : "reveal"} style={style}>
       {/* Tall on purpose. A stacked-scroll card that only fills a third of the
           viewport lets you see the whole stack at once, which leaves almost no
           scroll distance for cards to travel — they never visibly stack. Each
           card owning most of the viewport is what makes the effect read. */}
       <article className="stack-card group relative grid overflow-hidden border border-line bg-panel shadow-[var(--shadow)] md:min-h-[min(30rem,64vh)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="relative aspect-[16/10] overflow-hidden border-b border-line bg-chip md:aspect-auto md:border-b-0 md:border-r">
-          {failed ? (
-            <div
-              className="flex h-full w-full items-center justify-center font-display text-7xl text-faint"
-              style={{ background: `${accent}1f` }}
-            >
-              {project.title.slice(0, 2)}
-            </div>
+          {failed || !project.thumbnail ? (
+            project.homepage ? (
+              <a
+                href={project.homepage}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-cursor-label="visit"
+                tabIndex={-1}
+                className="block h-full"
+              >
+                <Cover project={project} />
+              </a>
+            ) : (
+              <Cover project={project} />
+            )
           ) : (
             /* Plain <img>: GitHub's preview endpoint and any override live on
                hosts the optimizer can't be allowlisted for ahead of time. */
@@ -70,18 +109,32 @@ function Card({ project, index, total }: { project: FeaturedProject; index: numb
               {project.homepage ? <span className="live-dot h-1.5 w-1.5 rounded-full bg-accent" /> : null}
               {project.kind}
             </span>
-            <span>
-              {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
-            </span>
+            {stacked ? (
+              <span>
+                {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+              </span>
+            ) : null}
           </div>
 
           <h3 className="font-display text-[clamp(2.2rem,4.4vw,3rem)] font-normal leading-none tracking-[-0.01em]">
             {project.title}
           </h3>
 
+          {project.subtitle ? (
+            <p className="-mt-2 font-display text-[clamp(1.25rem,2.2vw,1.6rem)] italic leading-tight text-accent">
+              {project.subtitle}
+            </p>
+          ) : null}
+
           <p className="max-w-[46ch] text-[13px] leading-[1.8] text-ink-mute [text-wrap:pretty] sm:text-sm">
             {project.blurb}
           </p>
+
+          {project.outcome ? (
+            <p className="max-w-[46ch] border-l-2 border-accent pl-4 text-[13px] leading-[1.8] text-ink">
+              {project.outcome}
+            </p>
+          ) : null}
 
           {project.tech.length ? (
             <ul className="flex flex-wrap gap-1.5">
@@ -109,15 +162,17 @@ function Card({ project, index, total }: { project: FeaturedProject; index: numb
                 visit <ArrowUpRight />
               </a>
             ) : null}
-            <a
-              href={project.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-cursor-label="code"
-              className="btn btn-ghost h-11 px-5 text-xs"
-            >
-              <Variant dev="source" plain="see the code" />
-            </a>
+            {project.source ? (
+              <a
+                href={project.source}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-cursor-label="code"
+                className="btn btn-ghost h-11 px-5 text-xs"
+              >
+                <Variant dev="source" plain="see the code" />
+              </a>
+            ) : null}
           </div>
         </div>
         {/* Fades in as the next card covers this one. */}
@@ -217,6 +272,14 @@ export default function FeaturedStack({ projects }: { projects: FeaturedProject[
   }, [projects.length]);
 
   if (projects.length === 0) return null;
+
+  if (projects.length === 1) {
+    return (
+      <ul className="mt-12">
+        <Card project={projects[0]} index={0} total={1} />
+      </ul>
+    );
+  }
 
   return (
     <ul ref={rootRef} className="stack mt-12">

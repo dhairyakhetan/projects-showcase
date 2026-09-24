@@ -5,31 +5,45 @@ import { techFromSlugs, type Tech } from "./tech";
  * The curated projects, resolved for rendering.
  *
  * Entirely derived from `content.ts` — no worker, no fetch, no server work.
- * That is the point: the Projects panel and the ⌘K palette both render from
- * this, so the site makes no network call for project data until someone
- * clicks through to the full repo list.
+ * The Projects page, the ⌘K palette and the terminal all render from this,
+ * so the site makes no network call for project data until someone clicks
+ * through to the full repo list.
  *
- * The thumbnail falls back to GitHub's generated repo preview, which is a
- * plain image URL and costs no API call.
+ * A project needn't have a public repo: `source` is then null and everything
+ * links to the live site instead.
  */
 export interface FeaturedProject {
   name: string;
   title: string;
+  subtitle: string | null;
   kind: string;
   blurb: string;
+  outcome: string | null;
   tech: Tech[];
-  url: string;
+  source: string | null;
   homepage: string | null;
-  thumbnail: string;
+  /** Where a click on the project goes: the live site if there is one, else the repo. */
+  link: string;
+  /** Null means no picture to show — the card draws a typographic cover. */
+  thumbnail: string | null;
 }
 
-export const featuredProjects: FeaturedProject[] = projects.featured.map(entry => ({
-  name: entry.name,
-  title: entry.title,
-  kind: entry.kind,
-  blurb: entry.blurb,
-  tech: techFromSlugs(entry.tech),
-  url: `https://github.com/${GITHUB_USERNAME}/${entry.name}`,
-  homepage: entry.homepage,
-  thumbnail: entry.image ?? `https://opengraph.githubassets.com/1/${GITHUB_USERNAME}/${entry.name}`,
-}));
+export const featuredProjects: FeaturedProject[] = projects.featured.map(entry => {
+  const source = entry.repo ? `https://github.com/${GITHUB_USERNAME}/${entry.repo}` : null;
+
+  return {
+    name: entry.name,
+    title: entry.title,
+    subtitle: entry.subtitle ?? null,
+    kind: entry.kind,
+    blurb: entry.blurb,
+    outcome: entry.outcome ?? null,
+    tech: techFromSlugs(entry.tech),
+    source,
+    homepage: entry.homepage,
+    link: entry.homepage ?? source ?? `https://github.com/${GITHUB_USERNAME}`,
+    thumbnail:
+      entry.image ??
+      (entry.repo ? `https://opengraph.githubassets.com/1/${GITHUB_USERNAME}/${entry.repo}` : null),
+  };
+});

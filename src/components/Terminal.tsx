@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toggleTheme } from "@/components/ThemeToggle";
 import { setAudience } from "@/lib/audience";
-import { favourite, panels } from "@/lib/content";
+import { panels } from "@/lib/content";
 import { featuredProjects } from "@/lib/featured";
 
 interface Line {
@@ -17,14 +17,11 @@ const CHIPS = ["help", "whoami", "ls", "jee", "play", "sudo hire-me"];
 const PAGES: string[] = panels.map(panel => panel.id);
 const VISIBLE_LINES = 9;
 
-/** Everything `open` accepts: the featured repos plus the one that isn't mine alone. */
-const OPENABLE = [
-  ...featuredProjects.map(project => ({
-    key: project.name.toLowerCase(),
-    url: project.homepage ?? project.url,
-  })),
-  { key: favourite.name, url: favourite.url },
-];
+/** Everything `open` accepts. */
+const OPENABLE = featuredProjects.map(project => ({
+  key: project.name.toLowerCase(),
+  url: project.link,
+}));
 
 let nextId = 0;
 const line = (kind: Line["kind"], text: string): Line => ({ id: nextId++, kind, text });

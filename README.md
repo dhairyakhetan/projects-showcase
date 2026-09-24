@@ -23,7 +23,10 @@ that calls `/api/repos`, and it does so after a click, never on mount.
 Projects therefore has two halves:
 
 - **Featured** (`projects.featured` in content.ts) — hand-picked and
-  hand-written, rendered as a stack you scroll through. Each card sticks
+  hand-written. A featured project doesn't need a public repo (`repo: null`
+  links to the live site only), and without an `image` the card draws a
+  typographic cover. One project renders as a single card; two or more
+  render as a stack you scroll through. Each card sticks
   slightly lower than the last, so the next slides over the previous and leaves
   its edge showing. The stacking itself is pure `position: sticky`.
 

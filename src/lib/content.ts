@@ -32,10 +32,10 @@ export const home = {
   ],
 } as const;
 
-/** The project I'm proudest of that isn't mine alone, so it isn't in the repo list. */
+/** The project I'm proudest of — also the one featured on the Projects page. */
 export const favourite = {
   name: "terranotes",
-  title: "Terranotes",
+  title: "TerraNotes",
   url: "https://terranotes-testing.vercel.app",
 } as const;
 
@@ -52,8 +52,8 @@ export const about = {
     code:
       "When the books close, the editor opens. I don't have a stack of official projects " +
       "yet — I learn by building small sites and experiments, breaking them, and fixing " +
-      "them. My favourite so far is Terranotes, a magazine site where I built the mobile " +
-      "version alongside a friend.",
+      "them. The one I'm proudest of is TerraNotes, the online magazine of a Kolkata NGO, " +
+      "where I'm the tech lead and built the site end to end.",
   },
 
   /** Any file in `public/`. Missing means initials, not a broken image. */
@@ -106,7 +106,7 @@ export const qualification = {
       status: "learning",
       detail:
         "No course certificate here — just docs, videos and breaking things until they " +
-        "work. I learn by shipping small sites, and Terranotes is the proof.",
+        "work. I learn by shipping sites, and TerraNotes is the proof.",
       tags: ["html", "python", "c++ · learning", "javascript · learning"],
     },
     {
@@ -167,53 +167,24 @@ export const projects = {
    */
   featured: [
     {
-      name: "shoppy",
-      title: "Shoppy",
-      kind: "family business",
+      name: "terranotes",
+      title: "TerraNotes",
+      /** Shown under the title on the card. */
+      subtitle: "A digital magazine for Aquaterra",
+      kind: "tech lead · 2026",
       blurb:
-        "An online storefront for my mother's Tanjore art. The first thing I " +
-        "built for a real person with real customers instead of for myself, " +
-        "which quietly changes what \"finished\" means — nobody files a bug " +
-        "report, they just stop being able to buy something.",
-      tech: ["javascript"],
-      homepage: null as string | null, // TODO the live URL — GitHub has one, I couldn't read it
-      image: null as string | null,
-    },
-    {
-      name: "omrakhi",
-      title: "Om Rakhi Udyog",
-      kind: "family business · wip",
-      blurb:
-        "The site for my father's business. Still a work in progress and I'm " +
-        "not hiding that — it's up because a rough version people can actually " +
-        "use beats a polished one that never ships.",
-      tech: ["astro"],
-      homepage: "https://omrakhi.vercel.app" as string | null,
-      image: null as string | null,
-    },
-    {
-      name: "GOAT-GPT",
-      title: "GOAT GPT",
-      kind: "ai · side project",
-      blurb:
-        "Settles the Messi–Ronaldo argument with numbers instead of volume. " +
-        "Ask it anything about either career and it answers off their actual " +
-        "stats, which makes it more useful and significantly less fun than how " +
-        "that argument normally goes.",
-      tech: ["python"],
-      homepage: null as string | null,
-      image: null as string | null,
-    },
-    {
-      name: "mcu-watchlist",
-      title: "MCU Watchlist",
-      kind: "side project",
-      blurb:
-        "Every Marvel release from Phase 1 onward, in release order or " +
-        "chronological order. The two disagree constantly and nobody can ever " +
-        "remember which one they're halfway through.",
-      tech: ["html"],
-      homepage: null as string | null, // TODO the live URL — GitHub has one, I couldn't read it
+        "The monthly online magazine of Aquaterra, a Kolkata NGO with more than 1,300 " +
+        "members, run by its Digital Magazine department. I led the tech side and built " +
+        "the site end to end — the concept, the design system and every line of code. The " +
+        "idea was to make reading feel like walking past a corkboard, not scrolling a blog.",
+      outcome:
+        "Edition 01 went live in September 2026 with six pieces from the writing team " +
+        "and profiles for 18 team members.",
+      tech: ["react", "vite", "canvas"],
+      /** No public repo — the card links to the live site only. */
+      repo: null as string | null,
+      homepage: "https://terranotes-testing.vercel.app" as string | null,
+      /** Drop a screenshot in public/ and point this at it, e.g. "/terranotes.png". */
       image: null as string | null,
     },
   ],
@@ -222,7 +193,7 @@ export const projects = {
   exclude: ["projects-showcase", "Wisdom-Woods"] as string[], // TODO add any others
 
   /** Ordered first in the full list. */
-  pinned: [] as string[],
+  pinned: ["shoppy", "omrakhi", "GOAT-GPT", "mcu-watchlist"] as string[],
 } as const;
 
 /** Order drives the tabs, the ⌘K palette and the terminal's `ls`. */

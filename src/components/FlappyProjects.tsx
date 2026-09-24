@@ -192,14 +192,14 @@ export default function FlappyProjects({
         ctx!.font = `700 15px ${mono}`;
         ctx!.textAlign = "center";
         ctx!.textBaseline = "middle";
-        ctx!.fillText(pipe.project.name[0].toUpperCase(), cx, pipe.gapCenter + 1);
+        ctx!.fillText(pipe.project.title[0].toUpperCase(), cx, pipe.gapCenter + 1);
       }
 
       ctx!.fillStyle = theme.dim;
       ctx!.font = `400 10px ${mono}`;
       ctx!.textAlign = "center";
       ctx!.textBaseline = "top";
-      ctx!.fillText(pipe.project.name.slice(0, 18), cx, pipe.gapCenter + 22);
+      ctx!.fillText(pipe.project.title.slice(0, 18), cx, pipe.gapCenter + 22);
     }
 
     function die(project: FeaturedProject | null) {
@@ -389,13 +389,13 @@ export default function FlappyProjects({
                 </p>
                 {hit ? (
                   <a
-                    href={hit.url}
+                    href={hit.link}
                     target="_blank"
                     rel="noopener noreferrer"
                     data-cursor-label="source"
                     className="pointer-events-auto text-sm text-accent underline underline-offset-4"
                   >
-                    {hit.name}
+                    {hit.title}
                   </a>
                 ) : null}
                 <p className="text-xs text-dim">

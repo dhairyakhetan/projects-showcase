@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { toggleTheme } from "@/components/ThemeToggle";
 import { AUDIENCE_EVENT, getAudience, toggleAudience, type Audience } from "@/lib/audience";
-import { contact, favourite, panels } from "@/lib/content";
+import { contact, panels } from "@/lib/content";
 import { featuredProjects } from "@/lib/featured";
 
 const OPEN_EVENT = "palette:open";
@@ -97,19 +97,12 @@ export default function CommandPalette() {
       label: project.title,
       hint: project.homepage ? "visit ↗" : audience === "dev" ? "source ↗" : "code ↗",
       group: "Projects",
-      run: () => window.open(project.homepage ?? project.url, "_blank", "noopener,noreferrer"),
+      run: () => window.open(project.link, "_blank", "noopener,noreferrer"),
     }));
 
     return [
       ...panelCommands,
       ...projectCommands,
-      {
-        id: `project-${favourite.name}`,
-        label: favourite.title,
-        hint: "visit ↗",
-        group: "Projects",
-        run: () => window.open(favourite.url, "_blank", "noopener,noreferrer"),
-      },
       {
         id: "action-audience",
         label: audience === "dev" ? "Switch to the simple view" : "Switch to the developer view",
