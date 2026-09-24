@@ -184,8 +184,13 @@ export const projects = {
       /** No public repo — the card links to the live site only. */
       repo: null as string | null,
       homepage: "https://terranotes-testing.vercel.app" as string | null,
-      /** Drop a screenshot in public/ and point this at it, e.g. "/terranotes.png". */
-      image: null as string | null,
+      image: "/terranotes.webp" as string | null,
+      /**
+       * Set for a finished image (a mockup, a screenshot): it's shown whole, in
+       * full colour, on this background, instead of cropped and muted like
+       * GitHub's preview cards. Match it to the image's own edges.
+       */
+      imageBackground: "#f4ede1" as string | null,
     },
   ],
 

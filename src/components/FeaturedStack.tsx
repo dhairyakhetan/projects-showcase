@@ -46,6 +46,9 @@ function Card({
   total: number;
 }) {
   const stacked = total > 1;
+  // A finished image (mockup, screenshot) is shown whole and in colour rather
+  // than cropped, over-scaled for parallax and muted like a GitHub preview.
+  const framed = Boolean(project.imageBackground);
   const [failed, setFailed] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const accent = project.tech[0]?.color ?? "#8B8FA3";
@@ -72,7 +75,12 @@ function Card({
           scroll distance for cards to travel — they never visibly stack. Each
           card owning most of the viewport is what makes the effect read. */}
       <article className="stack-card group relative grid overflow-hidden border border-line bg-panel shadow-[var(--shadow)] md:min-h-[min(30rem,64vh)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="relative aspect-[16/10] overflow-hidden border-b border-line bg-chip md:aspect-auto md:border-b-0 md:border-r">
+        <div
+          className={`relative overflow-hidden border-b border-line bg-chip md:aspect-auto md:border-b-0 md:border-r ${
+            framed ? "aspect-[4/3]" : "aspect-[16/10]"
+          }`}
+          style={framed ? { background: project.imageBackground! } : undefined}
+        >
           {failed || !project.thumbnail ? (
             project.homepage ? (
               <a
@@ -94,11 +102,15 @@ function Card({
             <img
               ref={imgRef}
               src={project.thumbnail}
-              alt=""
+              alt={framed ? `${project.title} on a laptop and a phone` : ""}
               loading={index === 0 ? "eager" : "lazy"}
               decoding="async"
               onError={() => setFailed(true)}
-              className="stack-media thumb h-full w-full object-cover"
+              className={
+                framed
+                  ? "h-full w-full object-contain transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03]"
+                  : "stack-media thumb h-full w-full object-cover"
+              }
             />
           )}
         </div>

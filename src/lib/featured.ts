@@ -26,6 +26,8 @@ export interface FeaturedProject {
   link: string;
   /** Null means no picture to show — the card draws a typographic cover. */
   thumbnail: string | null;
+  /** Set when the thumbnail is a finished image to show whole, on this colour. */
+  imageBackground: string | null;
 }
 
 export const featuredProjects: FeaturedProject[] = projects.featured.map(entry => {
@@ -45,5 +47,6 @@ export const featuredProjects: FeaturedProject[] = projects.featured.map(entry =
     thumbnail:
       entry.image ??
       (entry.repo ? `https://opengraph.githubassets.com/1/${GITHUB_USERNAME}/${entry.repo}` : null),
+    imageBackground: entry.image ? (entry.imageBackground ?? null) : null,
   };
 });
