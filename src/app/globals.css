@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* The Japan trip page builds its own styles (src/japan/japan.css). */
+@source not "../japan";
 
 /*
  * An editor, not a brochure: warm near-black, one acid accent, a big serif
@@ -621,6 +623,11 @@
   .chip:hover {
     transform: translateY(-2px);
     box-shadow: 0 2px 0 0 var(--line-strong);
+  }
+
+  /* A stacked card's transform belongs to the scroll, so it brightens instead. */
+  .stack-card:hover {
+    border-color: var(--line-strong);
   }
 
   .lift:hover {

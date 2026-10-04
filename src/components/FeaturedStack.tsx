@@ -5,12 +5,21 @@ import ArrowUpRight from "@/components/ArrowUpRight";
 import Variant from "@/components/Variant";
 import type { FeaturedProject } from "@/lib/featured";
 
+/** New tab for other sites; a page on this one opens in place. */
+function external(href: string) {
+  return href.startsWith("/") ? {} : { target: "_blank", rel: "noopener noreferrer" };
+}
+
 /**
  * Stands in for a screenshot: the title set large on the card's own surface.
  * Used when a project has no picture, or its picture fails to load.
  */
 function Cover({ project }: { project: FeaturedProject }) {
-  const host = project.homepage ? new URL(project.homepage).hostname : null;
+  const host = project.homepage
+    ? project.homepage.startsWith("/")
+      ? `dhairyakhetan.vercel.app${project.homepage}`
+      : new URL(project.homepage).hostname
+    : null;
 
   return (
     <div className="flex h-full min-h-[240px] w-full flex-col justify-between gap-10 bg-[radial-gradient(120%_90%_at_0%_100%,var(--accent-soft),transparent_60%)] p-7 sm:p-10">
@@ -87,8 +96,7 @@ function Card({
             project.homepage ? (
               <a
                 href={project.homepage}
-                target="_blank"
-                rel="noopener noreferrer"
+                {...external(project.homepage)}
                 data-cursor-label="visit"
                 tabIndex={-1}
                 className="block h-full"
@@ -168,8 +176,7 @@ function Card({
             {project.homepage ? (
               <a
                 href={project.homepage}
-                target="_blank"
-                rel="noopener noreferrer"
+                {...external(project.homepage)}
                 data-cursor-label="visit"
                 className="btn btn-primary h-11 px-5 text-xs"
               >

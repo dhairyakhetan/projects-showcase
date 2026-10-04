@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toggleTheme } from "@/components/ThemeToggle";
 import { AUDIENCE_EVENT, getAudience, toggleAudience, type Audience } from "@/lib/audience";
 import { contact, panels } from "@/lib/content";
-import { featuredProjects } from "@/lib/featured";
+import { featuredProjects, openProject } from "@/lib/featured";
 
 const OPEN_EVENT = "palette:open";
 
@@ -97,7 +97,7 @@ export default function CommandPalette() {
       label: project.title,
       hint: project.homepage ? "visit ↗" : audience === "dev" ? "source ↗" : "code ↗",
       group: "Projects",
-      run: () => window.open(project.link, "_blank", "noopener,noreferrer"),
+      run: () => openProject(project.link),
     }));
 
     return [

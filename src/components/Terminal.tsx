@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toggleTheme } from "@/components/ThemeToggle";
 import { setAudience } from "@/lib/audience";
 import { panels } from "@/lib/content";
-import { featuredProjects } from "@/lib/featured";
+import { featuredProjects, openProject } from "@/lib/featured";
 
 interface Line {
   id: number;
@@ -84,8 +84,8 @@ export default function Terminal({ onPlay }: { onPlay: () => void }) {
             line("out", `try: ${OPENABLE.map(entry => entry.key).join(" · ")}`),
           ];
         }
-        window.open(target.url, "_blank", "noopener,noreferrer");
-        return [line("out", `opening ${target.key} in a new tab…`)];
+        openProject(target.url);
+        return [line("out", `opening ${target.key}…`)];
       }
 
       case "play":

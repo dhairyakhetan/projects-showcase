@@ -30,6 +30,12 @@ export interface FeaturedProject {
   imageBackground: string | null;
 }
 
+/** Other sites open in a new tab; a page on this site (like /Japan2026) opens in place. */
+export function openProject(href: string) {
+  if (href.startsWith("/")) window.location.assign(href);
+  else window.open(href, "_blank", "noopener,noreferrer");
+}
+
 export const featuredProjects: FeaturedProject[] = projects.featured.map(entry => {
   const source = entry.repo ? `https://github.com/${GITHUB_USERNAME}/${entry.repo}` : null;
 

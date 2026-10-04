@@ -192,6 +192,27 @@ export const projects = {
        */
       imageBackground: "#f4ede1" as string | null,
     },
+    {
+      name: "japan2026",
+      title: "Japan 2026",
+      subtitle: "A day-by-day planner for a family trip",
+      kind: "personal · 2026",
+      blurb:
+        "Our family trip to Tokyo, Kyoto and Osaka arrived as a travel agent's PDFs. I " +
+        "turned them into something we can actually use on the road: every day has its " +
+        "own page with the schedule, where we're sleeping and vegetarian food within " +
+        "walking distance. On a laptop it's a timeline you flip through; on a phone it's " +
+        "one list that opens on today.",
+      outcome:
+        "Building it caught two mistakes in the agent's itinerary — a transfer to the " +
+        "wrong airport and a night count that didn't add up — before we flew.",
+      tech: ["react", "typescript", "tailwind"],
+      repo: null as string | null,
+      /** Lives on this site — see src/app/(japan). */
+      homepage: "/Japan2026" as string | null,
+      image: "/japan2026.webp" as string | null,
+      imageBackground: "#f6f7f5" as string | null,
+    },
   ],
 
   /** Never shown in the full list either, by exact repo name. */

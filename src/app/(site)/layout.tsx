@@ -3,7 +3,7 @@ import { Instrument_Serif, Martian_Mono } from "next/font/google";
 import Chrome from "@/components/Chrome";
 import { AUDIENCE_INIT } from "@/lib/audience";
 import { identity } from "@/lib/content";
-import "./globals.css";
+import "../globals.css";
 
 /* Statements in the serif, everything else in the mono. */
 const instrumentSerif = Instrument_Serif({

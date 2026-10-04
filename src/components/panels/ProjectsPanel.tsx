@@ -46,7 +46,7 @@ export default function ProjectsPanel() {
 
         <Reveal delay={140}>
           <p className="max-w-sm text-xs leading-[1.8] text-dim">
-            The one I&apos;d show you first. Everything else I&apos;ve built is public on GitHub, a
+            The ones I&apos;d show you first. Everything else I&apos;ve built is public on GitHub, a
             click further down.
           </p>
         </Reveal>

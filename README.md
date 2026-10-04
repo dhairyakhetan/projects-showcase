@@ -68,6 +68,21 @@ never invoke it. Pages render **both** versions through
 first paint instead of swapping in after hydration. The question itself is in
 the server HTML too, shown only while the attribute is `unset`.
 
+## Japan 2026 at /Japan2026
+
+A second site living inside this one: a day-by-day planner for a family trip,
+originally a separate Vite app. It sits in its own route group with its **own
+root layout** — its fonts, colours and dark mode, none of the portfolio's
+chrome — so moving between it and the portfolio is a full page load. Its
+Tailwind build only scans `src/japan`, and the portfolio's skips that folder,
+so neither site's tokens leak into the other.
+
+Every day has a real URL (`/Japan2026/day1` … `/day10`), all prerendered. The
+planner itself renders client-side only, because it reads today's date, the
+URL and the screen width as it renders. Booking references and ticket numbers
+are deliberately not in its data, and the page asks search engines not to
+index it.
+
 ## Routing
 
 It reads as one page but every panel has a clean URL, because the persistent
@@ -105,18 +120,25 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   └── worker.js               # committed copy of the deployed worker
 │
 ├── public/
+│   ├── japan2026.webp          # screenshot for the Japan 2026 card
+│   ├── terranotes.webp         # mockup for the TerraNotes card
 │   ├── favicon.svg             # "dk_", adapts to light/dark
 │   └── me.png                  # About photo (optional — falls back to initials)
 │
 ├── src/
 │   ├── middleware.ts           # hard refresh → ask "do you write code?" again
 │   ├── app/
-│   │   ├── layout.tsx          # fonts, metadata, theme script — and Chrome
-│   │   ├── page.tsx            # "/" → redirects to /home
 │   │   ├── globals.css         # design tokens, both themes, CSS animations
-│   │   ├── [panel]/
-│   │   │   └── page.tsx        # /home /about /qualification /projects /contact
+│   │   ├── (site)/             # the portfolio
+│   │   │   ├── layout.tsx      # fonts, metadata, theme script — and Chrome
+│   │   │   ├── page.tsx        # "/" → redirects to /home
+│   │   │   └── [panel]/page.tsx  # /home /about /qualification /projects /contact
+│   │   ├── (japan)/            # the Japan trip planner, its own root layout
+│   │   │   ├── layout.tsx
+│   │   │   └── Japan2026/[[...day]]/page.tsx  # /Japan2026 and /Japan2026/day1…10
 │   │   └── api/repos/route.ts  # same-origin JSON endpoint
+│   │
+│   ├── japan/                  # the trip planner's code, data and styles
 │   │
 │   ├── lib/
 │   │   ├── content.ts          # ⭐ ALL personal content — edit this one

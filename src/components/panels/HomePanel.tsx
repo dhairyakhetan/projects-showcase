@@ -71,7 +71,7 @@ function StartHere({ onPlay }: { onPlay: () => void }) {
 
   const links = [
     { href: "/about", title: "About me", note: "who I am, in short" },
-    { href: "/projects", title: "Things I've made", note: "a magazine I built, and the rest" },
+    { href: "/projects", title: "Things I've made", note: "a magazine, a trip planner, and the rest" },
     { href: "/qualification", title: "Where I'm at", note: "school, JEE, and coding" },
     { href: "/contact", title: "Say hi", note: "email, socials, or a quick message" },
   ];

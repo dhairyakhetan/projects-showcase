@@ -1,0 +1,54 @@
+/*
+ * The Japan trip page has its own look, so its own Tailwind build: it scans
+ * only src/japan, and the portfolio's globals.css skips this folder. Neither
+ * site's tokens or classes leak into the other.
+ */
+@import "tailwindcss" source(none);
+@source "./";
+
+:root {
+  --paper: #f6f7f5; --surface: #ffffff; --ink: #1c1f24; --muted: #5e6570; --line: #dcdfe3;
+  --tokyo: #2b4c7e; --kyoto: #4f6f45; --osaka: #b07a12; --travel: #7a7f87; --alert: #b3392f;
+  --tokyo-soft: #e6ecf5; --kyoto-soft: #e8efe5; --osaka-soft: #f6eedc; --travel-soft: #ecedef; --alert-soft: #f8e6e4;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #15181c; --surface: #1d2126; --ink: #eceef0; --muted: #a3a9b1; --line: #2e343b;
+    --tokyo: #8faedf; --kyoto: #9dc08f; --osaka: #e3b451; --travel: #a3a9b1; --alert: #f08a80;
+    --tokyo-soft: #1f2a3a; --kyoto-soft: #1f2b1d; --osaka-soft: #302613; --travel-soft: #24282e; --alert-soft: #3a1f1c;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-tokyo: var(--tokyo);
+  --color-kyoto: var(--kyoto);
+  --color-osaka: var(--osaka);
+  --color-travel: var(--travel);
+  --color-alert: var(--alert);
+  --color-tokyo-soft: var(--tokyo-soft);
+  --color-kyoto-soft: var(--kyoto-soft);
+  --color-osaka-soft: var(--osaka-soft);
+  --color-travel-soft: var(--travel-soft);
+  --color-alert-soft: var(--alert-soft);
+  --font-sans: var(--font-zen-kaku), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: var(--font-shippori), "Hiragino Mincho ProN", Georgia, serif;
+}
+
+html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 84px); -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.55;
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.rich a { color: var(--tokyo); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.rich a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--tokyo); outline-offset: 2px; border-radius: 6px; }
