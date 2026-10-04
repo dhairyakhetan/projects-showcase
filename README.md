@@ -83,6 +83,13 @@ URL and the screen width as it renders. Booking references and ticket numbers
 are deliberately not in its data, and the page asks search engines not to
 index it.
 
+## Link previews
+
+Two Open Graph images, generated at build time from JSX with `next/og`:
+`src/app/(site)/opengraph-image.tsx` for every portfolio page (each page keeps
+its own title) and `src/app/(japan)/Japan2026/opengraph-image.tsx` for the trip
+planner and all its days — dates and cities only, no names or bookings.
+
 ## Routing
 
 It reads as one page but every panel has a clean URL, because the persistent
@@ -139,6 +146,7 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   │   └── api/repos/route.ts  # same-origin JSON endpoint
 │   │
 │   ├── japan/                  # the trip planner's code, data and styles
+│   ├── og-fonts/               # TTFs for the link-preview images (Japanese ones subset)
 │   │
 │   ├── lib/
 │   │   ├── content.ts          # ⭐ ALL personal content — edit this one

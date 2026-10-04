@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
 import AboutPanel from "@/components/panels/AboutPanel";
 import ContactPanel from "@/components/panels/ContactPanel";
@@ -18,17 +18,36 @@ function isPanelId(value: string): value is PanelId {
   return panels.some(panel => panel.id === value);
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ panel: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: { params: Promise<{ panel: string }> },
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
   const { panel } = await params;
+  // Setting openGraph here replaces the inherited one wholesale, image
+  // included — so the image from ../opengraph-image.tsx is carried over.
+  const inherited = await parent;
   const match = panels.find(entry => entry.id === panel);
 
+  const title = match && match.id !== "home" ? `${match.label} — ${identity.name}` : identity.name;
+
   return {
-    title: match && match.id !== "home" ? `${match.label} — ${identity.name}` : undefined,
+    title: match && match.id !== "home" ? title : undefined,
     alternates: { canonical: `/${panel}` },
+    openGraph: {
+      title,
+      description: identity.blurb,
+      type: "website",
+      siteName: identity.name,
+      url: `/${panel}`,
+      locale: "en_IN",
+      images: inherited.openGraph?.images,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: identity.blurb,
+      images: inherited.twitter?.images,
+    },
   };
 }
 

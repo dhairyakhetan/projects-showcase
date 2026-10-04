@@ -21,13 +21,24 @@ const martianMono = Martian_Mono({
 });
 
 export const metadata: Metadata = {
+  // Link previews need absolute URLs; this makes the og:image and og:url ones.
+  metadataBase: new URL("https://dhairyakhetan.vercel.app"),
   title: `${identity.name} — ${identity.tagline}`,
   description: identity.blurb,
   authors: [{ name: identity.name }],
+  // The image itself is ./opengraph-image.tsx, shared by every page.
   openGraph: {
     title: identity.name,
     description: identity.blurb,
     type: "website",
+    siteName: identity.name,
+    url: "/home",
+    locale: "en_IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: identity.name,
+    description: identity.blurb,
   },
   icons: { icon: "/favicon.svg" },
 };

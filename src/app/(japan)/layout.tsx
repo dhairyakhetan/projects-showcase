@@ -22,9 +22,16 @@ const zenKaku = Zen_Kaku_Gothic_New({
   display: "swap",
 });
 
+const TITLE = "Japan trip · 19–28 October 2026";
+const DESCRIPTION = "Ten days in Tokyo, Kyoto and Osaka, day by day.";
+
 export const metadata: Metadata = {
-  title: "Japan trip · 19–28 October 2026",
-  description: "Ten days in Tokyo, Kyoto and Osaka, day by day.",
+  metadataBase: new URL("https://dhairyakhetan.vercel.app"),
+  title: TITLE,
+  description: DESCRIPTION,
+  // The image is Japan2026/opengraph-image.tsx, shared by every day.
+  openGraph: { title: TITLE, description: DESCRIPTION, type: "website", url: "/Japan2026", locale: "en_IN" },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
   // Family names and hotels are on this page; no reason to put it in search results.
   robots: { index: false, follow: false },
   icons: {
