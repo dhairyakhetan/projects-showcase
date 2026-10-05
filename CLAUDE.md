@@ -251,6 +251,9 @@ copy; editing it deploys nothing.
 - **Corrections to re-apply on every pull** (the artifact still has them wrong):
   on 20 Oct, **Kabukiza and the National Diet Building are drive-bys, not photo
   stops**, and the tour line shouldn't say "all sightseeing are photo stops".
+  The artifact also lists Nintendo and Jump Shop at Shibuya PARCO on 23 Oct as if it were
+  the agent's; it isn't. Dhairya replaced that morning with shoes at ABC-Mart Shibuya and
+  shirts in Harajuku, so keep that instead.
 
 ---
 
