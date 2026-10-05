@@ -228,8 +228,14 @@ copy; editing it deploys nothing.
     are fine.
   - The agent's PDFs are context only — never put them in `public/`.
   - The page is `noindex`; its OG image shows dates and cities only.
-- Updates come as a claude.ai artifact link or a zip with a newer `data.ts`: diff it,
-  carry the changes over, and strip any refs again.
+- Each day is **one timeline** of `[time, text, kind, note?]` entries: kind `"i"` is
+  from the agent's itinerary (filled dot), `"x"` is something Dhairya added (hollow
+  dot + "added" tag). A legend explains the two. Tips sit beside the day on desktop.
+- Updates come from his private claude.ai artifact
+  (`https://claude.ai/artifact/5x3psKogRssTmXxeYFCVAg`). Save its `index.html`,
+  evaluate the `DAYS` array literal as data, regenerate `DAYS` in `data.ts`, and
+  strip booking refs from the gists (they're in there every time). Compare the
+  flights, hotels and to-check sections by hand — they live in the HTML, not `DAYS`.
 
 ---
 

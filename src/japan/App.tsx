@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { DAYS, FLIGHTS, HOTELS, TODO, type City, type Row } from "./data";
+import { DAYS, FLIGHTS, HOTELS, TODO, type City, type Entry } from "./data";
 
 /** Where this lives on the portfolio. Every day has its own URL under it. */
 const BASE = "/Japan2026";
@@ -110,33 +110,77 @@ function useSlide(container: React.RefObject<HTMLElement | null>, active: number
 
 /* ---------- shared pieces ---------- */
 
-function Schedule({ rows, city, compact }: { rows: Row[]; city: City; compact?: boolean }) {
-  if (compact)
-    return (
-      <ol className="divide-y divide-dashed divide-line">
-        {rows.map(([t, x], i) => (
-          <li key={i} className="py-2">
-            {t && <div className="text-[.78rem] font-bold tracking-wide text-muted tabular-nums">{t}</div>}
-            <Rich text={x} />
-          </li>
-        ))}
-      </ol>
-    );
+/**
+ * A day as one line: what the agent booked (filled dot) and what Dhairya
+ * added around it (hollow dot, "added" tag), in time order. A note, if any,
+ * hangs under its entry on a dotted rule in the city colour.
+ */
+function Timeline({ entries, city, compact }: { entries: Entry[]; city: City; compact?: boolean }) {
+  const c = CITY[city];
   return (
-    <ol className="relative">
-      {rows.map(([t, x], i) => (
-        <li key={i} className="grid grid-cols-[84px_28px_1fr] items-start">
-          <span className="pt-[3px] text-right text-sm font-bold text-muted tabular-nums">{t}</span>
-          <span className="relative flex h-full justify-center">
-            {i < rows.length - 1 && <span className="absolute top-3 bottom-0 w-px bg-line" />}
-            <span className={cx("relative mt-[9px] size-2.5 rounded-full ring-4 ring-surface", t ? CITY[city].bg : "bg-line")} />
-          </span>
-          <span className="pb-4">
-            <Rich text={x} />
-          </span>
-        </li>
-      ))}
+    <ol className={cx("relative", compact && "ml-1.5 border-l-2 border-line")}>
+      {entries.map(([t, x, kind, note], i) => {
+        const added = kind === "x";
+        const dot = cx(
+          "size-3 rounded-full",
+          added ? cx("border-2 bg-surface", c.border) : c.bg,
+        );
+        const body = (
+          <>
+            <span className={cx(added ? "text-ink" : "font-medium")}>
+              <Rich text={x} />
+              {added && (
+                <em className="ml-1.5 inline-block rounded border border-line px-1 align-[1px] text-[.65rem] font-bold tracking-wide text-muted uppercase not-italic">
+                  added
+                </em>
+              )}
+            </span>
+            {note && (
+              <span className={cx("mt-1.5 block border-l-2 border-dotted pl-2.5 text-[.92rem] text-muted", c.border)}>
+                <Rich text={note} />
+              </span>
+            )}
+          </>
+        );
+
+        if (compact)
+          return (
+            <li key={i} className="relative grid grid-cols-[64px_minmax(0,1fr)] gap-2.5 py-1.5 pb-2.5 pl-4">
+              <span className={cx("absolute top-[11px] -left-[7px]", dot)} />
+              <span className="pt-px text-[.82rem] font-bold text-muted tabular-nums">{t}</span>
+              <span className="min-w-0">{body}</span>
+            </li>
+          );
+
+        return (
+          <li key={i} className="grid grid-cols-[96px_28px_minmax(0,1fr)] items-start">
+            <span className="pt-[3px] text-right text-sm font-bold text-muted tabular-nums">{t}</span>
+            <span className="relative flex h-full justify-center">
+              {i < entries.length - 1 && <span className="absolute top-3 bottom-0 w-px bg-line" />}
+              <span className={cx("relative mt-[7px] ring-4 ring-surface", dot)} />
+            </span>
+            <span className="min-w-0 pb-4">{body}</span>
+          </li>
+        );
+      })}
     </ol>
+  );
+}
+
+/** Which dot means what. */
+function Legend({ city = "tokyo" as City, className }: { city?: City; className?: string }) {
+  const c = CITY[city];
+  return (
+    <p className={cx("flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted", className)}>
+      <span className="flex items-center gap-1.5">
+        <span className={cx("size-2.5 rounded-full", c.bg)} />
+        From your itinerary
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className={cx("size-2.5 rounded-full border-2", c.border)} />
+        Added by you
+      </span>
+    </p>
   );
 }
 
@@ -362,16 +406,11 @@ function Desktop() {
             <Rich text={day.gist} />
           </p>
 
-          <h4 className="mt-8 mb-4 text-xs font-bold tracking-[.18em] text-muted uppercase">Schedule</h4>
-          <Schedule rows={day.plan} city={day.city} />
-
-          {day.tips.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {day.tips.map(([h, x]) => (
-                <Tip key={h} head={h} text={x} />
-              ))}
-            </div>
-          )}
+          <div className="mt-8 mb-4 flex flex-wrap items-baseline justify-between gap-3">
+            <h4 className="text-xs font-bold tracking-[.18em] text-muted uppercase">The day</h4>
+            <Legend city={day.city} />
+          </div>
+          <Timeline entries={day.timeline} city={day.city} />
         </article>
 
         <aside key={`${day.date}-aside`} className="day-fade col-span-5 flex flex-col gap-6">
@@ -380,23 +419,13 @@ function Desktop() {
             <div className={cx("mt-1 font-serif text-2xl font-extrabold", c.text)}>{day.sleep}</div>
           </div>
 
-          <div className="rounded-3xl border border-line bg-surface p-7">
-            <div className="mb-4 text-xs font-bold tracking-[.18em] text-muted uppercase">Food &amp; extras</div>
-            {day.extras.length ? (
-              <ul className="space-y-5">
-                {day.extras.map(([t, x], i) => (
-                  <li key={i}>
-                    <span className={cx("mb-1.5 inline-block rounded-md px-2 py-0.5 text-xs font-bold", c.soft, c.text)}>{t}</span>
-                    <div className="text-[.95rem] leading-relaxed">
-                      <Rich text={x} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted">Nothing extra planned for this day.</p>
-            )}
-          </div>
+          {day.tips.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {day.tips.map(([h, x]) => (
+                <Tip key={h} head={h} text={x} />
+              ))}
+            </div>
+          )}
 
           <p className="text-center text-sm text-muted">
             Tip: use <kbd className="rounded border border-line bg-surface px-1.5 font-sans">←</kbd>{" "}
@@ -484,6 +513,7 @@ function Mobile() {
         <h1 className="mt-1 font-serif text-[2.6rem] leading-none font-extrabold">Japan</h1>
         <p className="mt-2 text-muted">Dhairya, Mum and Dad · Tokyo, Kyoto, Osaka</p>
         <span className="mt-3 inline-block rounded-full bg-ink px-3 py-1 text-sm font-bold text-paper">{countdownText()}</span>
+        <Legend className="mt-4" />
         <div className="mt-6 grid grid-cols-10 gap-1">
           {SEGMENTS.map((s, i) => (
             <div key={i} style={{ gridColumn: `span ${s.span}` }} className="min-w-0">
@@ -563,18 +593,12 @@ function Mobile() {
                   <p className="mb-3">
                     <Rich text={d.gist} />
                   </p>
-                  <Schedule rows={d.plan} city={d.city} compact />
+                  <Timeline entries={d.timeline} city={d.city} compact />
                   {d.tips.length > 0 && (
                     <div className="mt-3 space-y-2.5">
                       {d.tips.map(([h, x]) => (
                         <Tip key={h} head={h} text={x} />
                       ))}
-                    </div>
-                  )}
-                  {d.extras.length > 0 && (
-                    <div className="mt-4 border-l-[3px] border-line pl-3">
-                      <p className="text-sm font-bold text-muted">Food &amp; extras</p>
-                      <Schedule rows={d.extras} city={d.city} compact />
                     </div>
                   )}
                   <p className="mt-3 text-[.95rem] text-muted">
