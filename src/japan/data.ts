@@ -29,9 +29,9 @@ export const DAYS: Day[] = [
   {
     date: "2026-10-20", city: "tokyo", label: "Tokyo", title: "Tokyo arrival, half-day tour",
     gist: "Tokyo Arrival. Tokyo SIC (shared group) half-day tour.",
-    plan: [["05:55","Land at Haneda Terminal 3"],["Transfer","Private airport transfer to the hotel"],["Half day","Imperial Palace Plaza (stroll)"],["","Senso-ji Temple and Nakamise Shopping Street (free time for sightseeing)"],["","Kabukiza (drive-by)"],["","National Diet Building (drive-by)"],["","Tokyo Tower Main Deck (view)"]],
-    tips: [["Not confirmed yet","Tour start time."],["Package note","Early check-in is not included."]],
-    extras: [["Breakfast","Egg sandwich from the [7-Eleven](https://www.google.com/maps/dir/?api=1&origin=Citadines+Shinjuku+Tokyo&origin_place_id=ChIJw3B7QeiMGGARMd-dUShWkFU&destination=7-Eleven+Shinjuku+1-chome&destination_place_id=ChIJDwGrFeiMGGARLCeEfqSx1T0&travelmode=walking) next to the hotel, about 50 m, open 24 hours. Useful if you reach the hotel before the tour and breakfast isn't available."],["Asakusa snacks","During the tour's free time at Senso-ji and Nakamise, so these are measured from Senso-ji, not the hotel: melonpan at [Asakusa Kagetsudo](https://www.google.com/maps/dir/?api=1&origin=Senso-ji+Temple+Asakusa&destination=Asakusa+Kagetsudo&destination_place_id=ChIJSTVEQMCOGGARa74pG98OyD0&travelmode=walking) (about 140 m, behind the main hall, 9 am–4:30 pm), fried manju at [Asakusa Kokonoe](https://www.google.com/maps/dir/?api=1&origin=Senso-ji+Temple+Asakusa&destination=Asakusa+Kokonoe&destination_place_id=ChIJVbMuF8GOGGARuUiZ-O7-YWg&travelmode=walking) (about 150 m, 10 am–7 pm), taiyaki at [Naruto Taiyaki Honpo](https://www.google.com/maps/dir/?api=1&origin=Senso-ji+Temple+Asakusa&destination=Naruto+Taiyaki+Honpo+Asakusa&destination_place_id=ChIJkezawMCOGGARf_TceaGcaEQ&travelmode=walking) (about 350 m, near Kaminarimon gate). All are takeaway, so they fit even a short stop."],["Evening","Local walk around Shinjuku-sanchome"],["Dinner (pick one)","Ramen at [Afuri Shinjuku Lumine](https://www.google.com/maps/dir/?api=1&origin=Citadines+Shinjuku+Tokyo&origin_place_id=ChIJw3B7QeiMGGARMd-dUShWkFU&destination=Afuri+Shinjuku+Lumine&destination_place_id=ChIJq6qq-dCMGGARmyGicupYD2Y&travelmode=walking), about 1.5 km, 20 min walk, open until 10 pm, no booking. Or [Ain Soph Journey](https://www.google.com/maps/dir/?api=1&origin=Citadines+Shinjuku+Tokyo&origin_place_id=ChIJw3B7QeiMGGARMd-dUShWkFU&destination=Ain+Soph+Journey+Shinjuku&destination_place_id=ChIJyUynodyMGGARfdwk4A8pub8&travelmode=walking), about 650 m, dinner 6–9 pm, book ahead."]],
+    plan: [["05:55", "Land at Haneda Terminal 3"], ["Transfer", "Private airport transfer to the hotel"], ["12:00–13:00", "Room ready by 12–1 pm (earlier if available). Official check-in is 3 pm."], ["14:00", "Tour starts (3–4 hours, ends around 5–6 pm)"], ["", "Imperial Palace Plaza (photo stop)"], ["", "Senso-ji Temple and Nakamise Shopping Street (shopping time, max 1 hour)"], ["", "Kabukiza (photo stop)"], ["", "National Diet Building (photo stop)"], ["", "Tokyo Tower Main Deck (photo stop)"]],
+    tips: [["Not confirmed yet", "Tour pickup point."]],
+    extras: [["Breakfast", "Egg sandwich from the [7-Eleven](https://www.google.com/maps/dir/?api=1&origin=Citadines+Shinjuku+Tokyo&origin_place_id=ChIJw3B7QeiMGGARMd-dUShWkFU&destination=7-Eleven+Shinjuku+1-chome&destination_place_id=ChIJDwGrFeiMGGARLCeEfqSx1T0&travelmode=walking) next to the hotel, about 50 m, open 24 hours. Good for the morning while you wait for the room."], ["Matcha ice cream", "Your pick: [Chacha Futatsume](https://www.google.com/maps/dir/?api=1&origin=Senso-ji+Temple+Asakusa&destination=Chacha+Futatsume&destination_place_id=ChIJI6WnnQuPGGARdCd19Rz8wbQ&travelmode=walking), about 260 m from Senso-ji, near Kaminarimon gate, open 10 am–6 pm. Signature matcha cone about ¥1,700, big enough to share. Takeaway, eat on the bench outside. Layers include sponge cake, which usually has egg."], ["If time", "Only if the 1 hour allows after Chacha (all takeaway, within about 350 m of Senso-ji): taiyaki at [Naruto Taiyaki Honpo](https://www.google.com/maps/dir/?api=1&origin=Senso-ji+Temple+Asakusa&destination=Naruto+Taiyaki+Honpo+Asakusa&destination_place_id=ChIJkezawMCOGGARf_TceaGcaEQ&travelmode=walking), fried manju at [Asakusa Kokonoe](https://www.google.com/maps/dir/?api=1&origin=Senso-ji+Temple+Asakusa&destination=Asakusa+Kokonoe&destination_place_id=ChIJVbMuF8GOGGARuUiZ-O7-YWg&travelmode=walking) (until 7 pm), or melonpan at [Asakusa Kagetsudo](https://www.google.com/maps/dir/?api=1&origin=Senso-ji+Temple+Asakusa&destination=Asakusa+Kagetsudo&destination_place_id=ChIJSTVEQMCOGGARa74pG98OyD0&travelmode=walking) (closes 4:30 pm). Links start at Senso-ji."], ["Evening", "After the tour ends (around 5–6 pm): local walk around Shinjuku-sanchome"], ["Dinner (pick one)", "Ramen at [Afuri Shinjuku Lumine](https://www.google.com/maps/dir/?api=1&origin=Citadines+Shinjuku+Tokyo&origin_place_id=ChIJw3B7QeiMGGARMd-dUShWkFU&destination=Afuri+Shinjuku+Lumine&destination_place_id=ChIJq6qq-dCMGGARmyGicupYD2Y&travelmode=walking), about 1.5 km, 20 min walk, open until 10 pm, no booking. Or [Ain Soph Journey](https://www.google.com/maps/dir/?api=1&origin=Citadines+Shinjuku+Tokyo&origin_place_id=ChIJw3B7QeiMGGARMd-dUShWkFU&destination=Ain+Soph+Journey+Shinjuku&destination_place_id=ChIJyUynodyMGGARfdwk4A8pub8&travelmode=walking), about 650 m, dinner 6–9 pm, book ahead."]],
     sleep: "Citadines Shinjuku, Tokyo",
   },
   {
@@ -92,7 +92,7 @@ export const DAYS: Day[] = [
   },
   {
     date: "2026-10-28", city: "travel", label: "Osaka to Kolkata", title: "Fly home (Dad to China)",
-    gist: "Airport transfer, one way (private). Thai Vietjet, 1 stop in Bangkok. Dhairya and Mom fly home. Dad flies on to China separately.",
+    gist: "Airport transfer, one way (private). Thai Vietjet, 1 stop in Bangkok. Dhairya and Sweta fly home. Dad flies on to China separately.",
     plan: [["","Private transfer to the airport"],["12:00","VZ 567 departs Kansai (KIX)"],["18:10","Lands Bangkok (BKK), 4h 20m layover, change planes"],["22:30","VZ 770 departs Bangkok"],["23:50","Lands Kolkata (CCU)"]],
     tips: [["Itinerary error","The itinerary says transfer from Narita. Your flight leaves from Kansai (KIX)."],["Baggage","Cabin 7 kg and check-in 20 kg per adult."]],
     extras: [],
@@ -109,7 +109,7 @@ export const FLIGHTS = [
       "13h 30m, 1 stop in Delhi",
       "Meals complimentary",
     ],
-    who: "Dhairya, Mom (Sweta) and Dad (Dilip)",
+    who: "Dhairya, Dilip and Sweta Khetan",
   },
   {
     route: "Osaka → Bangkok → Kolkata",
@@ -118,7 +118,7 @@ export const FLIGHTS = [
       "Thai Vietjet VZ 567 from Kansai (KIX), 4h 20m stop in Bangkok, then VZ 770",
       "20 kg check-in + 7 kg cabin each",
     ],
-    who: "Dhairya and Mom. Dad flies on to China separately.",
+    who: "Dhairya and Sweta Khetan. Dad flies on to China separately.",
   },
 ];
 
@@ -131,9 +131,7 @@ export const HOTELS: { nights: string; name: string; room: string; city: City }[
 export const TODO = [
   "The last-day airport transfer should go to Kansai (KIX), not Narita.",
   "All 8 hotel nights are booked. The package says 7 nights, but the hotel list covers 8.",
-  "The start time and pickup point of the Tokyo half-day tour on 20 Oct.",
-  "How long the 20 Oct tour lasts, how long each stop is, and how much free time you get at Senso-ji and Nakamise.",
-  "Whether the Tokyo hotel can hold your bags (or give the room early) when you arrive in the morning on 20 Oct.",
+  "The pickup point for the Tokyo half-day tour on 20 Oct.",
   "The starting point for the Mt. Fuji tour on 21 Oct.",
   "Vegetarian lunch on the Osaka tour must be requested at booking.",
   "Dad's ride to the airport on 28 Oct, since he's flying out separately.",

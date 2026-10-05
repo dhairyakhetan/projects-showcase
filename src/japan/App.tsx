@@ -224,7 +224,7 @@ function Desktop() {
         <div>
           <p className="text-sm font-bold tracking-[.22em] text-muted uppercase">19 – 28 October 2026</p>
           <h1 className="mt-1.5 font-serif text-[3.25rem] leading-none font-extrabold tracking-tight xl:text-6xl">Japan</h1>
-          <p className="mt-3 text-lg text-muted">Dhairya, Mom and Dad · Tokyo, Kyoto, Osaka</p>
+          <p className="mt-3 text-lg text-muted">Dhairya, Mum and Dad · Tokyo, Kyoto, Osaka</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -429,7 +429,7 @@ function Mobile() {
       <header className="mx-auto max-w-[680px] px-4 pt-[calc(env(safe-area-inset-top,0px)+32px)] pb-5 md:px-6">
         <p className="text-xs font-bold tracking-[.2em] text-muted uppercase">19 – 28 October 2026</p>
         <h1 className="mt-1 font-serif text-[2.6rem] leading-none font-extrabold">Japan</h1>
-        <p className="mt-2 text-muted">Dhairya, Mom and Dad · Tokyo, Kyoto, Osaka</p>
+        <p className="mt-2 text-muted">Dhairya, Mum and Dad · Tokyo, Kyoto, Osaka</p>
         <span className="mt-3 inline-block rounded-full bg-ink px-3 py-1 text-sm font-bold text-paper">{countdownText()}</span>
         <div className="mt-6 grid grid-cols-10 gap-1">
           {SEGMENTS.map((s, i) => (
