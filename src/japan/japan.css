@@ -61,3 +61,7 @@ body {
 }
 .day-fade { animation: day-fade 320ms ease-out both; }
 @media (prefers-reduced-motion: reduce) { .day-fade { animation: none; } }
+
+/* A place card the timeline just pointed at. */
+.place { transition: box-shadow 200ms ease, border-color 200ms ease; }
+.place[data-hl] { border-color: var(--hl); box-shadow: 0 0 0 3px color-mix(in srgb, var(--hl) 25%, transparent); }

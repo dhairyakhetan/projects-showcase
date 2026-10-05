@@ -228,14 +228,22 @@ copy; editing it deploys nothing.
     are fine.
   - The agent's PDFs are context only — never put them in `public/`.
   - The page is `noindex`; its OG image shows dates and cities only.
-- Each day is **one timeline** of `[time, text, kind, note?]` entries: kind `"i"` is
-  from the agent's itinerary (filled dot), `"x"` is something Dhairya added (hollow
-  dot + "added" tag). A legend explains the two. Tips sit beside the day on desktop.
+- Each day is **one timeline** of `[time, text, kind, place?]` entries: kind `"i"` is
+  from the agent's itinerary (filled dot), `"x"` is planned by Dhairya (hollow dot).
+  `place` points at a card in the day's `places` (time, type, what, distance, hours,
+  note, directions link); clicking the name in the timeline scrolls to and rings
+  the card. Desktop shows the places in a sticky side column; phones list them
+  under each day. Day buttons show each day's `short` line.
 - Updates come from his private claude.ai artifact
   (`https://claude.ai/artifact/5x3psKogRssTmXxeYFCVAg`). Save its `index.html`,
   evaluate the `DAYS` array literal as data, regenerate `DAYS` in `data.ts`, and
   strip booking refs from the gists (they're in there every time). Compare the
   flights, hotels and to-check sections by hand — they live in the HTML, not `DAYS`.
+  The artifact's format has changed between pulls — check its render script, not
+  just the data.
+- **Corrections to re-apply on every pull** (the artifact still has them wrong):
+  on 20 Oct, **Kabukiza and the National Diet Building are drive-bys, not photo
+  stops**, and the tour line shouldn't say "all sightseeing are photo stops".
 
 ---
 

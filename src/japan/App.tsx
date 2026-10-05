@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { DAYS, FLIGHTS, HOTELS, TODO, type City, type Entry } from "./data";
+import { DAYS, FLIGHTS, HOTELS, TODO, type City, type Entry, type Place } from "./data";
 
 /** Where this lives on the portfolio. Every day has its own URL under it. */
 const BASE = "/Japan2026";
@@ -110,37 +110,50 @@ function useSlide(container: React.RefObject<HTMLElement | null>, active: number
 
 /* ---------- shared pieces ---------- */
 
+/** The card for a place, by day and id — the timeline links to it. */
+const placeId = (date: string, id: string) => `place-${date}-${id}`;
+
+/** Scrolls a place card into view and rings it briefly, so the eye lands on it. */
+function showPlace(date: string, id: string) {
+  const el = document.getElementById(placeId(date, id));
+  if (!el) return;
+  el.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  el.dataset.hl = "1";
+  clearTimeout(Number(el.dataset.hlTimer));
+  el.dataset.hlTimer = String(window.setTimeout(() => delete el.dataset.hl, 2200));
+}
+
 /**
  * A day as one line: what the agent booked (filled dot) and what Dhairya
- * added around it (hollow dot, "added" tag), in time order. A note, if any,
- * hangs under its entry on a dotted rule in the city colour.
+ * planned around it (hollow dot), in time order. An entry that names a place
+ * gets a button that jumps to its card.
  */
-function Timeline({ entries, city, compact }: { entries: Entry[]; city: City; compact?: boolean }) {
-  const c = CITY[city];
+function Timeline({ day, compact }: { day: (typeof DAYS)[number]; compact?: boolean }) {
+  const c = CITY[day.city];
+  const entries: Entry[] = day.timeline;
   return (
     <ol className={cx("relative", compact && "ml-1.5 border-l-2 border-line")}>
-      {entries.map(([t, x, kind, note], i) => {
-        const added = kind === "x";
-        const dot = cx(
-          "size-3 rounded-full",
-          added ? cx("border-2 bg-surface", c.border) : c.bg,
-        );
+      {entries.map(([t, x, kind, ref], i) => {
+        const planned = kind === "x";
+        const place = ref ? day.places.find((p) => p.id === ref) : undefined;
+        const dot = cx("size-3 rounded-full", planned ? cx("border-2 bg-surface", c.border) : c.bg);
         const body = (
-          <>
-            <span className={cx(added ? "text-ink" : "font-medium")}>
-              <Rich text={x} />
-              {added && (
-                <em className="ml-1.5 inline-block rounded border border-line px-1 align-[1px] text-[.65rem] font-bold tracking-wide text-muted uppercase not-italic">
-                  added
-                </em>
-              )}
-            </span>
-            {note && (
-              <span className={cx("mt-1.5 block border-l-2 border-dotted pl-2.5 text-[.92rem] text-muted", c.border)}>
-                <Rich text={note} />
-              </span>
+          <span className={cx(planned ? "text-ink" : "font-medium")}>
+            <Rich text={x} />
+            {place && (
+              <button
+                type="button"
+                onClick={() => showPlace(day.date, place.id)}
+                className={cx(
+                  "ml-1.5 inline rounded-md border border-line px-2 py-px text-left text-[.85rem] font-bold transition-colors hover:border-current",
+                  c.soft,
+                  c.text,
+                )}
+              >
+                {place.name} →
+              </button>
             )}
-          </>
+          </span>
         );
 
         if (compact)
@@ -159,11 +172,54 @@ function Timeline({ entries, city, compact }: { entries: Entry[]; city: City; co
               {i < entries.length - 1 && <span className="absolute top-3 bottom-0 w-px bg-line" />}
               <span className={cx("relative mt-[7px] ring-4 ring-surface", dot)} />
             </span>
-            <span className="min-w-0 pb-4">{body}</span>
+            <span className="min-w-0 pb-3.5">{body}</span>
           </li>
         );
       })}
     </ol>
+  );
+}
+
+/** A place to eat, shop, see or get to, with the link to directions. */
+function PlaceCard({ place, date, city }: { place: Place; date: string; city: City }) {
+  const c = CITY[city];
+  return (
+    <div
+      id={placeId(date, place.id)}
+      className="place scroll-mt-24 rounded-2xl lg:scroll-mt-4 border border-line bg-surface px-4.5 py-3.5"
+      style={{ ["--hl" as string]: `var(--${city})` }}
+    >
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <span className={cx("text-[.85rem] font-bold tabular-nums", c.text)}>{place.t}</span>
+        <span className="rounded border border-line px-1.5 text-[.68rem] font-bold tracking-wide text-muted uppercase">
+          {place.type}
+        </span>
+      </div>
+      <a href={place.url} target="_blank" rel="noopener" className={cx("text-[1.05rem] leading-snug font-bold underline decoration-1 underline-offset-[3px]", c.text)}>
+        {place.name}
+      </a>
+      <p className="mt-0.5 mb-1.5 text-[.95rem]">{place.what}</p>
+      <div className="flex flex-col gap-0.5 text-[.85rem] text-muted">
+        {place.dist && <span>📍 {place.dist}</span>}
+        {place.hours && <span>🕒 {place.hours}</span>}
+        {place.note && <span>{place.note}</span>}
+      </div>
+    </div>
+  );
+}
+
+function Places({ day }: { day: (typeof DAYS)[number] }) {
+  if (!day.places.length) return null;
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="mx-1 mt-1 flex items-baseline justify-between gap-3">
+        <b className="text-xs tracking-[.16em] text-muted uppercase">Places today</b>
+        <span className="text-sm text-muted">{day.places.length} · tap a name for directions</span>
+      </div>
+      {day.places.map((p) => (
+        <PlaceCard key={p.id} place={p} date={day.date} city={day.city} />
+      ))}
+    </div>
   );
 }
 
@@ -178,7 +234,7 @@ function Legend({ city = "tokyo" as City, className }: { city?: City; className?
       </span>
       <span className="flex items-center gap-1.5">
         <span className={cx("size-2.5 rounded-full border-2", c.border)} />
-        Added by you
+        Planned by you
       </span>
     </p>
   );
@@ -362,7 +418,7 @@ function Desktop() {
                 >
                   <span className={cx("text-xs font-bold uppercase transition-colors duration-300", on ? "text-paper/80" : "text-muted")}>{weekday(d.date)}</span>
                   <span className={cx("font-serif text-3xl leading-tight font-extrabold transition-colors duration-300", !on && dc.text)}>{dayNum(d.date)}</span>
-                  <span className={cx("mt-auto line-clamp-2 text-xs leading-snug transition-colors duration-300", on ? "text-paper/90" : "text-muted")}>{d.title}</span>
+                  <span className={cx("mt-auto line-clamp-2 text-xs leading-snug transition-colors duration-300", on ? "text-paper/90" : "text-muted")}>{d.short}</span>
                   {d.date === TODAY && (
                     <span className="absolute top-2.5 right-2.5 rounded-full bg-alert px-1.5 py-0.5 text-[.6rem] font-bold text-white uppercase">
                       Today
@@ -376,11 +432,11 @@ function Desktop() {
       </div>
 
       {/* Selected day */}
-      <div className="mt-6 grid grid-cols-12 gap-6" role="tabpanel" aria-label={`${dayNum(day.date)} October`}>
+      <div className="mt-6 grid grid-cols-12 items-start gap-6" role="tabpanel" aria-label={`${dayNum(day.date)} October`}>
         <article key={day.date} className="day-fade col-span-7 rounded-3xl border border-line bg-surface p-8 xl:p-10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <span className={cx("rounded-full px-3 py-1 text-sm font-bold", c.soft, c.text)}>{day.label}</span>
+              <span className={cx("rounded-full px-3 py-1 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
               <span className="text-sm text-muted">
                 Day {sel + 1} of {DAYS.length}
               </span>
@@ -410,14 +466,20 @@ function Desktop() {
             <h4 className="text-xs font-bold tracking-[.18em] text-muted uppercase">The day</h4>
             <Legend city={day.city} />
           </div>
-          <Timeline entries={day.timeline} city={day.city} />
+          <Timeline day={day} />
         </article>
 
-        <aside key={`${day.date}-aside`} className="day-fade col-span-5 flex flex-col gap-6">
+        {/* Sticky and scrollable, so a place card is in reach from anywhere in a long day. */}
+        <aside
+          key={`${day.date}-aside`}
+          className="day-fade no-scrollbar sticky top-4 col-span-5 -m-1 flex max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-y-auto p-1"
+        >
           <div className={cx("rounded-3xl p-7", c.soft)}>
             <div className="text-xs font-bold tracking-[.18em] text-muted uppercase">Tonight</div>
             <div className={cx("mt-1 font-serif text-2xl font-extrabold", c.text)}>{day.sleep}</div>
           </div>
+
+          <Places day={day} />
 
           {day.tips.length > 0 && (
             <div className="flex flex-col gap-3">
@@ -470,7 +532,7 @@ function NavBtn({ children, label, ...p }: { children: ReactNode; label: string;
 function Footer() {
   return (
     <footer className="mt-14 border-t border-line pt-6 pb-8 text-sm text-muted">
-      Package by Capricorn Tours LLP. Breakfast is included every day. Other meals, local transport, tips and city tax are paid on the spot.
+      Package by Capricorn Tours LLP. Filled dots come from the itinerary or the agent; hollow dots are suggestions. Breakfast is included every day; other meals, local transport, tips and city tax are paid on the spot.
       <a href="/projects" className="mt-3 block font-bold text-ink underline decoration-line underline-offset-4 hover:decoration-muted">
         ← Built by Dhairya Khetan
       </a>
@@ -587,13 +649,18 @@ function Mobile() {
                   </small>
                 </div>
                 <div className="min-w-0">
-                  <span className={cx("mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-sm font-bold", c.soft, c.text)}>{d.label}</span>
+                  <span className={cx("mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
                   {d.date === TODAY && <span className="ml-1.5 rounded-full bg-ink px-2.5 py-0.5 text-sm font-bold text-paper">Today</span>}
                   <h2 className="mt-0.5 mb-2 font-serif text-[1.4rem] leading-tight font-extrabold sm:text-2xl">{d.title}</h2>
                   <p className="mb-3">
                     <Rich text={d.gist} />
                   </p>
-                  <Timeline entries={d.timeline} city={d.city} compact />
+                  <Timeline day={d} compact />
+                  {d.places.length > 0 && (
+                    <div className="mt-4">
+                      <Places day={d} />
+                    </div>
+                  )}
                   {d.tips.length > 0 && (
                     <div className="mt-3 space-y-2.5">
                       {d.tips.map(([h, x]) => (
