@@ -81,6 +81,33 @@ function countdownText() {
   return "Trip complete";
 }
 
+/**
+ * Measures where the active item sits inside a container, so a highlight can
+ * slide to it instead of jumping. `null` until the first measurement — the
+ * highlight stays hidden then, and lands without animating the first time.
+ */
+function useSlide(container: React.RefObject<HTMLElement | null>, active: number) {
+  const [box, setBox] = useState<{ x: number; y: number; w: number; h: number; first: boolean } | null>(null);
+
+  useEffect(() => {
+    const root = container.current;
+    if (!root) return;
+
+    const measure = () => {
+      const el = root.querySelector<HTMLElement>(`[data-slot="${active}"]`);
+      if (!el) return;
+      setBox(prev => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight, first: prev === null }));
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, [container, active]);
+
+  return box;
+}
+
 /* ---------- shared pieces ---------- */
 
 function Schedule({ rows, city, compact }: { rows: Row[]; city: City; compact?: boolean }) {
@@ -194,6 +221,8 @@ function Desktop() {
   const [sel, setSel] = useState(initial);
   const day = DAYS[sel];
   const c = CITY[day.city];
+  const rail = useRef<HTMLDivElement>(null);
+  const slide = useSlide(rail, sel);
 
   const go = useCallback((i: number) => {
     const n = Math.max(0, Math.min(DAYS.length - 1, i));
@@ -250,38 +279,61 @@ function Desktop() {
             </div>
           ))}
         </div>
-        <div className="mt-3 grid grid-cols-10 gap-2.5" role="tablist" aria-label="Days">
-          {DAYS.map((d, i) => {
-            const on = i === sel;
-            const dc = CITY[d.city];
-            return (
-              <button
-                key={d.date}
-                role="tab"
-                aria-selected={on}
-                onClick={() => go(i)}
-                className={cx(
-                  "group relative flex min-h-[104px] cursor-pointer flex-col rounded-2xl border p-3 text-left transition",
-                  on ? cx(dc.bg, "border-transparent text-paper shadow-lg") : "border-line bg-surface hover:-translate-y-0.5 hover:border-muted",
-                )}
-              >
-                <span className={cx("text-xs font-bold uppercase", on ? "text-paper/80" : "text-muted")}>{weekday(d.date)}</span>
-                <span className={cx("font-serif text-3xl leading-tight font-extrabold", !on && dc.text)}>{dayNum(d.date)}</span>
-                <span className={cx("mt-auto line-clamp-2 text-xs leading-snug", on ? "text-paper/90" : "text-muted")}>{d.title}</span>
-                {d.date === TODAY && (
-                  <span className="absolute top-2.5 right-2.5 rounded-full bg-alert px-1.5 py-0.5 text-[.6rem] font-bold text-white uppercase">
-                    Today
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Three layers: card backgrounds, the city-coloured highlight that
+            slides between them, then the labels on top — so text stays
+            readable while the highlight passes underneath it. */}
+        <div ref={rail} className="relative isolate mt-3">
+          <div aria-hidden className="absolute inset-0 grid grid-cols-10 gap-2.5">
+            {DAYS.map((d) => (
+              <div key={d.date} className="rounded-2xl border border-line bg-surface" />
+            ))}
+          </div>
+
+          <span
+            aria-hidden
+            className={cx(
+              "absolute top-0 left-0 rounded-2xl shadow-lg ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none",
+              slide && !slide.first ? "transition-[transform,width,background-color] duration-500" : "transition-none",
+              c.bg,
+              !slide && "opacity-0",
+            )}
+            style={slide ? { width: slide.w, height: slide.h, transform: `translate(${slide.x}px, ${slide.y}px)` } : undefined}
+          />
+
+          <div className="relative grid grid-cols-10 gap-2.5" role="tablist" aria-label="Days">
+            {DAYS.map((d, i) => {
+              const on = i === sel;
+              const dc = CITY[d.city];
+              return (
+                <button
+                  key={d.date}
+                  data-slot={i}
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => go(i)}
+                  className={cx(
+                    "group relative flex min-h-[104px] cursor-pointer flex-col rounded-2xl p-3 text-left transition-colors duration-300",
+                    on ? "text-paper" : "hover:bg-ink/[.04]",
+                  )}
+                >
+                  <span className={cx("text-xs font-bold uppercase transition-colors duration-300", on ? "text-paper/80" : "text-muted")}>{weekday(d.date)}</span>
+                  <span className={cx("font-serif text-3xl leading-tight font-extrabold transition-colors duration-300", !on && dc.text)}>{dayNum(d.date)}</span>
+                  <span className={cx("mt-auto line-clamp-2 text-xs leading-snug transition-colors duration-300", on ? "text-paper/90" : "text-muted")}>{d.title}</span>
+                  {d.date === TODAY && (
+                    <span className="absolute top-2.5 right-2.5 rounded-full bg-alert px-1.5 py-0.5 text-[.6rem] font-bold text-white uppercase">
+                      Today
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Selected day */}
       <div className="mt-6 grid grid-cols-12 gap-6" role="tabpanel" aria-label={`${dayNum(day.date)} October`}>
-        <article key={day.date} className="col-span-7 rounded-3xl border border-line bg-surface p-8 xl:p-10">
+        <article key={day.date} className="day-fade col-span-7 rounded-3xl border border-line bg-surface p-8 xl:p-10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className={cx("rounded-full px-3 py-1 text-sm font-bold", c.soft, c.text)}>{day.label}</span>
@@ -322,7 +374,7 @@ function Desktop() {
           )}
         </article>
 
-        <aside className="col-span-5 flex flex-col gap-6">
+        <aside key={`${day.date}-aside`} className="day-fade col-span-5 flex flex-col gap-6">
           <div className={cx("rounded-3xl p-7", c.soft)}>
             <div className="text-xs font-bold tracking-[.18em] text-muted uppercase">Tonight</div>
             <div className={cx("mt-1 font-serif text-2xl font-extrabold", c.text)}>{day.sleep}</div>
@@ -402,6 +454,7 @@ function Footer() {
 function Mobile() {
   const [current, setCurrent] = useState<string | null>(null);
   const strip = useRef<HTMLDivElement>(null);
+  const ring = useSlide(strip, current ? Number(current.slice(3)) - 1 : -1);
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -447,7 +500,18 @@ function Mobile() {
       </header>
 
       <nav aria-label="Jump to a day" className="sticky top-0 z-10 border-b border-line bg-paper/95 pt-[env(safe-area-inset-top,0px)] backdrop-blur">
-        <div ref={strip} className="no-scrollbar mx-auto flex max-w-[680px] gap-1.5 overflow-x-auto px-4 py-2.5 md:px-6">
+        <div ref={strip} className="no-scrollbar relative mx-auto flex max-w-[680px] gap-1.5 overflow-x-auto px-4 py-2.5 md:px-6">
+          {/* A ring, not a fill, so it can sit on top and slide over the dates
+              without hiding them. */}
+          <span
+            aria-hidden
+            className={cx(
+              "pointer-events-none absolute top-0 left-0 z-10 rounded-xl ring-2 ring-ink ring-offset-2 ring-offset-paper ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none",
+              ring && !ring.first ? "transition-[transform,width] duration-500" : "transition-none",
+              !ring && "opacity-0",
+            )}
+            style={ring ? { width: ring.w, height: ring.h, transform: `translate(${ring.x}px, ${ring.y}px)` } : undefined}
+          />
           {DAYS.map((d, i) => {
             const id = dayId(i);
             const on = current === id;
@@ -456,6 +520,7 @@ function Mobile() {
               <a
                 key={d.date}
                 href={dayPath(i)}
+                data-slot={i}
                 onClick={(e) => {
                   e.preventDefault();
                   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -464,7 +529,7 @@ function Mobile() {
                 className={cx(
                   "min-w-[52px] shrink-0 rounded-xl border border-b-[3px] px-2.5 pt-1.5 pb-1 text-center leading-tight",
                   CITY[d.city].border,
-                  today ? "bg-ink text-paper" : on ? "bg-surface ring-2 ring-ink" : "border-t-line border-r-line border-l-line bg-surface",
+                  today ? "bg-ink text-paper" : "border-t-line border-r-line border-l-line bg-surface",
                 )}
               >
                 <span className="block font-serif text-lg font-extrabold">{dayNum(d.date)}</span>

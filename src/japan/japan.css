@@ -52,3 +52,12 @@ body {
 .rich a { color: var(--tokyo); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .rich a:hover { text-decoration-thickness: 2px; }
 :focus-visible { outline: 2px solid var(--tokyo); outline-offset: 2px; border-radius: 6px; }
+
+/* Switching days: the layout stays put and only the words change, so the new
+   day fades in where it is rather than sliding in from somewhere. */
+@keyframes day-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.day-fade { animation: day-fade 320ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .day-fade { animation: none; } }
