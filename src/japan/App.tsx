@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { DAYS, FLIGHTS, HOTELS, TODO, type City, type Entry, type Place } from "./data";
+import { DAYS, FLIGHTS, GOSHUIN, HOTELS, METRO, TODO, type City, type Entry, type Place, type Row } from "./data";
 
 /** Where this lives on the portfolio. Every day has its own URL under it. */
 const BASE = "/Japan2026";
@@ -403,6 +403,18 @@ function Todo() {
   );
 }
 
+function Tips({ rows }: { rows: Row[] }) {
+  return (
+    <ul className="space-y-2.5 rounded-2xl border border-line bg-surface p-5 text-[.95rem]">
+      {rows.map(([lead, rest]) => (
+        <li key={lead}>
+          <b>{lead}:</b> {rest}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /* ---------- desktop ---------- */
 
 function Desktop() {
@@ -622,6 +634,14 @@ function Desktop() {
           <SectionTitle>Still to check with the agent</SectionTitle>
           <Todo />
         </section>
+        <section className="col-span-5">
+          <SectionTitle>Goshuin and souvenirs</SectionTitle>
+          <Tips rows={GOSHUIN} />
+        </section>
+        <section className="col-span-7">
+          <SectionTitle>How to ride the metro</SectionTitle>
+          <Tips rows={METRO} />
+        </section>
       </div>
 
       <Footer />
@@ -820,6 +840,8 @@ function Mobile() {
             ["flights", "Flights", <Flights />],
             ["hotels", "Hotels", <Hotels />],
             ["todo", "Still to check with the agent", <Todo />],
+            ["goshuin", "Goshuin and souvenirs", <Tips rows={GOSHUIN} />],
+            ["metro", "How to ride the metro", <Tips rows={METRO} />],
           ] as const
         ).map(([id, title, body]) => (
           <Fragment key={id}>
