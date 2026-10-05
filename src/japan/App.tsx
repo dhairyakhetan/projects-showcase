@@ -108,6 +108,23 @@ function useSlide(container: React.RefObject<HTMLElement | null>, active: number
   return box;
 }
 
+/** Publishes an element's height as a CSS variable, so things can stick just below it. */
+function useHeightVar(ref: React.RefObject<HTMLElement | null>, name: string, gap = 0) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const set = () => root.style.setProperty(name, `${el.offsetHeight + gap}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty(name);
+    };
+  }, [ref, name, gap]);
+}
+
 /* ---------- shared pieces ---------- */
 
 /** The card for a place, by day and id — the timeline links to it. */
@@ -271,6 +288,14 @@ function PlaceSheet({
           ✕
         </button>
         <PlaceCard place={place} date={day.date} city={day.city} popup />
+        <a
+          href={place.url}
+          target="_blank"
+          rel="noopener"
+          className={cx("mt-3 block rounded-xl py-3 text-center font-bold text-paper", CITY[day.city].bg)}
+        >
+          Open directions in Google Maps
+        </a>
       </div>
     </div>
   );
@@ -392,10 +417,25 @@ function Desktop() {
   const rail = useRef<HTMLDivElement>(null);
   const slide = useSlide(rail, sel);
 
+  const bar = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  useHeightVar(bar, "--bar-h", 12);
+
   const go = useCallback((i: number) => {
     const n = Math.max(0, Math.min(DAYS.length - 1, i));
     setSel(n);
     if (location.pathname !== dayPath(n)) history.pushState(null, "", dayPath(n));
+
+    // Switching days from deep inside a long one would land you mid-way down
+    // the next; bring the new day's top up under the pinned date bar instead.
+    requestAnimationFrame(() => {
+      const top = panel.current?.getBoundingClientRect().top ?? 0;
+      const barH = bar.current?.offsetHeight ?? 0;
+      if (top < barH) {
+        const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        scrollTo({ top: scrollY + top - barH - 12, behavior: reduce ? "auto" : "smooth" });
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -447,10 +487,14 @@ function Desktop() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* The date buttons stay pinned while a long day scrolls under them. */}
+      <div ref={bar} className="sticky top-0 z-30 -mx-4 bg-paper/95 px-4 pt-3 pb-3 backdrop-blur xl:-mx-6 xl:px-6">
         {/* Three layers: card backgrounds, the city-coloured highlight that
             slides between them, then the labels on top — so text stays
             readable while the highlight passes underneath it. */}
-        <div ref={rail} className="relative isolate mt-3">
+        <div ref={rail} className="relative isolate">
           <div aria-hidden className="absolute inset-0 grid grid-cols-10 gap-2.5">
             {DAYS.map((d) => (
               <div key={d.date} className="rounded-2xl border border-line bg-surface" />
@@ -500,7 +544,7 @@ function Desktop() {
       </div>
 
       {/* Selected day */}
-      <div className="mt-6 grid grid-cols-12 items-start gap-6" role="tabpanel" aria-label={`${dayNum(day.date)} October`}>
+      <div ref={panel} className="mt-3 grid grid-cols-12 items-start gap-6" role="tabpanel" aria-label={`${dayNum(day.date)} October`}>
         <article key={day.date} className="day-fade col-span-7 rounded-3xl border border-line bg-surface p-8 xl:p-10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -540,7 +584,7 @@ function Desktop() {
         {/* Sticky and scrollable, so a place card is in reach from anywhere in a long day. */}
         <aside
           key={`${day.date}-aside`}
-          className="day-fade no-scrollbar sticky top-4 col-span-5 -m-1 flex max-h-[calc(100dvh-2rem)] flex-col gap-4 overflow-y-auto p-1"
+          className="day-fade no-scrollbar sticky top-[var(--bar-h,9rem)] col-span-5 -m-1 flex max-h-[calc(100dvh-var(--bar-h,9rem)-1rem)] flex-col gap-4 overflow-y-auto p-1"
         >
           <div className={cx("rounded-3xl p-7", c.soft)}>
             <div className="text-xs font-bold tracking-[.18em] text-muted uppercase">Tonight</div>
@@ -614,6 +658,8 @@ function Mobile() {
   const [current, setCurrent] = useState<string | null>(null);
   const [sheet, setSheet] = useState<{ place: Place; day: (typeof DAYS)[number]; trigger: HTMLElement } | null>(null);
   const closeSheet = useCallback(() => setSheet(null), []);
+  const nav = useRef<HTMLElement>(null);
+  useHeightVar(nav, "--strip-h", 16);
   const strip = useRef<HTMLDivElement>(null);
   const ring = useSlide(strip, current ? Number(current.slice(3)) - 1 : -1);
 
@@ -661,7 +707,7 @@ function Mobile() {
         </div>
       </header>
 
-      <nav aria-label="Jump to a day" className="sticky top-0 z-10 border-b border-line bg-paper/95 pt-[env(safe-area-inset-top,0px)] backdrop-blur">
+      <nav ref={nav} aria-label="Jump to a day" className="sticky top-0 z-10 border-b border-line bg-paper/95 pt-[env(safe-area-inset-top,0px)] backdrop-blur">
         <div ref={strip} className="no-scrollbar relative mx-auto flex max-w-[680px] gap-1.5 overflow-x-auto px-4 py-2.5 md:px-6">
           {/* A ring, not a fill, so it can sit on top and slide over the dates
               without hiding them. */}
@@ -708,7 +754,13 @@ function Mobile() {
             const c = CITY[d.city];
             return (
               <article key={d.date} id={dayId(i)} data-day className="grid grid-cols-[48px_minmax(0,1fr)] gap-x-3 border-b border-line py-7 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-x-4">
-                <div className={cx("text-right font-serif text-[2.4rem] leading-[.9] font-extrabold sm:text-5xl", c.text)}>
+                {/* Pinned under the date strip while its day scrolls by. */}
+                <div
+                  className={cx(
+                    "sticky top-[var(--strip-h,84px)] self-start text-right font-serif text-[2.4rem] leading-[.9] font-extrabold sm:text-5xl",
+                    c.text,
+                  )}
+                >
                   {dayNum(d.date)}
                   <small className="mt-2 block font-sans text-xs leading-snug font-medium text-muted">
                     {weekday(d.date)}

@@ -222,6 +222,11 @@ copy; editing it deploys nothing.
 - Desktop: a day highlight that **slides** between the date buttons; the day's
   content **fades** in place (no slide — the layout doesn't move). Phone: one list
   with a sliding ring on the sticky date strip.
+- **The dates stay pinned while scrolling** (he asked for it). Desktop: the date-button
+  bar is sticky and the places column sticks just under it (its measured height is
+  `--bar-h`); picking a day while scrolled down brings that day's top back under the
+  bar. Phone: each day's big date pins under the strip (`--strip-h`) until the next
+  day pushes it out.
 - **Privacy rules — keep them:**
   - No booking references, PNRs, e-ticket numbers or booking IDs, ever. A reference
     plus a surname opens a booking on most airline sites. Flight numbers and times
@@ -234,7 +239,7 @@ copy; editing it deploys nothing.
   note, directions link); clicking the name in the timeline scrolls to and rings
   the card. Desktop shows the places in a sticky side column. **Phones don't list
   them** — tapping a place's chip opens its card as a bottom-sheet popup (tap
-  outside, ✕ or Escape closes); places the timeline doesn't name get an "Also:" chip
+  outside, ✕ or Escape closes; a full-width button opens directions); places the timeline doesn't name get an "Also:" chip
   under the day. Day buttons show each day's `short` line.
 - Updates come from his private claude.ai artifact
   (`https://claude.ai/artifact/5x3psKogRssTmXxeYFCVAg`). Save its `index.html`,
