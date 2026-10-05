@@ -65,3 +65,10 @@ body {
 /* A place card the timeline just pointed at. */
 .place { transition: box-shadow 200ms ease, border-color 200ms ease; }
 .place[data-hl] { border-color: var(--hl); box-shadow: 0 0 0 3px color-mix(in srgb, var(--hl) 25%, transparent); }
+
+/* Phone place popup: the sheet rises, the page dims behind it. */
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+.sheet { animation: sheet-up 320ms cubic-bezier(.2,.8,.2,1) both; }
+.sheet-scrim { animation: scrim-in 220ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .sheet, .sheet-scrim { animation: none; } }

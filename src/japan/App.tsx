@@ -128,7 +128,16 @@ function showPlace(date: string, id: string) {
  * planned around it (hollow dot), in time order. An entry that names a place
  * gets a button that jumps to its card.
  */
-function Timeline({ day, compact }: { day: (typeof DAYS)[number]; compact?: boolean }) {
+function Timeline({
+  day,
+  compact,
+  onPlace,
+}: {
+  day: (typeof DAYS)[number];
+  compact?: boolean;
+  /** Phones open the card as a popup; by default it's scrolled to beside the day. */
+  onPlace?: (place: Place, trigger: HTMLElement) => void;
+}) {
   const c = CITY[day.city];
   const entries: Entry[] = day.timeline;
   return (
@@ -143,7 +152,8 @@ function Timeline({ day, compact }: { day: (typeof DAYS)[number]; compact?: bool
             {place && (
               <button
                 type="button"
-                onClick={() => showPlace(day.date, place.id)}
+                onClick={(e) => (onPlace ? onPlace(place, e.currentTarget) : showPlace(day.date, place.id))}
+                aria-haspopup={onPlace ? "dialog" : undefined}
                 className={cx(
                   "ml-1.5 inline rounded-md border border-line px-2 py-px text-left text-[.85rem] font-bold transition-colors hover:border-current",
                   c.soft,
@@ -181,11 +191,11 @@ function Timeline({ day, compact }: { day: (typeof DAYS)[number]; compact?: bool
 }
 
 /** A place to eat, shop, see or get to, with the link to directions. */
-function PlaceCard({ place, date, city }: { place: Place; date: string; city: City }) {
+function PlaceCard({ place, date, city, popup }: { place: Place; date: string; city: City; popup?: boolean }) {
   const c = CITY[city];
   return (
     <div
-      id={placeId(date, place.id)}
+      id={popup ? undefined : placeId(date, place.id)}
       className="place scroll-mt-24 rounded-2xl lg:scroll-mt-4 border border-line bg-surface px-4.5 py-3.5"
       style={{ ["--hl" as string]: `var(--${city})` }}
     >
@@ -203,6 +213,64 @@ function PlaceCard({ place, date, city }: { place: Place; date: string; city: Ci
         {place.dist && <span>📍 {place.dist}</span>}
         {place.hours && <span>🕒 {place.hours}</span>}
         {place.note && <span>{place.note}</span>}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Phones: a place opens as a sheet from the bottom instead of sitting in a
+ * list under the day — the timeline stays short, and the details come up only
+ * when asked for. Tap outside, ✕ or Escape closes it; focus goes back to the
+ * button that opened it.
+ */
+function PlaceSheet({
+  open,
+  onClose,
+}: {
+  open: { place: Place; day: (typeof DAYS)[number]; trigger: HTMLElement } | null;
+  onClose: () => void;
+}) {
+  const close = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    close.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    addEventListener("keydown", onKey);
+    const trigger = open.trigger;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = overflow;
+      removeEventListener("keydown", onKey);
+      trigger.focus({ preventScroll: true });
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+  const { place, day } = open;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" role="presentation">
+      <div className="sheet-scrim absolute inset-0 bg-ink/40" onClick={onClose} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={place.name}
+        className="sheet relative w-full rounded-t-3xl bg-paper px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+20px)] shadow-2xl"
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" aria-hidden />
+        <button
+          ref={close}
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-3 right-3 flex size-9 items-center justify-center rounded-full border border-line bg-surface text-muted"
+        >
+          ✕
+        </button>
+        <PlaceCard place={place} date={day.date} city={day.city} popup />
       </div>
     </div>
   );
@@ -544,6 +612,8 @@ function Footer() {
 
 function Mobile() {
   const [current, setCurrent] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<{ place: Place; day: (typeof DAYS)[number]; trigger: HTMLElement } | null>(null);
+  const closeSheet = useCallback(() => setSheet(null), []);
   const strip = useRef<HTMLDivElement>(null);
   const ring = useSlide(strip, current ? Number(current.slice(3)) - 1 : -1);
 
@@ -655,12 +725,28 @@ function Mobile() {
                   <p className="mb-3">
                     <Rich text={d.gist} />
                   </p>
-                  <Timeline day={d} compact />
-                  {d.places.length > 0 && (
-                    <div className="mt-4">
-                      <Places day={d} />
-                    </div>
-                  )}
+                  <Timeline day={d} compact onPlace={(place, trigger) => setSheet({ place, day: d, trigger })} />
+                  {/* Places the timeline doesn't name still need a way in. */}
+                  {(() => {
+                    const loose = d.places.filter((p) => !d.timeline.some((e) => e[3] === p.id));
+                    if (!loose.length) return null;
+                    return (
+                      <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">
+                        Also:
+                        {loose.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            aria-haspopup="dialog"
+                            onClick={(e) => setSheet({ place: p, day: d, trigger: e.currentTarget })}
+                            className={cx("rounded-md border border-line px-2 py-px text-[.85rem] font-bold", c.soft, c.text)}
+                          >
+                            {p.name} →
+                          </button>
+                        ))}
+                      </p>
+                    );
+                  })()}
                   {d.tips.length > 0 && (
                     <div className="mt-3 space-y-2.5">
                       {d.tips.map(([h, x]) => (
@@ -693,6 +779,7 @@ function Mobile() {
         ))}
         <Footer />
       </div>
+      <PlaceSheet open={sheet} onClose={closeSheet} />
     </>
   );
 }

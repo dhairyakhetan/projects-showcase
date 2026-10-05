@@ -232,8 +232,10 @@ copy; editing it deploys nothing.
   from the agent's itinerary (filled dot), `"x"` is planned by Dhairya (hollow dot).
   `place` points at a card in the day's `places` (time, type, what, distance, hours,
   note, directions link); clicking the name in the timeline scrolls to and rings
-  the card. Desktop shows the places in a sticky side column; phones list them
-  under each day. Day buttons show each day's `short` line.
+  the card. Desktop shows the places in a sticky side column. **Phones don't list
+  them** — tapping a place's chip opens its card as a bottom-sheet popup (tap
+  outside, ✕ or Escape closes); places the timeline doesn't name get an "Also:" chip
+  under the day. Day buttons show each day's `short` line.
 - Updates come from his private claude.ai artifact
   (`https://claude.ai/artifact/5x3psKogRssTmXxeYFCVAg`). Save its `index.html`,
   evaluate the `DAYS` array literal as data, regenerate `DAYS` in `data.ts`, and
