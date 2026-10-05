@@ -173,6 +173,7 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │       ├── ProjectCard.tsx     # one repo
 │       └── panels/             # Home / About / Qualification / Projects / Contact
 │
+├── CLAUDE.md               # decisions, details and rules for whoever edits this next
 ├── package.json
 ├── postcss.config.mjs
 └── tsconfig.json
