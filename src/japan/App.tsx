@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { DAYS, FLIGHTS, GOSHUIN, HOTELS, METRO, TODO, type City, type Entry, type Place, type Row } from "./data";
+import { DAYS, FLIGHTS, GOSHUIN, HOTELS, METRO, SPOTS, TODO, type City, type Entry, type Place, type Row, type SpotStatus } from "./data";
 
 /** Where this lives on the portfolio. Every day has its own URL under it. */
 const BASE = "/Japan2026";
@@ -400,6 +400,51 @@ function Hotels() {
   );
 }
 
+const SPOT_STATUS: Record<SpotStatus, { label: string; cls: string }> = {
+  plan: { label: "In your plan", cls: "bg-ink text-paper" },
+  tour: { label: "May be on the tour", cls: "border border-ink text-ink" },
+  fit: { label: "Fits a gap", cls: "bg-travel-soft text-ink" },
+  detour: { label: "Only as a detour", cls: "border border-line text-muted" },
+};
+
+/** Every temple and shrine that gives a goshuin, grouped by area. */
+function Goshuin() {
+  const areas = [...new Set(SPOTS.map((s) => s.area))];
+  return (
+    <div className="space-y-8">
+      {areas.map((area) => (
+        <div key={area}>
+          <h4 className="mb-3 font-serif text-lg font-extrabold">{area}</h4>
+          <div className="grid gap-3 md:grid-cols-2">
+            {SPOTS.filter((s) => s.area === area).map((s) => {
+              const c = CITY[s.city];
+              const st = SPOT_STATUS[s.status];
+              return (
+                <div key={s.name} className="rounded-2xl border border-line bg-surface p-4.5">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <span className={cx("rounded-full px-2 py-0.5 text-[.7rem] font-bold", st.cls)}>{st.label}</span>
+                    <span className="rounded border border-line px-1.5 text-[.68rem] font-bold tracking-wide text-muted uppercase">{s.kind}</span>
+                  </div>
+                  <a href={s.url} target="_blank" rel="noopener" className={cx("text-[1.05rem] leading-snug font-bold underline decoration-1 underline-offset-[3px]", c.text)}>
+                    {s.name}
+                  </a>
+                  <p className="mt-0.5 mb-1.5 text-[.95rem]">{s.when}</p>
+                  <div className="flex flex-col gap-0.5 text-[.85rem] text-muted">
+                    <span>🏷 {s.price}</span>
+                    <span>🕒 {s.hours}</span>
+                    <span>📍 {s.where}</span>
+                    <span>{s.note}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Todo() {
   return (
     <ol className="space-y-2.5">
@@ -642,12 +687,16 @@ function Desktop() {
           <SectionTitle>Hotels</SectionTitle>
           <Hotels />
         </section>
+        <section className="col-span-12">
+          <SectionTitle>Goshuin stamps</SectionTitle>
+          <Goshuin />
+        </section>
         <section className="col-span-7">
           <SectionTitle>Still to check with the agent</SectionTitle>
           <Todo />
         </section>
         <section className="col-span-5">
-          <SectionTitle>Goshuin and souvenirs</SectionTitle>
+          <SectionTitle>Goshuin book and souvenirs</SectionTitle>
           <Tips rows={GOSHUIN} />
         </section>
         <section className="col-span-7">
@@ -851,8 +900,9 @@ function Mobile() {
           [
             ["flights", "Flights", <Flights />],
             ["hotels", "Hotels", <Hotels />],
+            ["goshuin-stamps", "Goshuin stamps", <Goshuin />],
             ["todo", "Still to check with the agent", <Todo />],
-            ["goshuin", "Goshuin and souvenirs", <Tips rows={GOSHUIN} />],
+            ["goshuin", "Goshuin book and souvenirs", <Tips rows={GOSHUIN} />],
             ["metro", "How to ride the metro", <Tips rows={METRO} />],
           ] as const
         ).map(([id, title, body]) => (
