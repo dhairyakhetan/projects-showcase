@@ -381,6 +381,18 @@ function Hotels() {
             <div className="text-sm text-muted">
               {h.nights} · {h.room}
             </div>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${h.name} ${h.address}`)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 block text-sm underline underline-offset-2"
+            >
+              {h.address}
+            </a>
+            <div className="mt-1 text-sm">
+              Check-in {h.checkIn} · check-out {h.checkOut}
+            </div>
+            <p className="mt-1 text-sm text-muted">{h.note}</p>
           </div>
         </div>
       ))}

@@ -492,10 +492,10 @@ export const DAYS: Day[] = [
         type: "Eat",
         name: "Dana Pani En",
         what: "Indian: paneer, aloo baingan",
-        dist: "About 1.4 km from the Kyoto hotel · 18 min",
+        dist: "From the Kyoto hotel: check the walk in Maps, take a taxi if it is over 600 m",
         hours: "Dinner until 9:30 pm",
         note: "Ask for a vegetarian dish with no meat stock",
-        url: "https://www.google.com/maps/dir/?api=1&origin=Rihga+Royal+Hotel+Kyoto&origin_place_id=ChIJ2_bqcpUIAWARCxsfbw83nEY&destination=Dana+Pani+En&destination_place_id=ChIJK48KUVUPAWARc5ccxzhHEPs&travelmode=walking",
+        url: "https://www.google.com/maps/dir/?api=1&origin=Miyako+Hotel+Kyoto+Hachijo&destination=Dana+Pani+En&destination_place_id=ChIJK48KUVUPAWARc5ccxzhHEPs&travelmode=walking",
       },
       {
         id: "stairs",
@@ -503,14 +503,14 @@ export const DAYS: Day[] = [
         type: "See",
         name: "Kyoto Station Building: stairway and Sky Garden",
         what: "The Great Stairway is lit with LED patterns from the 3rd to 8th floor. The Sky Garden on 15F is a free rooftop with a night view of Kyoto Tower",
-        dist: "About 1.2–1.4 km from the restaurant to the station, then 700 m to the hotel",
+        dist: "About 1.2–1.4 km from the restaurant to the station. Then through the station to the Hachijo (south) exit, about 5 min, and the hotel is across the street",
         hours: "Stairway lights 17:00–22:00 · Sky Garden 06:00–23:00",
         note: "Free. The 11F Skyway is free until 22:00 too",
         url: "https://www.google.com/maps/dir/?api=1&origin=Dana+Pani+En&origin_place_id=ChIJK48KUVUPAWARc5ccxzhHEPs&destination=Kyoto+Station+Building&travelmode=walking",
       },
     ],
-    tips: [["Package note","Intercity baggage transfer is not included."], ["Be back by 2:30 pm","For the station transfer."], ["Tax-free","Bring your passport. Shops take 10% off at the till until 31 October."]],
-    sleep: "RIHGA Royal Hotel, Kyoto",
+    tips: [["Package note","Intercity baggage transfer is not included."], ["Be back by 2:30 pm","For the station transfer."], ["Kyoto hotel","Miyako Hotel Kyoto Hachijo is 2 minutes from the Hachijo (south) exit of Kyoto Station. Check-in is from 14:00."], ["Tax-free","Bring your passport. Shops take 10% off at the till until 31 October."]],
+    sleep: "Miyako Hotel Kyoto Hachijo",
   },
   {
     date: "2026-10-24", city: "kyoto", title: "Nara, Fushimi Inari, Arashiyama", short: "Nara, Fushimi Inari, Arashiyama",
@@ -549,10 +549,10 @@ export const DAYS: Day[] = [
         type: "Eat",
         name: "Vegan Ramen UZU Kyoto",
         what: "Fully vegan ramen, so no fish stock. The best-known vegan ramen shop in Kyoto",
-        dist: "About 25 min from the hotel. Karasuma Line from Kyoto Station 3 stops to Karasuma-Oike (K08), then 14 min walk. Or change there to the Tozai Line, 1 stop east to Kyoto-Shiyakusho-mae, then 6 min walk",
+        dist: "About 30 min from the hotel. Walk through Kyoto Station to the Karasuma Line, 3 stops to Karasuma-Oike (K08), then 14 min walk. Or change there to the Tozai Line, 1 stop east to Kyoto-Shiyakusho-mae, then 6 min walk",
         hours: "12:00–14:45 and 17:30–22:00 (last order 21:00)",
-        note: "Closed on irregular days. Check their Instagram on the day. Fallback if closed: CoCo Ichibanya Hachijo Entrance, 1 km from the hotel, vegetarian menu",
-        url: "https://www.google.com/maps/dir/?api=1&origin=Rihga+Royal+Hotel+Kyoto&origin_place_id=ChIJ2_bqcpUIAWARCxsfbw83nEY&destination=Vegan%20Ramen%20UZU%20Kyoto&travelmode=transit",
+        note: "Closed on irregular days. Check their Instagram on the day. Fallback if closed: CoCo Ichibanya Hachijo Entrance, near the south exit of Kyoto Station, vegetarian menu",
+        url: "https://www.google.com/maps/dir/?api=1&origin=Miyako+Hotel+Kyoto+Hachijo&destination=Vegan%20Ramen%20UZU%20Kyoto&travelmode=transit",
       },
       {
         id: "ponto",
@@ -567,7 +567,7 @@ export const DAYS: Day[] = [
       },
     ],
     tips: [["Not confirmed yet","Tour end time, and which Nara sights the bus visits. The dinner plan works if the tour ends by about 18:30."], ["Comfortable shoes","Lots of walking at Fushimi Inari."]],
-    sleep: "RIHGA Royal Hotel, Kyoto",
+    sleep: "Miyako Hotel Kyoto Hachijo",
   },
   {
     date: "2026-10-25", city: "osaka", title: "Kyoto to Osaka, manga museum and Den Den Town", short: "Bullet train to Osaka",
@@ -581,7 +581,7 @@ export const DAYS: Day[] = [
       ["10:40","Taxi to the Manga Museum (about 5 min)","x"],
       ["10:50–11:30","Kyoto International Manga Museum","x","manga"],
       ["11:35","Taxi back to the hotel for the bags","x"],
-      ["12:00","Walk to Kyoto Station with the bags","x"],
+      ["12:00","Walk to Kyoto Station with the bags (about 5 min)","x"],
       ["12:30","Bullet train to Osaka (ticket and time not confirmed yet)","x"],
       ["~12:50","Arrive Shin-Osaka, Midosuji line to Hommachi (about 15 min)","x","rto"],
       ["13:25","Drop bags at the Osaka hotel","x"],
@@ -611,7 +611,7 @@ export const DAYS: Day[] = [
         dist: "About 30 min door to door",
         hours: "",
         note: "",
-        url: "https://www.google.com/maps/dir/?api=1&origin=Rihga+Royal+Hotel+Kyoto&origin_place_id=ChIJ2_bqcpUIAWARCxsfbw83nEY&destination=Kyoto%20International%20Manga%20Museum&travelmode=transit",
+        url: "https://www.google.com/maps/dir/?api=1&origin=Miyako+Hotel+Kyoto+Hachijo&destination=Kyoto%20International%20Manga%20Museum&travelmode=transit",
       },
       {
         id: "nishiki",
@@ -622,7 +622,7 @@ export const DAYS: Day[] = [
         dist: "About 15 min by taxi from the hotel (about ¥1,500), then a short walk along the street",
         hours: "About 10:00–18:00, some stalls open earlier",
         note: "Taxi to the Takakura end of the street, then walk east. Skip the fish skewers",
-        url: "https://www.google.com/maps/dir/?api=1&origin=Rihga%20Royal%20Hotel%20Kyoto&destination=Nishiki%20Market&origin_place_id=ChIJ2_bqcpUIAWARCxsfbw83nEY&travelmode=driving",
+        url: "https://www.google.com/maps/dir/?api=1&origin=Miyako%20Hotel%20Kyoto%20Hachijo&destination=Nishiki%20Market&travelmode=driving",
       },
       {
         id: "manga",
@@ -1005,10 +1005,22 @@ export const FLIGHTS = [
   },
 ];
 
-export const HOTELS: { nights: string; name: string; room: string; city: City }[] = [
-  { nights: "20, 21, 22 Oct", name: "Citadines Shinjuku, Tokyo", room: "Standard double, breakfast included", city: "tokyo" },
-  { nights: "23, 24 Oct", name: "RIHGA Royal Hotel, Kyoto", room: "Standard room, breakfast included", city: "kyoto" },
-  { nights: "25, 26, 27 Oct", name: "Osaka View Hotel Honmachi", room: "Standard triple, breakfast included", city: "osaka" },
+export const HOTELS: { nights: string; name: string; room: string; city: City; address: string; checkIn: string; checkOut: string; note: string }[] = [
+  {
+    nights: "20, 21, 22 Oct", name: "Citadines Shinjuku Tokyo", room: "Studio double, breakfast included", city: "tokyo",
+    address: "1-28-13 Shinjuku, Shinjuku-ku, Tokyo", checkIn: "15:00", checkOut: "11:00",
+    note: "Three adults share a studio double, so the hotel may charge for the extra person at check-in. Bring photo ID, a deposit may be asked. Late check-out costs extra.",
+  },
+  {
+    nights: "23, 24 Oct", name: "Miyako Hotel Kyoto Hachijo", room: "South Wing twin, non-smoking, breakfast included", city: "kyoto",
+    address: "17 Nishi Kujoin-machi, Minami-ku, Kyoto 601-8412", checkIn: "14:00", checkOut: "11:00",
+    note: "2 minutes' walk from the Hachijo (south) exit of Kyoto Station. The hotel may charge for the third guest at check-in.",
+  },
+  {
+    nights: "25, 26, 27 Oct", name: "Osaka View Hotel Honmachi", room: "Standard triple, non-smoking, breakfast included", city: "osaka",
+    address: "4-5-2 Honmachi, Chuo-ku, Osaka 541-0053", checkIn: "15:00", checkOut: "11:00",
+    note: "Check-in is open until midnight. City tax is ¥0, paid at the hotel.",
+  },
 ];
 
 export const TODO = [
@@ -1031,7 +1043,7 @@ export const METRO: Row[] = [
   ["Card", "a Suica, PASMO or ICOCA works on every metro and JR line in all three cities. Tap on the gate going in and going out."],
   ["Station codes", "each stop has a line letter and number, for example Marunouchi M10 Shinjuku-gyoemmae, Fukutoshin F13 Shinjuku-sanchome, Midosuji M18 Hommachi. Count stops with these."],
   ["Exits", "big stations have dozens. The route cards give the exit number, follow the yellow exit signs."],
-  ["Hotels", "Tokyo, Shinjuku-gyoemmae Exit 2 (5 min walk) or Shinjuku-sanchome Exit C7 (7 min). Kyoto, 10 min walk to Kyoto Station. Osaka, Hommachi Exit 4 (2 min); Exit 5 closes after 9 pm and on weekends."],
+  ["Hotels", "Tokyo, Shinjuku-gyoemmae Exit 2 (5 min walk) or Shinjuku-sanchome Exit C7 (7 min). Kyoto, 2 min from the Hachijo (south) exit of Kyoto Station. Osaka, Hommachi Exit 4 (2 min); Exit 5 closes after 9 pm and on weekends."],
   ["Late trains", "most lines stop around midnight. Check the last train in Google Maps before you leave after 10 pm."],
   ["JR local vs rapid", "for Akihabara take the yellow Chuo-Sobu local. The orange Chuo Rapid does not stop there."],
 ];

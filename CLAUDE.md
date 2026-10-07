@@ -231,7 +231,9 @@ copy; editing it deploys nothing.
   - No booking references, PNRs, e-ticket numbers or booking IDs, ever. A reference
     plus a surname opens a booking on most airline sites. Flight numbers and times
     are fine.
-  - The agent's PDFs are context only — never put them in `public/`.
+  - The agent's PDFs and hotel vouchers are context only — never put them in `public/`.
+  - Hotels show name, address, check-in/out and room only. Never the voucher's booking or
+    confirmation numbers, or the agent's phone and email.
   - The page is `noindex`; its OG image shows dates and cities only.
 - Each day is **one timeline** of `[time, text, kind, place?]` entries: kind `"i"` is
   from the agent's itinerary (filled dot), `"x"` is planned by Dhairya (hollow dot).
@@ -253,7 +255,9 @@ copy; editing it deploys nothing.
   stops**, and the tour line shouldn't say "all sightseeing are photo stops".
   The artifact also lists Nintendo and Jump Shop at Shibuya PARCO on 23 Oct as if it were
   the agent's; it isn't. Dhairya replaced that morning with shoes at ABC-Mart Shibuya and
-  shirts in Harajuku, so keep that instead.
+  shirts in Harajuku, so keep that instead. The artifact's hotel list also still says RIHGA
+  Royal for Kyoto; the voucher says **Miyako Hotel Kyoto Hachijo** (2 min from Kyoto
+  Station's Hachijo exit).
 
 ---
 
