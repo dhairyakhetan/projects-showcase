@@ -27,11 +27,12 @@ const pathDay = () => {
   const i = m ? Number(m[1]) - 1 : -1;
   return i >= 0 && i < DAYS.length ? i : -1;
 };
-const TODAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-const todayIndex = DAYS.findIndex((d) => d.date === TODAY);
+const JAPAN_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" });
+/** Today in Japan, YYYY-MM-DD. */
+const japanToday = () => JAPAN_DATE.format(new Date());
+const dayIndexOf = (date: string) => DAYS.findIndex((d) => d.date === date);
 const START = DAYS[0].date;
 const END = DAYS[DAYS.length - 1].date;
-const daysToGo = Math.round((jst(START).getTime() - jst(TODAY).getTime()) / 86400000);
 const isWarn = (h: string) => /error|warning/i.test(h);
 
 function cx(...c: (string | false | undefined)[]) {
@@ -75,9 +76,57 @@ const SEGMENTS = DAYS.reduce<{ city: City; span: number; nights: number }[]>((ac
   return acc;
 }, []).map((s) => ({ ...s, nights: HOTELS.find((h) => h.city === s.city)?.nights.split(",").length ?? 0 }));
 
-function countdownText() {
-  if (TODAY < START) return daysToGo === 1 ? "Starts tomorrow" : `${daysToGo} days to go`;
-  if (TODAY <= END) return "Trip in progress";
+const subscribeToday = (onChange: () => void) => {
+  const timer = setInterval(onChange, 60_000);
+  document.addEventListener("visibilitychange", onChange);
+  return () => {
+    clearInterval(timer);
+    document.removeEventListener("visibilitychange", onChange);
+  };
+};
+
+/**
+ * Today in Japan, rechecked once a minute and whenever the page comes back
+ * into view — a tab left open overnight moves on to the new day by itself.
+ */
+function useToday() {
+  return useSyncExternalStore(subscribeToday, japanToday);
+}
+
+/**
+ * Saves the planner for use with no signal (public/japan-sw.js). A first
+ * visit isn't controlled by the worker yet, so this hands it every day's URL
+ * and the files this visit loaded — once the fonts are in, the last of them.
+ */
+function useOffline() {
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/japan-sw.js", { scope: BASE }).catch(() => {});
+
+    let cancelled = false;
+    Promise.all([navigator.serviceWorker.ready, document.fonts.ready]).then(([registration]) => {
+      if (cancelled) return;
+      const assets = performance
+        .getEntriesByType("resource")
+        .map((entry) => new URL(entry.name))
+        .filter((url) => url.origin === location.origin && url.pathname.startsWith("/_next/static/"))
+        .map((url) => url.pathname + url.search);
+      registration.active?.postMessage({
+        type: "save",
+        pages: [BASE, ...DAYS.map((_, i) => dayPath(i))],
+        assets: [...new Set(assets)],
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+}
+
+function countdownText(today: string) {
+  const daysToGo = Math.round((jst(START).getTime() - jst(today).getTime()) / 86400000);
+  if (today < START) return daysToGo === 1 ? "Starts tomorrow" : `${daysToGo} days to go`;
+  if (today <= END) return "Trip in progress";
   return "Trip complete";
 }
 
@@ -475,10 +524,12 @@ function Tips({ rows }: { rows: Row[] }) {
 /* ---------- desktop ---------- */
 
 function Desktop() {
+  const today = useToday();
   const initial = () => {
     const fromPath = pathDay();
     if (fromPath >= 0) return fromPath;
-    return todayIndex >= 0 ? todayIndex : 0;
+    const todayAt = dayIndexOf(japanToday());
+    return todayAt >= 0 ? todayAt : 0;
   };
   const [sel, setSel] = useState(initial);
   const day = DAYS[sel];
@@ -506,6 +557,15 @@ function Desktop() {
       }
     });
   }, []);
+
+  // A new day began while the page was open: go to it, as a fresh visit would.
+  const seenToday = useRef(today);
+  useEffect(() => {
+    if (today === seenToday.current) return;
+    seenToday.current = today;
+    const todayAt = dayIndexOf(today);
+    if (todayAt >= 0) go(todayAt);
+  }, [today, go]);
 
   useEffect(() => {
     const onPop = () => setSel(initial());
@@ -539,7 +599,7 @@ function Desktop() {
           >
             Flights &amp; hotels ↓
           </button>
-          <div className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper">{countdownText()}</div>
+          <div className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper">{countdownText(today)}</div>
         </div>
       </header>
 
@@ -600,7 +660,7 @@ function Desktop() {
                   <span className={cx("text-xs font-bold uppercase transition-colors duration-300", on ? "text-paper/80" : "text-muted")}>{weekday(d.date)}</span>
                   <span className={cx("font-serif text-3xl leading-tight font-extrabold transition-colors duration-300", !on && dc.text)}>{dayNum(d.date)}</span>
                   <span className={cx("mt-auto line-clamp-2 text-xs leading-snug transition-colors duration-300", on ? "text-paper/90" : "text-muted")}>{d.short}</span>
-                  {d.date === TODAY && (
+                  {d.date === today && (
                     <span className="absolute top-2.5 right-2.5 rounded-full bg-alert px-1.5 py-0.5 text-[.6rem] font-bold text-white uppercase">
                       Today
                     </span>
@@ -736,6 +796,7 @@ function Footer() {
 /* ---------- mobile ---------- */
 
 function Mobile() {
+  const today = useToday();
   const [current, setCurrent] = useState<string | null>(null);
   const [sheet, setSheet] = useState<{ place: Place; day: (typeof DAYS)[number]; trigger: HTMLElement } | null>(null);
   const closeSheet = useCallback(() => setSheet(null), []);
@@ -753,10 +814,19 @@ function Mobile() {
       { rootMargin: "-30% 0px -60% 0px" },
     );
     document.querySelectorAll("article[data-day]").forEach((el) => io.observe(el));
-    const start = pathDay() >= 0 ? pathDay() : todayIndex;
+    const start = pathDay() >= 0 ? pathDay() : dayIndexOf(japanToday());
     if (start >= 0) setTimeout(() => document.getElementById(dayId(start))?.scrollIntoView(), 50);
     return () => io.disconnect();
   }, []);
+
+  // A new day began while the page was open: bring it up, as a fresh visit would.
+  const seenToday = useRef(today);
+  useEffect(() => {
+    if (today === seenToday.current) return;
+    seenToday.current = today;
+    const todayAt = dayIndexOf(today);
+    if (todayAt >= 0) document.getElementById(dayId(todayAt))?.scrollIntoView();
+  }, [today]);
 
   useEffect(() => {
     const s = strip.current;
@@ -771,7 +841,7 @@ function Mobile() {
         <p className="text-xs font-bold tracking-[.2em] text-muted uppercase">19 – 28 October 2026</p>
         <h1 className="mt-1 font-serif text-[2.6rem] leading-none font-extrabold">Japan</h1>
         <p className="mt-2 text-muted">Dhairya, Mum and Dad · Tokyo, Kyoto, Osaka</p>
-        <span className="mt-3 inline-block rounded-full bg-ink px-3 py-1 text-sm font-bold text-paper">{countdownText()}</span>
+        <span className="mt-3 inline-block rounded-full bg-ink px-3 py-1 text-sm font-bold text-paper">{countdownText(today)}</span>
         <Legend className="mt-4" />
         <div className="mt-6 grid grid-cols-10 gap-1">
           {SEGMENTS.map((s, i) => (
@@ -804,7 +874,7 @@ function Mobile() {
           {DAYS.map((d, i) => {
             const id = dayId(i);
             const on = current === id;
-            const today = d.date === TODAY;
+            const isToday = d.date === today;
             return (
               <a
                 key={d.date}
@@ -818,11 +888,11 @@ function Mobile() {
                 className={cx(
                   "min-w-[52px] shrink-0 rounded-xl border border-b-[3px] px-2.5 pt-1.5 pb-1 text-center leading-tight",
                   CITY[d.city].border,
-                  today ? "bg-ink text-paper" : "border-t-line border-r-line border-l-line bg-surface",
+                  isToday ? "bg-ink text-paper" : "border-t-line border-r-line border-l-line bg-surface",
                 )}
               >
                 <span className="block font-serif text-lg font-extrabold">{dayNum(d.date)}</span>
-                <span className={cx("text-[.7rem]", today ? "text-paper" : "text-muted")}>{weekday(d.date)}</span>
+                <span className={cx("text-[.7rem]", isToday ? "text-paper" : "text-muted")}>{weekday(d.date)}</span>
               </a>
             );
           })}
@@ -853,7 +923,7 @@ function Mobile() {
                 </div>
                 <div className="min-w-0">
                   <span className={cx("mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
-                  {d.date === TODAY && <span className="ml-1.5 rounded-full bg-ink px-2.5 py-0.5 text-sm font-bold text-paper">Today</span>}
+                  {d.date === today && <span className="ml-1.5 rounded-full bg-ink px-2.5 py-0.5 text-sm font-bold text-paper">Today</span>}
                   <h2 className="mt-0.5 mb-2 font-serif text-[1.4rem] leading-tight font-extrabold sm:text-2xl">{d.title}</h2>
                   <p className="mb-3">
                     <Rich text={d.gist} />
@@ -924,5 +994,6 @@ function Mobile() {
 
 export default function App() {
   const desktop = useMedia("(min-width: 1024px)");
+  useOffline();
   return desktop ? <Desktop /> : <Mobile />;
 }
