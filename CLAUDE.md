@@ -21,8 +21,6 @@ odd until you know what broke last time.
   launched September 2026: 6 pieces, 18 team profiles. Live at
   `https://terranotes-aq.vercel.app` (no public repo — link the site only, and
   don't list its features on the card). The URL is one constant in `content.ts`.
-- **Japan 2026** — a day-by-day planner he built for a family trip (Tokyo, Kyoto,
-  Osaka, 19–28 Oct 2026). Hosted on this site at `/Japan2026`.
 - Older repos (secondary, pinned at the top of the full repo list; written out in
   `projects.older`, which is also the fallback list and what `open` knows):
   - `shoppy` — storefront for his mother's Tanjore art
@@ -47,7 +45,8 @@ content — edit that file. Anything marked `// TODO` there is a known gap.
   pushing (see *Testing*), then say what changed in plain words.
 - **Keep the root clean.** He objected loudly to clutter. Root holds only config
   files plus `cloudflare/`, `public/`, `src/`. Static files go in `public/`. No
-  wrangler config, no stray READMEs in subfolders.
+  wrangler config, no stray READMEs in subfolders. The one exception is the trip
+  planner's own `CLAUDE.md` (see the end of this file); he asked for it.
 - **Keep comments to the ones that explain a non-obvious decision.** No narration.
 - Commit messages: imperative subject, a body explaining *why*.
 - Stack: Next.js 15 (App Router), React 19, TypeScript, Tailwind v4,
@@ -61,24 +60,20 @@ content — edit that file. Anything marked `// TODO` there is a known gap.
 src/app/
   globals.css                 design tokens, both themes, all CSS animations
   global-not-found.tsx        the 404 for any URL, in the portfolio's chrome
-  sitemap.ts, robots.ts       the five pages; /Japan2026 stays out via noindex
+  sitemap.ts, robots.ts       the five pages
   (site)/                     the portfolio — its own root layout
     layout.tsx                metadata, theme-color, pre-paint scripts, <Chrome>
     page.tsx                  "/" → redirect to /home
     [panel]/page.tsx          /home /about /qualification /projects /contact
     opengraph-image.tsx       link preview for every portfolio page
-  (japan)/                    the trip planner — a separate root layout
-    layout.tsx
-    Japan2026/[[...day]]/page.tsx   /Japan2026 and /Japan2026/day1 … day10
-    Japan2026/opengraph-image.tsx
+  (japan)/                    the trip planner — see the end of this file
   api/repos/route.ts          same-origin JSON for the full repo list
 src/middleware.ts             hard refresh → re-ask the audience question
 src/lib/                      content, audience, featured, repos, tech, og, theme, fonts
 src/components/               Chrome, panels/, Terminal, cursor, etc.
-src/japan/                    planner code, data and its own stylesheet
 src/og-fonts/                 TTFs for the OG images
 cloudflare/worker.js          committed copy of the deployed worker (+ tests)
-public/                       me.webp, favicons, card images, japan-sw.js + manifest
+public/                       me.webp, favicons, card images
 next.config.ts                only to switch on experimental.globalNotFound
 ```
 
@@ -93,8 +88,6 @@ next.config.ts                only to switch on experimental.globalNotFound
   404. `global-not-found.tsx` (needs `experimental.globalNotFound`) repeats the
   portfolio's `<html>` — fonts, pre-paint scripts, `<Chrome>` — around a 404 panel.
   Chrome shows `404` in the status bar when the path isn't a panel.
-- `/Japan2026` is a separate site with its **own root layout** (route group
-  `(japan)`). Moving between it and the portfolio is a full page load, by design.
 
 ---
 
@@ -190,7 +183,7 @@ twin with `<Variant>`.
 - **Projects** — featured cards, then "show all public repos" (fetched only on
   click), then the open-slot card. One featured project renders as a single card;
   two or more stack on scroll (sticky; covered cards recede). Currently featured:
-  **TerraNotes**, then **Japan 2026**.
+  **TerraNotes**, then the trip planner.
 - **Contact** — "Let's *talk.*", rows that say what each platform is for (**never
   print the handle** — it's his name on all of them). Note text is a size smaller
   than the label. Email row copies on click. The form opens the visitor's own mail
@@ -200,7 +193,7 @@ twin with `<Variant>`.
 
 - Featured entries are hand-written in `content.ts` (`projects.featured`). A
   featured project may have `repo: null` (no source button; links go to the site)
-  and a relative `homepage` like `/Japan2026` (opens in place, not a new tab).
+  and a relative `homepage` (opens in place, not a new tab).
 - **Zero network calls on page load.** Everything renders from `content.ts`; only
   `AllRepos` calls `/api/repos`, after a click.
 - Repo grid: 4 columns at xl (he hates 3-card layouts), lift + pointer wash +
@@ -210,8 +203,8 @@ twin with `<Variant>`.
 - **No live stats** (stars, commit counts, "last pushed" ages). He called them
   "public humiliation".
 - Featured-card arrows: ↗ (the SVG `ArrowUpRight`, never the ↗ character, which
-  some browsers draw as an emoji) only for links that leave the site; `/Japan2026`
-  gets →.
+  some browsers draw as an emoji) only for links that leave the site; on-site
+  links get →.
 
 ---
 
@@ -237,75 +230,12 @@ copy; editing it deploys nothing.
 
 ---
 
-## Japan 2026 (`/Japan2026`)
-
-- Originally a separate Vite app; ported into `src/japan/`. Its own fonts (Shippori
-  Mincho, Zen Kaku Gothic New), colours and dark mode (follows the OS). Its
-  Tailwind build scans only `src/japan`; the portfolio's skips it.
-- `/Japan2026/day1` … `/day10` are prerendered; the planner itself renders
-  client-only because it reads the date, URL and screen width.
-- **Works offline.** `public/japan-sw.js`, registered by `App.tsx` with scope
-  `/Japan2026` (the portfolio is never controlled by it). After one online visit
-  the page posts every day's URL and the `/_next/static` files it loaded; the
-  worker saves them. Pages are network-first with a 3.5 s timeout, static files
-  cache-first; on a redeploy all pages are re-fetched before old files are
-  dropped. Manifest + icons (`japan2026.webmanifest`, `japan2026-icon-*.png`) make
-  "Add to Home Screen" open it like an app.
-- "Today" is a `useSyncExternalStore` on the Japan date, rechecked every minute
-  and on `visibilitychange`; when it changes the planner moves to the new day.
-- Its fonts have `preload: false`: next/font preloads every CJK unicode-range
-  slice whatever `subsets` says (361 files). The page is Latin, so the browser
-  fetches only the ~9 slices it draws.
-- Desktop: a day highlight that **slides** between the date buttons; the day's
-  content **fades** in place (no slide — the layout doesn't move). Phone: one list
-  with a sliding ring on the sticky date strip.
-- **The dates stay pinned while scrolling** (he asked for it). Desktop: the date-button
-  bar is sticky and the places column sticks just under it (its measured height is
-  `--bar-h`); picking a day while scrolled down brings that day's top back under the
-  bar. Phone: each day's big date pins under the strip (`--strip-h`) until the next
-  day pushes it out.
-- **Privacy rules — keep them:**
-  - No booking references, PNRs, e-ticket numbers or booking IDs, ever. A reference
-    plus a surname opens a booking on most airline sites. Flight numbers and times
-    are fine.
-  - The agent's PDFs and hotel vouchers are context only — never put them in `public/`.
-  - Hotels show name, address, check-in/out and room only. Never the voucher's booking or
-    confirmation numbers, or the agent's phone and email.
-  - The page is `noindex`; its OG image shows dates and cities only.
-- Each day is **one timeline** of `[time, text, kind, place?]` entries: kind `"i"` is
-  from the agent's itinerary (filled dot), `"x"` is planned by Dhairya (hollow dot).
-  `place` points at a card in the day's `places` (time, type, what, distance, hours,
-  note, directions link); clicking the name in the timeline scrolls to and rings
-  the card. Desktop shows the places in a sticky side column. **Phones don't list
-  them** — tapping a place's chip opens its card as a bottom-sheet popup (tap
-  outside, ✕ or Escape closes; a full-width button opens directions); places the timeline doesn't name get an "Also:" chip
-  under the day. Day buttons show each day's `short` line.
-- Updates come from his private claude.ai artifact
-  (`https://claude.ai/artifact/5x3psKogRssTmXxeYFCVAg`). Save its `index.html`,
-  evaluate the `DAYS` array literal as data, regenerate `DAYS` in `data.ts`, and
-  strip booking refs from the gists (they're in there every time). Compare the
-  flights, hotels and to-check sections by hand — they live in the HTML, not `DAYS`.
-  The artifact's format has changed between pulls — check its render script, not
-  just the data.
-- **Corrections to re-apply on every pull** (the artifact still has them wrong):
-  on 20 Oct, **Kabukiza and the National Diet Building are drive-bys, not photo
-  stops**, and the tour line shouldn't say "all sightseeing are photo stops".
-  The artifact also lists Nintendo and Jump Shop at Shibuya PARCO on 23 Oct as if it were
-  the agent's; it isn't. Dhairya replaced that morning with shoes at ABC-Mart Shibuya and
-  shirts in Harajuku, so keep that instead. The artifact's hotel list also still says RIHGA
-  Royal for Kyoto; the voucher says **Miyako Hotel Kyoto Hachijo** (2 min from Kyoto
-  Station's Hachijo exit).
-
----
-
 ## Link previews
 
 `next/og` images built at build time: `(site)/opengraph-image.tsx` (the editor
-look; shared by every portfolio page, each keeping its own `og:title`) and
-`(japan)/Japan2026/opengraph-image.tsx`. A page that sets its own `openGraph`
+look; shared by every portfolio page, each keeping its own `og:title`). A page that sets its own `openGraph`
 replaces the inherited image, so `[panel]/page.tsx` passes the parent's images
-through explicitly. Fonts are TTFs in `src/og-fonts`; the Japanese ones are
-subset to Latin. `metadataBase` is the production domain.
+through explicitly. Fonts are TTFs in `src/og-fonts`. `metadataBase` is the production domain.
 
 ---
 
@@ -321,10 +251,7 @@ There's no test runner in the repo beyond the worker suite. Before pushing:
    or the modal covers the page.
 3. Check desktop (1440) and phone (390), both themes, reduced motion, and that no
    `/api/` request happens on load.
-4. Japan offline: load a day, wait for `japan-pages-v1` to hold 11 entries, then
-   `context.setOffline(true)` and open other days. "Today": `page.clock.install`
-   just before midnight JST, then `clock.fastForward`.
-5. Repo fallback: the worker is sometimes reachable from the sandbox. To force the
+4. Repo fallback: the worker is sometimes reachable from the sandbox. To force the
    fallback, delete `.next/cache/fetch-cache` and start the server with
    `NODE_OPTIONS=--require <file>` where the file wraps `globalThis.fetch` to
    reject `workers.dev` URLs.
@@ -336,6 +263,13 @@ run, and never `pkill -f "next start"` or loop over `/proc` matching "next start
 (both match and kill the calling shell). Start it as
 `node node_modules/next/dist/bin/next start -p <port> & echo $! > pidfile` and kill
 that PID.
+
+---
+
+## Japan 2026 (`/Japan2026`)
+
+The trip planner has its own notes: **`src/app/(japan)/Japan2026/CLAUDE.md`**.
+Read it before touching `/Japan2026`, `src/japan/` or anything else of the planner's.
 
 ---
 
