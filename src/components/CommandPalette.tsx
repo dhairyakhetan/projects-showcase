@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import ArrowUpRight from "@/components/ArrowUpRight";
 import { toggleTheme } from "@/components/ThemeToggle";
 import { AUDIENCE_EVENT, getAudience, toggleAudience, type Audience } from "@/lib/audience";
 import { contact, panels } from "@/lib/content";
@@ -20,6 +21,8 @@ interface Command {
   label: string;
   hint: string;
   group: "Pages" | "Projects" | "Actions";
+  /** Leaves the site: the hint gets the ↗. */
+  external?: boolean;
   run: () => void;
 }
 
@@ -95,8 +98,9 @@ export default function CommandPalette() {
     const projectCommands: Command[] = featuredProjects.map(project => ({
       id: `project-${project.name}`,
       label: project.title,
-      hint: project.homepage ? "visit ↗" : audience === "dev" ? "source ↗" : "code ↗",
+      hint: project.link.startsWith("/") ? "open" : project.homepage ? "visit" : audience === "dev" ? "source" : "code",
       group: "Projects",
+      external: !project.link.startsWith("/"),
       run: () => openProject(project.link),
     }));
 
@@ -242,7 +246,10 @@ export default function CommandPalette() {
                         <span className={`truncate text-[13px] ${index === active ? "text-ink" : "text-ink-soft"}`}>
                           {command.label}
                         </span>
-                        <span className="shrink-0 truncate text-[10px] text-faint">{command.hint}</span>
+                        <span className="flex shrink-0 items-center gap-1 truncate text-[10px] text-faint">
+                          {command.hint}
+                          {command.external ? <ArrowUpRight /> : null}
+                        </span>
                       </button>
                     </div>
                   );

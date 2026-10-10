@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import ArrowUpRight from "@/components/ArrowUpRight";
 import ProjectCard from "@/components/ProjectCard";
 import Variant from "@/components/Variant";
+import { GITHUB_USERNAME } from "@/lib/content";
 import { techIndex } from "@/lib/tech";
 import type { ProjectsResult } from "@/lib/repos";
 
@@ -35,8 +37,8 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
       const response = await fetch("/api/repos");
       const payload = (await response.json()) as ProjectsResult;
 
-      // A degraded payload is still a payload — it carries fixtures and says
-      // so. Only a malformed response counts as a failure.
+      // A degraded payload is still a payload — it carries the hand-written
+      // older repos and says so. Only a malformed response counts as a failure.
       if (!Array.isArray(payload?.projects)) throw new Error("unexpected response");
 
       setData(payload);
@@ -175,25 +177,39 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
             plain="everything else"
           />
         </p>
-        <h3 className="mt-3 font-display text-[2.6rem] leading-none">
+        <h2 className="mt-3 font-display text-[2.6rem] leading-none">
           {data!.projects.length}{" "}
           <span className="italic">
-            <Variant dev="repositories." plain="projects." />
+            {data!.degraded ? (
+              <Variant dev="pinned repos." plain="older projects." />
+            ) : (
+              <Variant dev="repositories." plain="projects." />
+            )}
           </span>
-        </h3>
+        </h2>
       </div>
 
       {data!.degraded ? (
-        <p className="mt-6 border border-err/40 bg-err/10 px-4 py-3 text-xs text-ink-mute">
+        <p className="mt-6 border border-err/40 bg-err/10 px-4 py-3 text-xs leading-[1.8] text-ink-mute">
           <Variant
             dev={
               <>
                 couldn&apos;t reach the worker{data!.error ? ` (${data!.error})` : ""} — showing
-                sample data until the next sync
+                the pinned repos only.
               </>
             }
-            plain="Couldn't load the live list just now, so these are examples."
-          />
+            plain="Couldn't load the full list just now, so these are the older ones."
+          />{" "}
+          <a
+            href={`https://github.com/${GITHUB_USERNAME}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cursor-label="open"
+            className="inline-flex items-center gap-1 text-ink underline underline-offset-4"
+          >
+            <Variant dev="the rest are on github" plain="Everything is on GitHub" />
+            <ArrowUpRight />
+          </a>
         </p>
       ) : null}
 

@@ -12,7 +12,10 @@ export async function GET() {
   return NextResponse.json(result, {
     status: result.degraded ? 503 : 200,
     headers: {
-      "cache-control": "public, s-maxage=86400, stale-while-revalidate=604800",
+      // A blip at the worker shouldn't be served from the CDN for a day.
+      "cache-control": result.degraded
+        ? "no-store"
+        : "public, s-maxage=86400, stale-while-revalidate=604800",
     },
   });
 }

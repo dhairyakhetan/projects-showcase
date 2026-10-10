@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import ShortcutKey from "@/components/ShortcutKey";
 import { setAudience } from "@/lib/audience";
 
 /**
@@ -42,7 +43,7 @@ export default function AudiencePrompt() {
           <p className="text-[13px] leading-[1.8] text-dim">
             Programmer, developer, anything technical. Yes gets this site dressed up as a code
             editor; no gets the same things in plain words. Change your mind any time from the
-            menu in the bottom bar, or ⌘K.
+            menu in the bottom bar, or <ShortcutKey />.
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row">

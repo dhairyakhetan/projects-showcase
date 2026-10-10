@@ -36,13 +36,13 @@ export default function QualificationPanel() {
             </p>
           </Reveal>
           <Reveal delay={80}>
-            <h2 className="font-display text-[clamp(2.9rem,8vw,4.5rem)] font-normal leading-none tracking-[-0.02em]">
+            <h1 className="font-display text-[clamp(2.9rem,8vw,4.5rem)] font-normal leading-none tracking-[-0.02em]">
               Where I&apos;m <span className="italic">at.</span>
-            </h2>
+            </h1>
           </Reveal>
         </div>
         <Reveal delay={140}>
-          <p className="text-xs text-dim">click an entry to open it</p>
+          <p className="text-xs text-dim">pick an entry to open it</p>
         </Reveal>
       </div>
 
@@ -104,9 +104,9 @@ export default function QualificationPanel() {
               <span className="border border-accent px-3 py-1.5 text-[11px] text-accent">{entry.status}</span>
             </div>
 
-            <h3 className="font-display text-[clamp(2.4rem,6vw,4rem)] font-normal leading-none tracking-[-0.02em]">
+            <h2 className="font-display text-[clamp(2.4rem,6vw,4rem)] font-normal leading-none tracking-[-0.02em]">
               {entry.title}
-            </h3>
+            </h2>
 
             <p className="max-w-[620px] text-[15px] leading-[1.85] text-ink-soft [text-wrap:pretty]">
               {entry.detail}

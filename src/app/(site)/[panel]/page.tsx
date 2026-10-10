@@ -29,13 +29,15 @@ export async function generateMetadata(
   const match = panels.find(entry => entry.id === panel);
 
   const title = match && match.id !== "home" ? `${match.label} — ${identity.name}` : identity.name;
+  const description = match?.description ?? identity.blurb;
 
   return {
     title: match && match.id !== "home" ? title : undefined,
+    description,
     alternates: { canonical: `/${panel}` },
     openGraph: {
       title,
-      description: identity.blurb,
+      description,
       type: "website",
       siteName: identity.name,
       url: `/${panel}`,
@@ -45,7 +47,7 @@ export async function generateMetadata(
     twitter: {
       card: "summary_large_image",
       title,
-      description: identity.blurb,
+      description,
       images: inherited.twitter?.images,
     },
   };

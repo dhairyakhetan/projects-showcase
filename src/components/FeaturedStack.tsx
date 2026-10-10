@@ -10,6 +10,17 @@ function external(href: string) {
   return href.startsWith("/") ? {} : { target: "_blank", rel: "noopener noreferrer" };
 }
 
+/** ↗ only for links that leave the site — a page here gets a plain arrow. */
+function GoArrow({ href }: { href: string }) {
+  return href.startsWith("/") ? (
+    <span aria-hidden className="nudge">
+      →
+    </span>
+  ) : (
+    <ArrowUpRight className="nudge" />
+  );
+}
+
 /**
  * Stands in for a screenshot: the title set large on the card's own surface.
  * Used when a project has no picture, or its picture fails to load.
@@ -28,7 +39,15 @@ function Cover({ project }: { project: FeaturedProject }) {
         {project.title}
         <span className="text-accent">.</span>
       </span>
-      <span className="text-[11px] text-dim">{project.homepage ? "visit the site ↗" : project.kind}</span>
+      <span className="flex items-center gap-1.5 text-[11px] text-dim">
+        {project.homepage ? (
+          <>
+            visit the site <GoArrow href={project.homepage} />
+          </>
+        ) : (
+          project.kind
+        )}
+      </span>
     </div>
   );
 }
@@ -138,9 +157,9 @@ function Card({
             ) : null}
           </div>
 
-          <h3 className="font-display text-[clamp(2.2rem,4.4vw,3rem)] font-normal leading-none tracking-[-0.01em]">
+          <h2 className="font-display text-[clamp(2.2rem,4.4vw,3rem)] font-normal leading-none tracking-[-0.01em]">
             {project.title}
-          </h3>
+          </h2>
 
           {project.subtitle ? (
             <p className="-mt-2 font-display text-[clamp(1.25rem,2.2vw,1.6rem)] italic leading-tight text-accent">
@@ -180,7 +199,7 @@ function Card({
                 data-cursor-label="visit"
                 className="btn btn-primary h-11 px-5 text-xs"
               >
-                visit <ArrowUpRight className="nudge" />
+                visit <GoArrow href={project.homepage} />
               </a>
             ) : null}
             {project.source ? (
@@ -315,8 +334,9 @@ export default function FeaturedStack({ projects }: { projects: FeaturedProject[
           stick, and they all unstuck and visibly collapsed together at the same
           scroll position regardless of how much was added. This spacer adds
           content height, which is what actually gives the last card room to
-          arrive at its offset and hold there. */}
-      <li aria-hidden className="h-[55vh]" />
+          arrive at its offset and hold there. Only where cards stick — on a
+          phone it was half a screen of nothing. */}
+      <li aria-hidden className="stack-spacer" />
     </ul>
   );
 }

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type Theme = "dark" | "light";
+import { applyTheme, type Theme } from "@/lib/theme";
 
 /**
  * The switch is one attribute on <html>; every colour reads off it, so nothing
@@ -11,9 +10,8 @@ type Theme = "dark" | "light";
  * which is why it reads the DOM on mount rather than guessing.
  */
 export function toggleTheme(): Theme {
-  const root = document.documentElement;
-  const next: Theme = root.dataset.theme === "light" ? "dark" : "light";
-  root.dataset.theme = next;
+  const next: Theme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  applyTheme(next);
 
   try {
     localStorage.setItem("theme", next);
@@ -31,6 +29,9 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
     const root = document.documentElement;
     const read = () => setTheme(root.dataset.theme === "light" ? "light" : "dark");
     read();
+    // The pre-paint script tints the browser bar too; this covers it if the
+    // <meta> wasn't in the document yet when that script ran.
+    applyTheme(root.dataset.theme === "light" ? "light" : "dark");
 
     // The terminal and the palette can flip it too.
     const watcher = new MutationObserver(read);

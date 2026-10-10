@@ -20,15 +20,6 @@ function toRgbChannels(hex: string): string {
   return `${(value >> 16) & 255} ${(value >> 8) & 255} ${value & 255}`;
 }
 
-function timeAgo(iso: string): string {
-  const days = (Date.now() - new Date(iso).getTime()) / 86_400_000;
-
-  if (days < 1) return "today";
-  if (days < 30) return `${Math.round(days)}d`;
-  if (days < 365) return `${Math.round(days / 30.44)}mo`;
-  return `${Math.round(days / 365.25)}y`;
-}
-
 export default function ProjectCard({ project, index }: { project: Project; index: number }) {
   // Two chances: the worker's scraped og:image, then GitHub's repo preview.
   const [src, setSrc] = useState(project.thumbnail);
@@ -128,10 +119,9 @@ export default function ProjectCard({ project, index }: { project: Project; inde
         </div>
 
         <div className="relative z-[2] flex flex-1 flex-col gap-3 p-4">
-          <div className="flex items-baseline justify-between gap-2 text-[10px] text-dim">
-            <span className="truncate">{project.name}</span>
-            <span className="shrink-0">{timeAgo(project.pushedAt)}</span>
-          </div>
+          {/* No "last pushed" age: like stars, it's a live stat that mostly
+              says how long ago something was finished. */}
+          <span className="truncate text-[10px] text-dim">{project.name}</span>
 
           <h3 className="truncate font-display text-[1.7rem] leading-none">{project.title}</h3>
 

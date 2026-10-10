@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import ArrowUpRight from "@/components/ArrowUpRight";
 import { Reveal } from "@/components/Reveal";
 import Variant from "@/components/Variant";
 import { about, favourite, identity } from "@/lib/content";
@@ -146,7 +147,7 @@ function Facts() {
         data-cursor-label="visit"
         className="text-accent underline decoration-1 underline-offset-4"
       >
-        {favourite.title} ↗
+        {favourite.title} <ArrowUpRight className="inline align-[-0.1em]" />
       </a>,
     ],
     ["status", facts.status],
@@ -175,7 +176,8 @@ function Facts() {
 }
 
 export default function AboutPanel() {
-  const [mode, setMode] = useState<Mode>("code");
+  // School first, like the heading says.
+  const [mode, setMode] = useState<Mode>("jee");
   const [file, setFile] = useState<File>("dhairya.js");
   const files: File[] = ["dhairya.js", "me.png"];
 
@@ -192,11 +194,11 @@ export default function AboutPanel() {
         </Reveal>
 
         <Reveal delay={80}>
-          <h2 className="font-display text-[clamp(2.9rem,8.5vw,5rem)] font-normal leading-[0.98] tracking-[-0.02em]">
+          <h1 className="font-display text-[clamp(2.9rem,8.5vw,5rem)] font-normal leading-[0.98] tracking-[-0.02em]">
             {about.heading[0]}
             <br />
             {about.heading[1]} <span className="italic text-accent">{about.heading[2]}</span>
-          </h2>
+          </h1>
         </Reveal>
 
         <Reveal delay={160}>

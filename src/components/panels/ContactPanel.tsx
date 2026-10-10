@@ -180,9 +180,9 @@ export default function ContactPanel() {
         </Reveal>
 
         <Reveal delay={80}>
-          <h2 className="font-display text-[clamp(4rem,14vw,7.5rem)] font-normal leading-[0.9] tracking-[-0.03em]">
+          <h1 className="font-display text-[clamp(4rem,14vw,7.5rem)] font-normal leading-[0.9] tracking-[-0.03em]">
             Let&apos;s <span className="italic text-accent">talk.</span>
-          </h2>
+          </h1>
         </Reveal>
 
         <Reveal delay={140}>

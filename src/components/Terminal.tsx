@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
+import { shortcutLabel } from "@/components/ShortcutKey";
 import { toggleTheme } from "@/components/ThemeToggle";
 import { setAudience } from "@/lib/audience";
-import { panels } from "@/lib/content";
+import { GITHUB_USERNAME, panels, projects } from "@/lib/content";
 import { featuredProjects, openProject } from "@/lib/featured";
 
 interface Line {
@@ -15,16 +16,32 @@ interface Line {
 
 const CHIPS = ["help", "whoami", "ls", "jee", "play", "sudo hire-me"];
 const PAGES: string[] = panels.map(panel => panel.id);
-const VISIBLE_LINES = 9;
+/** The log scrolls, so this only bounds memory. */
+const MAX_LINES = 60;
 
-/** Everything `open` accepts. */
-const OPENABLE = featuredProjects.map(project => ({
-  key: project.name.toLowerCase(),
-  url: project.link,
-}));
+/** Everything `open` accepts: the featured projects, then the older repos. */
+const OPENABLE = [
+  ...featuredProjects.map(project => ({ key: project.name.toLowerCase(), url: project.link })),
+  ...projects.older.map(repo => ({
+    key: repo.name.toLowerCase(),
+    url: repo.homepage ?? `https://github.com/${GITHUB_USERNAME}/${repo.name}`,
+  })),
+];
+
+const WHOAMI = "dhairya khetan — class 11, india. codes after homework.";
+const PROJECT_LIST = OPENABLE.map(entry => entry.key).join("  ");
 
 let nextId = 0;
 const line = (kind: Line["kind"], text: string): Line => ({ id: nextId++, kind, text });
+
+/** Already run when the page opens, so the terminal shows what it does instead of an empty box. */
+const intro = () => [
+  line("in", "whoami"),
+  line("out", WHOAMI),
+  line("in", "ls projects"),
+  line("out", PROJECT_LIST),
+  line("out", 'type "help", or tap a command below.'),
+];
 
 /**
  * A tiny shell on the home page. It only knows a dozen commands, and every one
@@ -33,15 +50,20 @@ const line = (kind: Line["kind"], text: string): Line => ({ id: nextId++, kind, 
  */
 export default function Terminal({ onPlay }: { onPlay: () => void }) {
   const router = useRouter();
-  const [log, setLog] = useState<Line[]>(() => [
-    line("out", 'dhairya-os v11 — type "help", or tap a command below.'),
-  ]);
+  const [log, setLog] = useState<Line[]>(intro);
+  const logRef = useRef<HTMLDivElement>(null);
   const [command, setCommand] = useState("");
   const history = useRef<string[]>([]);
   const historyIndex = useRef(-1);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  // Newest line in view. Older ones stay a scroll away rather than being cut off.
+  useEffect(() => {
+    const el = logRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [log]);
 
   function later(fn: () => void, ms: number) {
     clearTimeout(timer.current);
@@ -62,11 +84,11 @@ export default function Terminal({ onPlay }: { onPlay: () => void }) {
         ];
 
       case "whoami":
-        return [line("out", "dhairya khetan — class 11, india. codes after homework.")];
+        return [line("out", WHOAMI)];
 
       case "ls":
         if (arg.replace(/\/$/, "") === "projects") {
-          return [line("out", OPENABLE.map(entry => entry.key).join("  "))];
+          return [line("out", PROJECT_LIST)];
         }
         return [line("out", PAGES.filter(page => page !== "home").map(page => `${page}/`).join("  "))];
 
@@ -95,7 +117,7 @@ export default function Terminal({ onPlay }: { onPlay: () => void }) {
 
       case "mode":
         later(() => setAudience("plain"), 500);
-        return [line("out", "switching to the simple view… (⌘K switches back)")];
+        return [line("out", `switching to the simple view… (${shortcutLabel()} switches back)`)];
 
       case "theme": {
         const next = toggleTheme();
@@ -138,7 +160,7 @@ export default function Terminal({ onPlay }: { onPlay: () => void }) {
     }
 
     const output = respond(input);
-    setLog(current => [...current, line("in", input), ...output].slice(-VISIBLE_LINES));
+    setLog(current => [...current, line("in", input), ...output].slice(-MAX_LINES));
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -169,23 +191,28 @@ export default function Terminal({ onPlay }: { onPlay: () => void }) {
         <span className="w-11" />
       </div>
 
+      {/* Bottom-anchored with mt-auto rather than justify-end: overflow past
+          the start of a justify-end box is clipped and can't be scrolled to. */}
       <div
+        ref={logRef}
         role="log"
         aria-live="polite"
         aria-label="Terminal output"
-        className="flex h-[250px] flex-col justify-end gap-2 overflow-hidden px-5 py-[18px] text-xs leading-relaxed"
+        className="flex h-[250px] flex-col overflow-y-auto px-5 py-[18px] text-xs leading-relaxed"
       >
-        {log.map(entry => (
-          <div
-            key={entry.id}
-            className={`whitespace-pre-wrap break-words ${
-              entry.kind === "in" ? "text-ink" : entry.kind === "err" ? "text-err" : "text-dim"
-            }`}
-          >
-            {entry.kind === "in" ? <span className="text-accent">$ </span> : null}
-            {entry.text}
-          </div>
-        ))}
+        <div className="mt-auto flex flex-col gap-2">
+          {log.map(entry => (
+            <div
+              key={entry.id}
+              className={`whitespace-pre-wrap break-words ${
+                entry.kind === "in" ? "text-ink" : entry.kind === "err" ? "text-err" : "text-dim"
+              }`}
+            >
+              {entry.kind === "in" ? <span className="text-accent">$ </span> : null}
+              {entry.text}
+            </div>
+          ))}
+        </div>
       </div>
 
       <label className="flex items-center gap-2.5 border-t border-rule px-5 py-3.5 text-[13px] transition-colors focus-within:bg-panel-hi">

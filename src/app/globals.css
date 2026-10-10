@@ -207,6 +207,12 @@
   display: none;
 }
 
+/* The palette shortcut: ⌘ unless the pre-paint script found a non-Apple device. */
+[data-mod="ctrl"] .key-mac,
+:root:not([data-mod="ctrl"]) .key-ctrl {
+  display: none;
+}
+
 [data-audience="unset"] .audience-prompt {
   display: flex;
 }
@@ -429,10 +435,19 @@
   animation-delay: calc(var(--stack-index) * 90ms);
 }
 
+.stack-spacer {
+  display: none;
+  height: 55vh;
+}
+
 @media (min-width: 768px) {
   .stack-item {
     position: sticky;
     top: calc(var(--stack-top) + var(--stack-index) * var(--stack-step));
+  }
+
+  .stack-spacer {
+    display: block;
   }
 
   /* Covered cards sink back rather than merely being hidden. */
@@ -474,6 +489,10 @@
   .stack-item {
     position: static;
     animation: none;
+  }
+
+  .stack-spacer {
+    display: none;
   }
 
   .stack-card {

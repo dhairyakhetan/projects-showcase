@@ -71,13 +71,14 @@ function normalize(repo: WorkerRepo): Project {
     thumbnail: repo.ogImage || fallbackThumbnail,
     fallbackThumbnail,
     isLive: Boolean(repo.homepage),
-    isPinned: projectsContent.pinned.includes(repo.name),
+    isPinned: pinned.includes(repo.name),
     createdAt: repo.created_at,
     pushedAt: repo.pushed_at,
   };
 }
 
 const excluded = new Set(projectsContent.exclude.map(n => n.toLowerCase()));
+const pinned = projectsContent.older.map(repo => repo.name);
 
 function isShown(repo: WorkerRepo): boolean {
   return !repo.fork && !repo.archived && !excluded.has(repo.name.toLowerCase());
@@ -87,7 +88,7 @@ function order(a: Project, b: Project): number {
   if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
 
   if (a.isPinned && b.isPinned) {
-    return projectsContent.pinned.indexOf(a.name) - projectsContent.pinned.indexOf(b.name);
+    return pinned.indexOf(a.name) - pinned.indexOf(b.name);
   }
 
   return new Date(b.pushedAt).getTime() - new Date(a.pushedAt).getTime();
@@ -95,7 +96,7 @@ function order(a: Project, b: Project): number {
 
 export interface ProjectsResult {
   projects: Project[];
-  /** True when the worker couldn't be reached and fixtures are standing in. */
+  /** True when the worker couldn't be reached and only the hand-written older repos are listed. */
   degraded: boolean;
   error?: string;
   fetchedAt: string;
@@ -125,10 +126,21 @@ export async function getProjects(): Promise<ProjectsResult> {
 
     return { projects, degraded: false, fetchedAt: new Date().toISOString() };
   } catch (error) {
-    const { FIXTURE_PROJECTS } = await import("./fixtures");
+    // Never sample data: anything shown here sits under my name.
+    const older: WorkerRepo[] = projectsContent.older.map((repo, index) => ({
+      id: -(index + 1),
+      name: repo.name,
+      description: repo.description,
+      html_url: `https://github.com/${GITHUB_USERNAME}/${repo.name}`,
+      homepage: repo.homepage,
+      language: null,
+      fork: false,
+      created_at: "",
+      pushed_at: "",
+    }));
 
     return {
-      projects: FIXTURE_PROJECTS.filter(isShown).map(normalize).sort(order),
+      projects: older.map(normalize).sort(order),
       degraded: true,
       error: error instanceof Error ? error.message : "unknown error",
       fetchedAt: new Date().toISOString(),

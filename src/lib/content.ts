@@ -10,6 +10,12 @@
 
 export const GITHUB_USERNAME = "dhairyakhetan";
 
+/** The production address — link previews, the sitemap and robots.txt build on it. */
+export const SITE_URL = "https://dhairyakhetan.vercel.app";
+
+/** Used by the featured card and the About page, so a move is one edit. */
+const TERRANOTES_URL = "https://terranotes-aq.vercel.app";
+
 export const identity = {
   name: "Dhairya Khetan",
   handle: "dhairyakhetan",
@@ -36,7 +42,7 @@ export const home = {
 export const favourite = {
   name: "terranotes",
   title: "TerraNotes",
-  url: "https://terranotes-testing.vercel.app",
+  url: TERRANOTES_URL,
 } as const;
 
 export const about = {
@@ -57,7 +63,7 @@ export const about = {
   },
 
   /** Any file in `public/`. Missing means initials, not a broken image. */
-  portrait: "/me.png",
+  portrait: "/me.webp",
   portraitAlt: "Dhairya Khetan",
 
   /** The `dhairya.js` object on the About page. */
@@ -99,6 +105,16 @@ export const qualification = {
         "Science stream with Physics, Chemistry and Maths, running alongside JEE " +
         "preparation.", // TODO school name and board
       tags: ["science stream", "pcm"],
+    },
+    {
+      year: "2026 — now",
+      title: "TerraNotes · tech lead",
+      status: "live",
+      detail:
+        "Tech lead for the online magazine of Aquaterra, a Kolkata NGO with more than 1,300 " +
+        "members. I built the site end to end — concept, design system and code — and " +
+        "Edition 01 went live in September 2026.",
+      tags: ["tech lead", "design system", "react"],
     },
     {
       year: "always · self-taught",
@@ -183,7 +199,7 @@ export const projects = {
       tech: ["react", "vite", "canvas"],
       /** No public repo — the card links to the live site only. */
       repo: null as string | null,
-      homepage: "https://terranotes-testing.vercel.app" as string | null,
+      homepage: TERRANOTES_URL as string | null,
       image: "/terranotes.webp" as string | null,
       /**
        * Set for a finished image (a mockup, a screenshot): it's shown whole, in
@@ -218,17 +234,74 @@ export const projects = {
   /** Never shown in the full list either, by exact repo name. */
   exclude: ["projects-showcase", "Wisdom-Woods"] as string[], // TODO add any others
 
-  /** Ordered first in the full list. */
-  pinned: ["shoppy", "omrakhi", "GOAT-GPT", "mcu-watchlist"] as string[],
+  /**
+   * The older repos, written out by hand and pinned first in the full list,
+   * in this order. When the worker can't be reached these are the list — real
+   * work, just not all of it — and the terminal's `open` knows them too.
+   * `name` must match the GitHub repo exactly.
+   */
+  older: [
+    {
+      name: "shoppy",
+      description: "A storefront for my mum's Tanjore art.",
+      homepage: null, // TODO live URL
+    },
+    {
+      name: "omrakhi",
+      description: "The site for my dad's business, Om Rakhi Udyog. Still a work in progress.",
+      homepage: "https://omrakhi.vercel.app",
+    },
+    {
+      name: "GOAT-GPT",
+      description: "An AI that answers Messi and Ronaldo questions from their actual stats.",
+      homepage: null,
+    },
+    {
+      name: "mcu-watchlist",
+      description: "Every Marvel release since Phase 1, in release or chronological order.",
+      homepage: null, // TODO live URL
+    },
+  ] as { name: string; description: string; homepage: string | null }[],
 } as const;
 
-/** Order drives the tabs, the ⌘K palette and the terminal's `ls`. */
+/**
+ * Order drives the tabs, the ⌘K palette and the terminal's `ls`.
+ * `description` is what search results and link previews show for the page.
+ */
 export const panels = [
-  { id: "home", label: "Home", file: "home.js" },
-  { id: "about", label: "About", file: "about.md" },
-  { id: "qualification", label: "Qualification", file: "qualification.json" },
-  { id: "projects", label: "Projects", file: "projects/" },
-  { id: "contact", label: "Contact", file: "contact.sh" },
+  { id: "home", label: "Home", file: "home.js", description: identity.blurb },
+  {
+    id: "about",
+    label: "About",
+    file: "about.md",
+    description:
+      "A student first, a programmer every other hour. Class 11 in India, preparing for JEE. " +
+      "I know HTML and Python, and I'm learning C++ and JavaScript.",
+  },
+  {
+    id: "qualification",
+    label: "Qualification",
+    file: "qualification.json",
+    description:
+      "Where I'm at: JEE Main & Advanced in 2028, Class 11 with Physics, Chemistry and Maths, " +
+      "tech lead at TerraNotes, and programming I taught myself.",
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    file: "projects/",
+    description:
+      "Things I've made: TerraNotes, the online magazine of a Kolkata NGO where I'm tech lead, " +
+      "a day-by-day planner for a family trip to Japan, and everything else on GitHub.",
+  },
+  {
+    id: "contact",
+    label: "Contact",
+    file: "contact.sh",
+    description:
+      "Email, GitHub, LinkedIn, LeetCode and Instagram — or send a quick message. I reply " +
+      "after homework, usually.",
+  },
 ] as const;
 
 export type PanelId = (typeof panels)[number]["id"];

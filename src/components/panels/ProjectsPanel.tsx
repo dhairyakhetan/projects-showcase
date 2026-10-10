@@ -38,9 +38,9 @@ export default function ProjectsPanel() {
             </p>
           </Reveal>
           <Reveal delay={80}>
-            <h2 className="font-display text-[clamp(2.9rem,8vw,4.5rem)] font-normal leading-none tracking-[-0.02em]">
+            <h1 className="font-display text-[clamp(2.9rem,8vw,4.5rem)] font-normal leading-none tracking-[-0.02em]">
               Things I&apos;ve <span className="italic">made.</span>
-            </h2>
+            </h1>
           </Reveal>
         </div>
 
