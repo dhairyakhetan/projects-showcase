@@ -6,6 +6,11 @@ here. This file also covers `src/japan/` (the planner's code and data), the
 `(japan)` route group, `public/japan-sw.js`, `public/japan2026*` and the
 planner's link preview.
 
+> **Edit the artifact only.** All itinerary changes go to his private artifact,
+> https://claude.ai/artifact/5x3psKogRssTmXxeYFCVAg — **not** `data.ts`, and
+> nothing is pushed to `main` until Dhairya explicitly says "push to main".
+> Then copy only the days he names (see *Copying days to the site*).
+
 ---
 
 ## The trip
@@ -123,8 +128,8 @@ booking refs, which is fine there).
 - The artifact now has the corrections applied (Kabukiza and the Diet Building
   are drive-bys, no "all sightseeing are photo stops", no PARCO Nintendo stop on
   23 Oct, Kyoto is Miyako Hachijo). If an older copy ever comes back, re-apply them.
-- When he says **"not on the site" / "don't push to main"**, work only in the
-  artifact. Copy to the site only the days he names.
+- **Standing rule (10 Oct 2026):** work only in the artifact until he says
+  "push to main". Then copy to the site only the days he names.
 
 ### Copying days to the site
 
