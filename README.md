@@ -83,6 +83,25 @@ URL and the screen width as it renders. Booking references and ticket numbers
 are deliberately not in its data, and the page asks search engines not to
 index it.
 
+It works with no signal. `public/japan-sw.js` is a service worker scoped to
+`/Japan2026` (the portfolio never goes through it): after one online visit,
+every day's page and the files they need are saved on the phone. Online, pages
+still come from the network first, so the plan is always the latest; the saved
+copy answers only when the network fails or takes more than a few seconds.
+"Today" is rechecked whenever the page comes back into view, and the page has a
+web app manifest and icon, so "Add to Home Screen" opens it like an app.
+
+Its two Japanese fonts are not preloaded: next/font marks every one of their
+~600 unicode-range slices for preload, which was 361 files on every visit. The
+page is Latin text, so the browser now fetches the handful of slices it draws.
+
+## Wrong URLs
+
+The site has two root layouts, so a URL that matches neither used to get
+Next's bare white 404. `src/app/global-not-found.tsx` (enabled by
+`experimental.globalNotFound` in `next.config.ts`) renders it in the
+portfolio's own chrome instead.
+
 ## Link previews
 
 Two Open Graph images, generated at build time from JSX with `next/og`:
@@ -130,7 +149,10 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   ├── japan2026.webp          # screenshot for the Japan 2026 card
 │   ├── terranotes.webp         # mockup for the TerraNotes card
 │   ├── favicon.svg             # "dk_", adapts to light/dark
-│   └── me.png                  # About photo (optional — falls back to initials)
+│   ├── apple-touch-icon.png    # the same mark for iPhone home screens
+│   ├── me.webp                 # About photo (optional — falls back to initials)
+│   ├── japan-sw.js             # keeps /Japan2026 working offline
+│   └── japan2026.webmanifest   # + japan2026-icon-*.png: "Add to Home Screen"
 │
 ├── src/
 │   ├── middleware.ts           # hard refresh → ask "do you write code?" again
@@ -143,6 +165,8 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   │   ├── (japan)/            # the Japan trip planner, its own root layout
 │   │   │   ├── layout.tsx
 │   │   │   └── Japan2026/[[...day]]/page.tsx  # /Japan2026 and /Japan2026/day1…10
+│   │   ├── global-not-found.tsx  # the 404 for any URL, in the site's look
+│   │   ├── sitemap.ts / robots.ts
 │   │   └── api/repos/route.ts  # same-origin JSON endpoint
 │   │
 │   ├── japan/                  # the trip planner's code, data and styles
@@ -153,7 +177,8 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   │   ├── audience.ts         # dev / plain view: read, set, pre-paint script
 │   │   ├── repos.ts            # server-side worker fetch + normalise
 │   │   ├── tech.ts             # tech tags + OVERRIDES (ignores GitHub's guess)
-│   │   └── fixtures.ts         # stand-in data when the worker is unreachable
+│   │   ├── theme.ts            # theme script + the browser-bar colour per theme
+│   │   └── fonts.ts            # the portfolio's two fonts, shared with the 404
 │   │
 │   └── components/
 │       ├── Chrome.tsx          # persistent shell: tabs, dot field, palette, status bar
@@ -164,6 +189,7 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │       ├── ThemeToggle.tsx     # dark ⇄ light
 │       ├── AudiencePrompt.tsx  # "do you write code?" on first visit
 │       ├── Variant.tsx         # renders the dev and plain version of something
+│       ├── ShortcutKey.tsx     # ⌘K on Apple devices, Ctrl K elsewhere
 │       ├── Terminal.tsx        # the shell on the home page
 │       ├── KineticName.tsx     # hero name, per-letter pointer reaction
 │       ├── ShaderField.tsx     # the background dot field, idle when nothing moves
@@ -261,8 +287,9 @@ Because requests arrive from a handful of Vercel egress IPs rather than from
 end users, the worker's per-IP limit is deliberately loose. It exists to stop a
 flood, not to shape normal traffic.
 
-If the worker is unreachable, the page renders `src/lib/fixtures.ts` instead of
-an error and labels itself as sample data.
+If the worker is unreachable, the list falls back to the older repos written
+out in `content.ts` (`projects.older`) and says so — never sample data, since
+anything listed there sits under my name.
 
 ## Tech tags are not GitHub's `language` field
 

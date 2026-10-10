@@ -19,11 +19,12 @@ odd until you know what broke last time.
   NGO with 1,300+ members, run by its Digital Magazine department. He is **tech
   lead** and built the whole site (concept, design system, all code). Edition 01
   launched September 2026: 6 pieces, 18 team profiles. Live at
-  `https://terranotes-testing.vercel.app` (no public repo — link the site only, and
-  don't list its features on the card).
+  `https://terranotes-aq.vercel.app` (no public repo — link the site only, and
+  don't list its features on the card). The URL is one constant in `content.ts`.
 - **Japan 2026** — a day-by-day planner he built for a family trip (Tokyo, Kyoto,
   Osaka, 19–28 Oct 2026). Hosted on this site at `/Japan2026`.
-- Older repos (secondary, pinned at the top of the full repo list):
+- Older repos (secondary, pinned at the top of the full repo list; written out in
+  `projects.older`, which is also the fallback list and what `open` knows):
   - `shoppy` — storefront for his mother's Tanjore art
   - `omrakhi` — his father's business, Om Rakhi Udyog (WIP), `https://omrakhi.vercel.app`
   - `GOAT-GPT` — AI that answers Messi/Ronaldo questions from their stats
@@ -59,8 +60,10 @@ content — edit that file. Anything marked `// TODO` there is a known gap.
 ```
 src/app/
   globals.css                 design tokens, both themes, all CSS animations
+  global-not-found.tsx        the 404 for any URL, in the portfolio's chrome
+  sitemap.ts, robots.ts       the five pages; /Japan2026 stays out via noindex
   (site)/                     the portfolio — its own root layout
-    layout.tsx                fonts, metadata, pre-paint scripts, <Chrome>
+    layout.tsx                metadata, theme-color, pre-paint scripts, <Chrome>
     page.tsx                  "/" → redirect to /home
     [panel]/page.tsx          /home /about /qualification /projects /contact
     opengraph-image.tsx       link preview for every portfolio page
@@ -70,12 +73,13 @@ src/app/
     Japan2026/opengraph-image.tsx
   api/repos/route.ts          same-origin JSON for the full repo list
 src/middleware.ts             hard refresh → re-ask the audience question
-src/lib/                      content, audience, featured, repos, tech, og
+src/lib/                      content, audience, featured, repos, tech, og, theme, fonts
 src/components/               Chrome, panels/, Terminal, cursor, etc.
 src/japan/                    planner code, data and its own stylesheet
 src/og-fonts/                 TTFs for the OG images
 cloudflare/worker.js          committed copy of the deployed worker (+ tests)
-public/                       me.png, favicon.svg, card images
+public/                       me.webp, favicons, card images, japan-sw.js + manifest
+next.config.ts                only to switch on experimental.globalNotFound
 ```
 
 ### Routing decisions
@@ -85,6 +89,10 @@ public/                       me.png, favicon.svg, card images
   `[panel]/layout.tsx` — a layout under a dynamic segment remounts whenever the
   param changes, which rebuilt the cursor, dots and palette on every click.
 - `[panel]` has `dynamicParams = false`; anything else 404s.
+- With two root layouts a wrong URL matches neither, so Next served its bare white
+  404. `global-not-found.tsx` (needs `experimental.globalNotFound`) repeats the
+  portfolio's `<html>` — fonts, pre-paint scripts, `<Chrome>` — around a 404 panel.
+  Chrome shows `404` in the status bar when the path isn't a panel.
 - `/Japan2026` is a separate site with its **own root layout** (route group
   `(japan)`). Moving between it and the portfolio is a full page load, by design.
 
@@ -102,7 +110,11 @@ An editor, not a brochure. Based on a Claude Design canvas he provided.
   sharp corners everywhere (radius 0). Light theme is the same system on paper
   (`#f3f1e9`, amber accent `#b35900`). Theme lives on `<html data-theme>`, applied
   by a blocking script before paint; toggle in the header, ⌘K, or `theme` in the
-  terminal.
+  terminal. The `theme-color` meta (the phone's browser bar) follows the site's
+  theme, not the OS — `src/lib/theme.ts`.
+- The palette shortcut reads ⌘K on Apple devices and Ctrl K elsewhere:
+  `<ShortcutKey>` renders both and CSS shows one off `<html data-mod>`, set before
+  paint — same idea as `<Variant>`.
 - Header: `dk_` logo, numbered editor tabs (`01 home.js`, `02 about.md`,
   `03 qualification.json`, `04 projects/`, `05 contact.sh`), IST clock, theme
   toggle. Below `lg` the tabs get their own scrollable row.
@@ -160,14 +172,21 @@ twin with `<Variant>`.
 ## Pages
 
 - **Home** — serif name (`Dhairya` / *Khetan.*), typewriter "I build …", blurb,
-  CTAs. Right side: a working terminal (dev) or "start here" (simple). Terminal
-  commands: `help whoami ls [projects] cd <page> jee open <project> play theme mode
-  echo clear sudo hire-me`, ↑/↓ history. `play` opens the Flappy game (regular
+  CTAs. Right side: a working terminal (dev) or "start here" (simple). It opens
+  with `whoami` and `ls projects` already run, and its log scrolls (bottom-anchored
+  with `mt-auto` — `justify-end` clipped overflow that couldn't be scrolled to).
+  Terminal commands: `help whoami ls [projects] cd <page> jee open <project> play
+  theme mode echo clear sudo hire-me`, ↑/↓ history. `open` knows the featured
+  projects and `projects.older`. `play` opens the Flappy game (regular
   pipes — he asked for plain obstacles, not project names).
 - **About** — "A student first. A programmer *every other hour.*", jee_mode /
-  code_mode toggle, `dhairya.js` + `me.png` tabs (dev) or photo + fact list (simple).
+  code_mode toggle (opens on jee_mode), `dhairya.js` + `me.png` tabs (dev) or photo
+  + fact list (simple). The tab says `me.png`; the file is `me.webp` (26 KB).
 - **Qualification** — master/detail: JEE (2028, in prep), Class 11 PCM (ongoing),
-  Programming (self-taught), Class 10 (2026). Arrow-key navigable tabs.
+  TerraNotes tech lead (live), Programming (self-taught), Class 10 (2026).
+  Arrow-key navigable tabs.
+- Every page has exactly one `<h1>` (its big serif heading) and its own meta
+  description (`panels[].description` in `content.ts`).
 - **Projects** — featured cards, then "show all public repos" (fetched only on
   click), then the open-slot card. One featured project renders as a single card;
   two or more stack on scroll (sticky; covered cards recede). Currently featured:
@@ -188,7 +207,11 @@ twin with `<Variant>`.
   sibling dim on hover.
 - Tech tags come from `src/lib/tech.ts`: `OVERRIDES` → GitHub topics → `language`
   heuristic. GitHub's `language` is wrong constantly (Astro sites report HTML).
-- **No live stats** (stars, commit counts). He called them "public humiliation".
+- **No live stats** (stars, commit counts, "last pushed" ages). He called them
+  "public humiliation".
+- Featured-card arrows: ↗ (the SVG `ArrowUpRight`, never the ↗ character, which
+  some browsers draw as an emoji) only for links that leave the site; `/Japan2026`
+  gets →.
 
 ---
 
@@ -206,7 +229,9 @@ copy; editing it deploys nothing.
   (`POST /hooks/github`), with cron + lazy sync as fallback. Rate limit 120/min per
   IP (traffic comes from Vercel's few IPs). `/admin-panel` is plain text.
 - No Messi/Ronaldo "trophies" project — stripped on request.
-- If unreachable, the site shows `src/lib/fixtures.ts`, labelled as sample data.
+- If unreachable, the list falls back to `projects.older` (his real older repos)
+  and says so. Never sample data — it would sit under his name. A degraded
+  `/api/repos` is `no-store` so a blip isn't cached for a day.
 - `npm run test:worker` — 91 assertions on counted KV/upstream ops. Run after any
   worker edit.
 
@@ -219,6 +244,18 @@ copy; editing it deploys nothing.
   Tailwind build scans only `src/japan`; the portfolio's skips it.
 - `/Japan2026/day1` … `/day10` are prerendered; the planner itself renders
   client-only because it reads the date, URL and screen width.
+- **Works offline.** `public/japan-sw.js`, registered by `App.tsx` with scope
+  `/Japan2026` (the portfolio is never controlled by it). After one online visit
+  the page posts every day's URL and the `/_next/static` files it loaded; the
+  worker saves them. Pages are network-first with a 3.5 s timeout, static files
+  cache-first; on a redeploy all pages are re-fetched before old files are
+  dropped. Manifest + icons (`japan2026.webmanifest`, `japan2026-icon-*.png`) make
+  "Add to Home Screen" open it like an app.
+- "Today" is a `useSyncExternalStore` on the Japan date, rechecked every minute
+  and on `visibilitychange`; when it changes the planner moves to the new day.
+- Its fonts have `preload: false`: next/font preloads every CJK unicode-range
+  slice whatever `subsets` says (361 files). The page is Latin, so the browser
+  fetches only the ~9 slices it draws.
 - Desktop: a day highlight that **slides** between the date buttons; the day's
   content **fades** in place (no slide — the layout doesn't move). Phone: one list
   with a sliding ring on the sticky date strip.
@@ -284,11 +321,21 @@ There's no test runner in the repo beyond the worker suite. Before pushing:
    or the modal covers the page.
 3. Check desktop (1440) and phone (390), both themes, reduced motion, and that no
    `/api/` request happens on load.
+4. Japan offline: load a day, wait for `japan-pages-v1` to hold 11 entries, then
+   `context.setOffline(true)` and open other days. "Today": `page.clock.install`
+   just before midnight JST, then `clock.fastForward`.
+5. Repo fallback: the worker is sometimes reachable from the sandbox. To force the
+   fallback, delete `.next/cache/fetch-cache` and start the server with
+   `NODE_OPTIONS=--require <file>` where the file wraps `globalThis.fetch` to
+   reject `workers.dev` URLs.
 
 Sandbox gotchas: GitHub OG images, the worker and `*.vercel.app` are unreachable
 from Claude's sandbox, so thumbnails fall back to letter tiles and `/api/repos`
-returns fixtures (503) — that's expected. Use a fresh port per server run, and
-never `pkill -f "next start"` (it matches and kills the calling shell).
+returns the fallback list (503) — that's expected. Use a fresh port per server
+run, and never `pkill -f "next start"` or loop over `/proc` matching "next start"
+(both match and kill the calling shell). Start it as
+`node node_modules/next/dist/bin/next start -p <port> & echo $! > pidfile` and kill
+that PID.
 
 ---
 
@@ -298,4 +345,3 @@ never `pkill -f "next start"` (it matches and kills the calling shell).
 - Confirm `dhairyaplayz97@proton.me` should be public.
 - School name, board, Class 10 score, JEE target — only if he wants them shown.
 - Whether `Wisdom-Woods` stays excluded from the repo list.
-- TerraNotes is on its `-testing` domain; update `homepage` if it moves.
