@@ -590,16 +590,22 @@ const SPOT_STATUS: Record<SpotStatus, { label: string; cls: string }> = {
   detour: { label: "Only as a detour", cls: "border border-line text-muted" },
 };
 
+/** How many temples and shrines show before "Show more" — the full list ran past 5,000 px on a phone. */
+const SPOTS_SHOWN = 4;
+
 /** Every temple and shrine that gives a goshuin, grouped by area. */
 function Goshuin() {
-  const areas = [...new Set(SPOTS.map((s) => s.area))];
+  const [all, setAll] = useState(false);
+  const top = useRef<HTMLDivElement>(null);
+  const shown = all ? SPOTS : SPOTS.slice(0, SPOTS_SHOWN);
+  const areas = [...new Set(shown.map((s) => s.area))];
   return (
-    <div className="space-y-8">
+    <div ref={top} className="space-y-8">
       {areas.map((area) => (
         <div key={area}>
           <h4 className="mb-3 font-serif text-lg font-extrabold">{area}</h4>
           <div className="grid gap-3 md:grid-cols-2">
-            {SPOTS.filter((s) => s.area === area).map((s) => {
+            {shown.filter((s) => s.area === area).map((s) => {
               const c = CITY[s.city];
               const st = SPOT_STATUS[s.status];
               return (
@@ -624,6 +630,18 @@ function Goshuin() {
           </div>
         </div>
       ))}
+      <button
+        type="button"
+        aria-expanded={all}
+        onClick={() => {
+          setAll(!all);
+          // Folding the list back up from its end would leave you far below it.
+          if (all) requestAnimationFrame(() => top.current?.parentElement?.scrollIntoView({ block: "start" }));
+        }}
+        className="w-full cursor-pointer rounded-full border border-line bg-surface px-5 py-3 text-sm font-bold hover:border-muted md:w-auto md:py-2"
+      >
+        {all ? "Show less ↑" : <>Show more ↓ <span className="font-normal text-muted">· {SPOTS.length - SPOTS_SHOWN} more</span></>}
+      </button>
     </div>
   );
 }

@@ -94,7 +94,7 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
 - Card `type` is free text: Eat, Shop, See, Go, Ride, Game, Goshuin.
 - `tips` are `[heading, text]`; a heading with "error" or "warning" turns red.
 - Below the days: `FLIGHTS`, `HOTELS`, `SPOTS` (every goshuin temple/shrine near
-  the route), `TODO` (questions for the agent), `GOSHUIN` and `METRO` notes.
+  the route; the first 4 show, the rest sit behind "Show more"), `TODO` (questions for the agent), `GOSHUIN` and `METRO` notes.
 
 ### Privacy rules — keep them
 
