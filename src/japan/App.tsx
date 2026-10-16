@@ -113,7 +113,7 @@ function useOffline() {
         .map((url) => url.pathname + url.search);
       registration.active?.postMessage({
         type: "save",
-        pages: [BASE, ...DAYS.map((_, i) => dayPath(i))],
+        pages: [BASE, ...DAYS.map((_, i) => dayPath(i)), COUNTDOWN],
         assets: [...new Set(assets)],
       });
     });
@@ -128,6 +128,140 @@ function countdownText(today: string) {
   if (today < START) return daysToGo === 1 ? "Starts tomorrow" : `${daysToGo} days to go`;
   if (today <= END) return "Trip in progress";
   return "Trip complete";
+}
+
+/** Leaving home for Kolkata airport: about 2 hours before AI 1874 departs at 12:55 IST. */
+const LEAVE_HOME = Date.parse("2026-10-19T10:55:00+05:30");
+/** VZ 770 lands in Kolkata. */
+const TRIP_END = Date.parse("2026-10-28T23:50:00+05:30");
+const COUNTDOWN = BASE + "/countdown";
+const pad = (n: number) => String(n).padStart(2, "0");
+
+const IST_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" });
+/** A moment as its calendar date in India, at UTC midnight so dates subtract cleanly. */
+const istDay = (t: number) => Date.parse(IST_DATE.format(t) + "T00:00:00Z");
+
+type Unit = [value: number, name: "year" | "day" | "hour" | "minute" | "second"];
+
+function until(ms: number): Unit[] {
+  const left = Math.ceil(ms / 1000);
+  return [
+    [Math.floor(left / 86400), "day"],
+    [Math.floor((left % 86400) / 3600), "hour"],
+    [Math.floor((left % 3600) / 60), "minute"],
+    [left % 60, "second"],
+  ];
+}
+
+/** Whole years since the trip, then the days since the last anniversary of it. */
+function since(now: number): Unit[] {
+  const end = new Date(istDay(TRIP_END));
+  const today = istDay(now);
+  const anniversary = (y: number) => Date.UTC(end.getUTCFullYear() + y, end.getUTCMonth(), end.getUTCDate());
+  let years = new Date(today).getUTCFullYear() - end.getUTCFullYear();
+  if (anniversary(years) > today) years--;
+  const days = Math.round((today - anniversary(years)) / 86400000);
+  return years ? [[years, "year"], [days, "day"]] : [[days, "day"]];
+}
+
+/** Before the trip, counting down to leaving home; during it, to landing back home; after, counting up. */
+function tripPhase(now: number) {
+  if (now < LEAVE_HOME) return { label: "Time left till Japan trip", units: until(LEAVE_HOME - now), note: "Leaving home Mon 19 Oct, 10:55 IST" };
+  if (now < TRIP_END) return { label: "Time left in Japan trip", units: until(TRIP_END - now), note: "Landing in Kolkata Wed 28 Oct, 23:50 IST" };
+  return { label: "Days from Japan trip 2026", units: since(now), note: "19–28 October 2026 · Tokyo, Kyoto, Osaka" };
+}
+
+/** The time, every second until the trip is over, then every minute. */
+function useNow() {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    let timer = 0;
+    const tick = () => {
+      const t = Date.now();
+      setNow(t);
+      timer = window.setTimeout(tick, t < TRIP_END ? 1000 - (t % 1000) : 60_000);
+    };
+    tick();
+    return () => clearTimeout(timer);
+  }, []);
+  return now;
+}
+
+const subscribePath = (onChange: () => void) => {
+  addEventListener("popstate", onChange);
+  addEventListener("japan-navigate", onChange);
+  return () => {
+    removeEventListener("popstate", onChange);
+    removeEventListener("japan-navigate", onChange);
+  };
+};
+const onCountdown = () => location.pathname.replace(/\/+$/, "") === COUNTDOWN;
+
+/**
+ * A link between the planner and the countdown page that swaps the view
+ * without a reload. Leaving a day for the countdown drops the /dayN, so
+ * coming back opens /Japan2026 as a fresh visit would.
+ */
+function PageLink({ to, className, children }: { to: string; className?: string; children: ReactNode }) {
+  return (
+    <a
+      href={to}
+      className={className}
+      onClick={(e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        history.pushState(null, "", to);
+        scrollTo({ top: 0, behavior: "instant" });
+        dispatchEvent(new Event("japan-navigate"));
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
+/** The pill in the header: the same timer, small. It opens the countdown page. */
+function TripTimer({ className }: { className?: string }) {
+  const { label, units } = tripPhase(useNow());
+  return (
+    <PageLink to={COUNTDOWN} className={cx("rounded-full border border-line bg-surface text-sm hover:border-muted", className)}>
+      <span className="text-muted">{label}</span>{" "}
+      <b className="tabular-nums">{units.map(([n, u]) => (u === "day" || u === "year" ? n : pad(n)) + u[0]).join(" ")}</b>
+    </PageLink>
+  );
+}
+
+/** /Japan2026/countdown: the timer alone, in the middle of the screen. */
+function Countdown() {
+  const { label, units, note } = tripPhase(useNow());
+  const counting = units.length === 4;
+  return (
+    <main className="flex min-h-dvh flex-col px-4 pt-[calc(env(safe-area-inset-top,0px)+20px)] pb-10 md:px-10 md:pt-9">
+      <div>
+        <PageLink to={BASE} className="inline-block rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold hover:border-muted">
+          ← Go back
+        </PageLink>
+      </div>
+      <div role="timer" className="day-fade flex flex-1 flex-col items-center justify-center text-center">
+        <h1 className="text-sm font-bold tracking-[.22em] text-muted uppercase md:text-base">{label}</h1>
+        <div className="mt-6 flex gap-3 sm:gap-8 md:mt-8 md:gap-12">
+          {units.map(([n, u]) => (
+            <div key={u} className="flex flex-col items-center">
+              {/* Each number gets a fixed-width box: the serif's digits aren't all the same width. */}
+              <span className={cx("font-serif text-[clamp(3rem,14vw,10rem)] leading-none font-extrabold", counting && "w-[1.3em]")}>
+                {counting ? pad(n) : n}
+              </span>
+              <span className="mt-2 text-xs font-bold tracking-[.18em] text-muted uppercase md:mt-3 md:text-sm">
+                {u}
+                {n === 1 ? "" : "s"}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-8 text-muted md:mt-10 md:text-lg">{note}</p>
+      </div>
+    </main>
+  );
 }
 
 /**
@@ -599,6 +733,7 @@ function Desktop() {
           >
             Flights &amp; hotels ↓
           </button>
+          <TripTimer className="px-4 py-2" />
           <div className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper">{countdownText(today)}</div>
         </div>
       </header>
@@ -841,7 +976,10 @@ function Mobile() {
         <p className="text-xs font-bold tracking-[.2em] text-muted uppercase">19 – 28 October 2026</p>
         <h1 className="mt-1 font-serif text-[2.6rem] leading-none font-extrabold">Japan</h1>
         <p className="mt-2 text-muted">Dhairya, Mum and Dad · Tokyo, Kyoto, Osaka</p>
-        <span className="mt-3 inline-block rounded-full bg-ink px-3 py-1 text-sm font-bold text-paper">{countdownText(today)}</span>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-ink px-3 py-1 text-sm font-bold text-paper">{countdownText(today)}</span>
+          <TripTimer className="px-3 py-1" />
+        </div>
         <Legend className="mt-4" />
         <div className="mt-6 grid grid-cols-10 gap-1">
           {SEGMENTS.map((s, i) => (
@@ -994,6 +1132,8 @@ function Mobile() {
 
 export default function App() {
   const desktop = useMedia("(min-width: 1024px)");
+  const countdown = useSyncExternalStore(subscribePath, onCountdown);
   useOffline();
+  if (countdown) return <Countdown />;
   return desktop ? <Desktop /> : <Mobile />;
 }

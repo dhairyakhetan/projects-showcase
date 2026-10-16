@@ -33,7 +33,7 @@ planner's link preview.
 ```
 src/app/(japan)/
   layout.tsx                      its own root layout: fonts, colours, manifest
-  Japan2026/[[...day]]/page.tsx   /Japan2026 and /Japan2026/day1 … day10
+  Japan2026/[[...day]]/page.tsx   /Japan2026, /Japan2026/day1 … day10, /Japan2026/countdown
   Japan2026/opengraph-image.tsx   link preview: dates and cities only
 src/japan/
   App.tsx                         the planner (desktop + phone)
@@ -59,6 +59,15 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
   dropped.
 - "Today" is a `useSyncExternalStore` on the Japan date, rechecked every minute
   and on `visibilitychange`; when it changes the planner moves to the new day.
+- **Trip timer** (he asked for it, 16 Oct 2026): a pill in the header next to
+  "N days to go", and the same timer big and centred at `/Japan2026/countdown`
+  with "← Go back" top left. Before: "Time left till Japan trip", d/h/m/s to
+  leaving home, 19 Oct 10:55 IST (about 2 h before AI 1874; day 1's timeline
+  still says 09:30). During: "Time left in Japan trip", to VZ 770 landing in
+  Kolkata, 28 Oct 23:50 IST. After: "Days from Japan trip 2026", years and days
+  only. Clicking the pill opens the countdown and drops whatever `/dayN` was
+  open; "Go back" goes to plain `/Japan2026`. Both swap the view in place
+  (`pushState`), no reload. `TripTimer`/`Countdown` in `App.tsx`.
 - Fonts have `preload: false`: next/font preloads every CJK unicode-range slice
   whatever `subsets` says (361 files). The page is Latin, so the browser fetches
   only the ~9 slices it draws.
@@ -103,7 +112,7 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
 The repo-wide steps in the main `CLAUDE.md` apply. For the planner also: check
 `/Japan2026/day1` … `day10` at 1440 and 390, open a place sheet on the phone,
 and watch for console errors. Offline: load a day, wait for `japan-pages-v1` to
-hold 11 entries, then `context.setOffline(true)` and open other days. "Today":
+hold 12 entries (the countdown page is one), then `context.setOffline(true)` and open other days. "Today":
 `page.clock.install` just before midnight JST, then `clock.fastForward`.
 
 ---
