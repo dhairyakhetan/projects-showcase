@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Fragment, memo, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { DAYS, FLIGHTS, GOSHUIN, HOTELS, METRO, SPOTS, TODO, type Cat, type City, type Entry, type Place, type Row, type SpotStatus } from "./data";
 
 /** Where this lives on the portfolio. Every day has its own URL under it. */
@@ -733,7 +733,8 @@ function Tips({ rows }: { rows: Row[] }) {
 
 function Desktop() {
   const today = useToday();
-  const [sel, setSel] = useState(() => Math.max(0, dayIndexOf(japanToday())));
+  const [sel, setSel] = useState(() => shownDay ?? Math.max(0, dayIndexOf(japanToday())));
+  shownDay = sel;
   const day = DAYS[sel];
   const c = CITY[day.city];
   const rail = useRef<HTMLDivElement>(null);
@@ -815,7 +816,7 @@ function Desktop() {
       </div>
 
       {/* The date buttons stay pinned while a long day scrolls under them. */}
-      <div ref={bar} className="sticky top-0 z-30 -mx-4 bg-paper/95 px-4 pt-3 pb-3 backdrop-blur xl:-mx-6 xl:px-6">
+      <div ref={bar} className="sticky top-0 z-30 -mx-4 bg-paper px-4 pt-3 pb-3 xl:-mx-6 xl:px-6">
         {/* Three layers: card backgrounds, the city-coloured highlight that
             slides between them, then the labels on top — so text stays
             readable while the highlight passes underneath it. */}
@@ -933,38 +934,44 @@ function Desktop() {
         </aside>
       </div>
 
-      {/* Reference */}
-      <div id="trip-info" className="mt-16 grid scroll-mt-8 grid-cols-12 gap-x-6 gap-y-12">
-        <section className="col-span-7">
-          <SectionTitle>Flights</SectionTitle>
-          <Flights />
-        </section>
-        <section className="col-span-5">
-          <SectionTitle>Hotels</SectionTitle>
-          <Hotels />
-        </section>
-        <section className="col-span-12">
-          <SectionTitle>Goshuin stamps</SectionTitle>
-          <Goshuin />
-        </section>
-        <section className="col-span-7">
-          <SectionTitle>Still to check with the agent</SectionTitle>
-          <Todo />
-        </section>
-        <section className="col-span-5">
-          <SectionTitle>Goshuin book and souvenirs</SectionTitle>
-          <Tips rows={GOSHUIN} />
-        </section>
-        <section className="col-span-7">
-          <SectionTitle>How to ride the metro</SectionTitle>
-          <Tips rows={METRO} />
-        </section>
-      </div>
+      <TripInfo />
 
       <Footer />
     </div>
   );
 }
+
+/** Flights, hotels and the notes under the days. Memoised: nothing in it changes with the day. */
+const TripInfo = memo(function TripInfo() {
+  return (
+    <div id="trip-info" className="mt-16 grid scroll-mt-8 grid-cols-12 gap-x-6 gap-y-12">
+      <section className="col-span-7">
+        <SectionTitle>Flights</SectionTitle>
+        <Flights />
+      </section>
+      <section className="col-span-5">
+        <SectionTitle>Hotels</SectionTitle>
+        <Hotels />
+      </section>
+      <section className="col-span-12">
+        <SectionTitle>Goshuin stamps</SectionTitle>
+        <Goshuin />
+      </section>
+      <section className="col-span-7">
+        <SectionTitle>Still to check with the agent</SectionTitle>
+        <Todo />
+      </section>
+      <section className="col-span-5">
+        <SectionTitle>Goshuin book and souvenirs</SectionTitle>
+        <Tips rows={GOSHUIN} />
+      </section>
+      <section className="col-span-7">
+        <SectionTitle>How to ride the metro</SectionTitle>
+        <Tips rows={METRO} />
+      </section>
+    </div>
+  );
+});
 
 function NavBtn({ children, label, ...p }: { children: ReactNode; label: string; disabled: boolean; onClick: () => void }) {
   return (
@@ -991,11 +998,63 @@ function Footer() {
 
 /* ---------- mobile ---------- */
 
+/**
+ * Puts a phone day just under the date strip and keeps it there while the days
+ * above it finish drawing: off-screen days are placeholders (.day-lazy) that
+ * take their real height when drawn, which pushes the target. Aims each frame
+ * until it holds still; stops the moment the user scrolls. Returns a cancel.
+ */
+function pinDay(i: number) {
+  let frames = 0;
+  let last = NaN;
+  let still = 0;
+  let done = false;
+  const stop = () => {
+    done = true;
+    removeEventListener("wheel", stop);
+    removeEventListener("touchstart", stop);
+  };
+  addEventListener("wheel", stop, { passive: true });
+  addEventListener("touchstart", stop, { passive: true });
+  const aim = () => {
+    const el = document.getElementById(dayId(i));
+    if (done || !el || frames++ > 90) return stop();
+    el.scrollIntoView({ behavior: "instant" });
+    const top = el.getBoundingClientRect().top;
+    still = top === last ? still + 1 : 0;
+    last = top;
+    if (still < 3) requestAnimationFrame(aim);
+    else stop();
+  };
+  requestAnimationFrame(aim);
+  return stop;
+}
+
+/** Runs once a smooth scroll has finished (or after a second where `scrollend` isn't supported). */
+function afterScroll(fn: () => void) {
+  let ran = false;
+  const cancel = () => (ran = true);
+  const run = () => {
+    removeEventListener("scrollend", run);
+    removeEventListener("wheel", cancel);
+    removeEventListener("touchstart", cancel);
+    if (ran) return;
+    ran = true;
+    fn();
+  };
+  addEventListener("scrollend", run, { once: true });
+  // The user took over mid-scroll: leave them where they are.
+  addEventListener("wheel", cancel, { passive: true });
+  addEventListener("touchstart", cancel, { passive: true });
+  setTimeout(run, "onscrollend" in window ? 1500 : 900);
+}
+
 function Mobile() {
   const today = useToday();
   const [current, setCurrent] = useState<string | null>(null);
   const [sheet, setSheet] = useState<{ place: Place; day: (typeof DAYS)[number]; trigger: HTMLElement } | null>(null);
   const closeSheet = useCallback(() => setSheet(null), []);
+  const openSheet = useCallback((place: Place, day: (typeof DAYS)[number], trigger: HTMLElement) => setSheet({ place, day, trigger }), []);
   const nav = useRef<HTMLElement>(null);
   useHeightVar(nav, "--strip-h", 16);
   const strip = useRef<HTMLDivElement>(null);
@@ -1010,9 +1069,12 @@ function Mobile() {
       { rootMargin: "-30% 0px -60% 0px" },
     );
     document.querySelectorAll("article[data-day]").forEach((el) => io.observe(el));
-    const start = dayIndexOf(japanToday());
-    if (start >= 0) setTimeout(() => document.getElementById(dayId(start))?.scrollIntoView(), 50);
-    return () => io.disconnect();
+    const start = shownDay ?? dayIndexOf(japanToday());
+    const stop = start >= 0 ? pinDay(start) : () => {};
+    return () => {
+      io.disconnect();
+      stop();
+    };
   }, []);
 
   // A new day began while the page was open: bring it up, as a fresh visit would.
@@ -1025,6 +1087,7 @@ function Mobile() {
   }, [today]);
 
   useEffect(() => {
+    if (current) shownDay = Number(current.slice(3)) - 1;
     const s = strip.current;
     const t = current ? s?.querySelector<HTMLElement>(`[data-slot="${Number(current.slice(3)) - 1}"]`) : null;
     if (s && t) s.scrollTo({ left: t.offsetLeft - (s.clientWidth - t.offsetWidth) / 2, behavior: "smooth" });
@@ -1056,7 +1119,7 @@ function Mobile() {
         </div>
       </header>
 
-      <nav ref={nav} aria-label="Jump to a day" className="sticky top-0 z-10 border-b border-line bg-paper/95 pt-[env(safe-area-inset-top,0px)] backdrop-blur">
+      <nav ref={nav} aria-label="Jump to a day" className="sticky top-0 z-10 border-b border-line bg-paper pt-[env(safe-area-inset-top,0px)]">
         <div ref={strip} className="no-scrollbar relative mx-auto flex max-w-[680px] gap-1.5 overflow-x-auto px-4 py-2.5 md:px-6">
           {/* A ring, not a fill, so it can sit on top and slide over the dates
               without hiding them. */}
@@ -1078,7 +1141,10 @@ function Mobile() {
                 type="button"
                 key={d.date}
                 data-slot={i}
-                onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
+                onClick={() => {
+                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+                  afterScroll(() => pinDay(i));
+                }}
                 aria-current={on || undefined}
                 className={cx(
                   "min-w-[52px] shrink-0 rounded-xl border border-b-[3px] px-2.5 pt-1.5 pb-1 text-center leading-tight",
@@ -1095,89 +1161,9 @@ function Mobile() {
       </nav>
 
       <div className="mx-auto max-w-[680px] px-4 md:px-6">
-        <main>
-          {DAYS.map((d, i) => {
-            const c = CITY[d.city];
-            return (
-              <article key={d.date} id={dayId(i)} data-day className="grid grid-cols-[48px_minmax(0,1fr)] gap-x-3 border-b border-line py-7 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-x-4">
-                {/* Pinned under the date strip while its day scrolls by. */}
-                <div
-                  className={cx(
-                    "sticky top-[var(--strip-h,84px)] self-start text-right font-serif text-[2.4rem] leading-[.9] font-extrabold sm:text-5xl",
-                    c.text,
-                  )}
-                >
-                  {dayNum(d.date)}
-                  <small className="mt-2 block font-sans text-xs leading-snug font-medium text-muted">
-                    {weekday(d.date)}
-                    <br />
-                    Oct
-                    <br />
-                    Day {i + 1}
-                  </small>
-                </div>
-                <div className="min-w-0">
-                  <span className={cx("mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
-                  {d.date === today && <span className="ml-1.5 rounded-full bg-alert px-2.5 py-0.5 text-sm font-bold text-paper">Today</span>}
-                  <h2 className="mt-0.5 mb-2 font-serif text-[1.4rem] leading-tight font-extrabold sm:text-2xl">{d.title}</h2>
-                  <p className="mb-3">
-                    <Rich text={d.gist} />
-                  </p>
-                  <Timeline day={d} compact onPlace={(place, trigger) => setSheet({ place, day: d, trigger })} />
-                  {/* Places the timeline doesn't name still need a way in. */}
-                  {(() => {
-                    const loose = d.places.filter((p) => !d.timeline.some((e) => e[4] === p.id));
-                    if (!loose.length) return null;
-                    return (
-                      <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">
-                        Also:
-                        {loose.map((p) => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            aria-haspopup="dialog"
-                            onClick={(e) => setSheet({ place: p, day: d, trigger: e.currentTarget })}
-                            className={cx("rounded-md border border-line px-2 py-px text-[.85rem] font-bold", c.soft, c.text)}
-                          >
-                            {p.name} →
-                          </button>
-                        ))}
-                      </p>
-                    );
-                  })()}
-                  {d.tips.length > 0 && (
-                    <div className="mt-3 space-y-2.5">
-                      {d.tips.map(([h, x]) => (
-                        <Tip key={h} head={h} text={x} />
-                      ))}
-                    </div>
-                  )}
-                  <p className="mt-3 text-[.95rem] text-muted">
-                    Sleep: <b className="text-ink">{d.sleep}</b>
-                  </p>
-                </div>
-              </article>
-            );
-          })}
-        </main>
+        <MobileDays today={today} onPlace={openSheet} />
 
-        {(
-          [
-            ["flights", "Flights", <Flights />],
-            ["hotels", "Hotels", <Hotels />],
-            ["goshuin-stamps", "Goshuin stamps", <Goshuin />],
-            ["todo", "Still to check with the agent", <Todo />],
-            ["goshuin", "Goshuin book and souvenirs", <Tips rows={GOSHUIN} />],
-            ["metro", "How to ride the metro", <Tips rows={METRO} />],
-          ] as const
-        ).map(([id, title, body]) => (
-          <Fragment key={id}>
-            <section id={id} className="pt-10">
-              <SectionTitle>{title}</SectionTitle>
-              {body}
-            </section>
-          </Fragment>
-        ))}
+        <MobileInfo />
         <Footer />
       </div>
       <PlaceSheet open={sheet} onClose={closeSheet} />
@@ -1187,10 +1173,127 @@ function Mobile() {
 
 /* ---------- app ---------- */
 
+/**
+ * The day on screen, shared by both layouts. Turning a tablet or resizing a
+ * window across the breakpoint swaps Desktop for Mobile; the new one opens on
+ * this day instead of jumping back to today.
+ */
+let shownDay: number | null = null;
+
 export default function App() {
   const desktop = useMedia("(min-width: 1024px)");
   const countdown = useSyncExternalStore(subscribePath, onCountdown);
   useOffline();
   if (countdown) return <Countdown />;
-  return desktop ? <Desktop /> : <Mobile />;
+  // Keyed so the swap between layouts fades in rather than snapping.
+  return (
+    <div key={desktop ? "desktop" : "mobile"} className="day-fade">
+      {desktop ? <Desktop /> : <Mobile />}
+    </div>
+  );
 }
+
+/**
+ * The phone's ten days. Memoised so that scrolling (which moves the date
+ * strip's ring) and opening a place sheet don't redraw every day.
+ */
+const MobileDays = memo(function MobileDays({
+  today,
+  onPlace,
+}: {
+  today: string;
+  onPlace: (place: Place, day: (typeof DAYS)[number], trigger: HTMLElement) => void;
+}) {
+  return (
+    <main>
+      {DAYS.map((d, i) => {
+        const c = CITY[d.city];
+        return (
+          <article key={d.date} id={dayId(i)} data-day className="day-lazy scroll-mt-[var(--strip-h,84px)] grid grid-cols-[48px_minmax(0,1fr)] gap-x-3 border-b border-line py-7 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-x-4">
+            {/* Pinned under the date strip while its day scrolls by. */}
+            <div
+              className={cx(
+                "sticky top-[var(--strip-h,84px)] self-start text-right font-serif text-[2.4rem] leading-[.9] font-extrabold sm:text-5xl",
+                c.text,
+              )}
+            >
+              {dayNum(d.date)}
+              <small className="mt-2 block font-sans text-xs leading-snug font-medium text-muted">
+                {weekday(d.date)}
+                <br />
+                Oct
+                <br />
+                Day {i + 1}
+              </small>
+            </div>
+            <div className="min-w-0">
+              <span className={cx("mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
+              {d.date === today && <span className="ml-1.5 rounded-full bg-alert px-2.5 py-0.5 text-sm font-bold text-paper">Today</span>}
+              <h2 className="mt-0.5 mb-2 font-serif text-[1.4rem] leading-tight font-extrabold sm:text-2xl">{d.title}</h2>
+              <p className="mb-3">
+                <Rich text={d.gist} />
+              </p>
+              <Timeline day={d} compact onPlace={(place, trigger) => onPlace(place, d, trigger)} />
+              {/* Places the timeline doesn't name still need a way in. */}
+              {(() => {
+                const loose = d.places.filter((p) => !d.timeline.some((e) => e[4] === p.id));
+                if (!loose.length) return null;
+                return (
+                  <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">
+                    Also:
+                    {loose.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        aria-haspopup="dialog"
+                        onClick={(e) => onPlace(p, d, e.currentTarget)}
+                        className={cx("rounded-md border border-line px-2 py-px text-[.85rem] font-bold", c.soft, c.text)}
+                      >
+                        {p.name} →
+                      </button>
+                    ))}
+                  </p>
+                );
+              })()}
+              {d.tips.length > 0 && (
+                <div className="mt-3 space-y-2.5">
+                  {d.tips.map(([h, x]) => (
+                    <Tip key={h} head={h} text={x} />
+                  ))}
+                </div>
+              )}
+              <p className="mt-3 text-[.95rem] text-muted">
+                Sleep: <b className="text-ink">{d.sleep}</b>
+              </p>
+            </div>
+          </article>
+        );
+      })}
+    </main>
+  );
+});
+
+/** The notes under the phone's days. Static, so drawn once. */
+const MobileInfo = memo(function MobileInfo() {
+  return (
+    <>
+      {(
+        [
+          ["flights", "Flights", <Flights />],
+          ["hotels", "Hotels", <Hotels />],
+          ["goshuin-stamps", "Goshuin stamps", <Goshuin />],
+          ["todo", "Still to check with the agent", <Todo />],
+          ["goshuin", "Goshuin book and souvenirs", <Tips rows={GOSHUIN} />],
+          ["metro", "How to ride the metro", <Tips rows={METRO} />],
+        ] as const
+      ).map(([id, title, body]) => (
+        <Fragment key={id}>
+          <section id={id} className="pt-10">
+            <SectionTitle>{title}</SectionTitle>
+            {body}
+          </section>
+        </Fragment>
+      ))}
+    </>
+  );
+});

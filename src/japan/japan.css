@@ -55,6 +55,11 @@ body {
 .day-fade { animation: day-fade 320ms ease-out both; }
 @media (prefers-reduced-motion: reduce) { .day-fade { animation: none; } }
 
+/* Phone: a day far off screen skips layout and paint until you scroll near
+   it, so slow phones only draw the days you can see. The size is a guess
+   for its placeholder; "auto" remembers the real one once it's been drawn. */
+.day-lazy { content-visibility: auto; contain-intrinsic-size: auto 1800px; }
+
 /* A place card the timeline just pointed at. */
 .place { transition: box-shadow 200ms ease, border-color 200ms ease; }
 .place[data-hl] { border-color: var(--hl); box-shadow: 0 0 0 3px color-mix(in srgb, var(--hl) 25%, transparent); }

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Shippori_Mincho, Zen_Kaku_Gothic_New } from "next/font/google";
+import localFont from "next/font/local";
 import { SITE_URL } from "@/lib/content";
 import "@/japan/japan.css";
 
@@ -10,26 +10,30 @@ import "@/japan/japan.css";
  */
 
 /*
- * No preload. Both fonts come split into ~120 unicode-range slices per
- * weight, and next/font marks every slice for preload regardless of
- * `subsets` — 361 files, about 7 MB, on every visit, over roaming data. The
- * page is Latin text, so without preload the browser fetches only the slices
- * it draws.
+ * Both fonts are Japanese families: from Google they come as ~600
+ * unicode-range slices, about 460 KB of @font-face CSS the browser had to
+ * read before drawing anything. The page is English, so src/japan/fonts holds
+ * each weight cut down to the characters it uses (about 60 KB for all five).
+ * Text with a new character outside that set falls back to the system font;
+ * re-run the subset (pyftsubset --text-file) if that ever shows.
  */
-const shippori = Shippori_Mincho({
-  subsets: ["latin"],
-  weight: ["600", "800"],
+const shippori = localFont({
+  src: [
+    { path: "../../japan/fonts/ShipporiMincho-SemiBold.woff2", weight: "600" },
+    { path: "../../japan/fonts/ShipporiMincho-ExtraBold.woff2", weight: "800" },
+  ],
   variable: "--font-shippori",
   display: "swap",
-  preload: false,
 });
 
-const zenKaku = Zen_Kaku_Gothic_New({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+const zenKaku = localFont({
+  src: [
+    { path: "../../japan/fonts/ZenKakuGothicNew-Regular.woff2", weight: "400" },
+    { path: "../../japan/fonts/ZenKakuGothicNew-Medium.woff2", weight: "500" },
+    { path: "../../japan/fonts/ZenKakuGothicNew-Bold.woff2", weight: "700" },
+  ],
   variable: "--font-zen-kaku",
   display: "swap",
-  preload: false,
 });
 
 const TITLE = "Japan trip · 19–28 October 2026";
@@ -45,12 +49,12 @@ export const metadata: Metadata = {
   // Family names and hotels are on this page; no reason to put it in search results.
   robots: { index: false, follow: false },
   icons: {
-    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23F6F7F5'/%3E%3Ccircle cx='16' cy='16' r='8' fill='%23B3392F'/%3E%3C/svg%3E",
+    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2315181C'/%3E%3Ccircle cx='16' cy='16' r='8' fill='%23B3392F'/%3E%3C/svg%3E",
     apple: "/japan2026-icon-180.png",
   },
   // "Add to Home Screen" opens it like an app, straight onto the plan.
   manifest: "/japan2026.webmanifest",
-  appleWebApp: { capable: true, title: "Japan 2026", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Japan 2026", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {

@@ -70,9 +70,27 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
   Kolkata, 28 Oct 23:50 IST. After: "Days from Japan trip 2026", years and days
   only. Clicking the pill opens the countdown; "Go back" goes to `/Japan2026`. Both swap the view in place
   (`pushState`), no reload. `TripTimer`/`Countdown` in `App.tsx`.
-- Fonts have `preload: false`: next/font preloads every CJK unicode-range slice
-  whatever `subsets` says (361 files). The page is Latin, so the browser fetches
-  only the ~9 slices it draws.
+- **Fonts are local subsets** (19 Oct 2026): `src/japan/fonts/*.woff2`, each
+  weight cut with `pyftsubset --text-file` to the characters the planner uses
+  (about 60 KB for all five). From Google they came as ~600 unicode-range
+  slices: ~460 KB of render-blocking @font-face CSS. A new character outside
+  the set falls back to the system font; re-run the subset over
+  `src/japan/*.ts*` if one shows.
+- **Speed on slow phones** (he asked, 19 Oct 2026; measured at 6× CPU
+  throttle: phone ready 2.2–2.9 s → ~1.1 s, blocked time ~1.3 s → ~0.3 s):
+  - No `backdrop-blur` on the sticky bars (solid `bg-paper`).
+  - Static parts are `memo` components (`TripInfo`, `MobileDays`,
+    `MobileInfo`), so day switches, scrolling and the place sheet don't
+    redraw them.
+  - Phone days are `.day-lazy` (`content-visibility: auto`): off-screen days
+    skip layout and paint. Their placeholders change height when drawn, so
+    every jump to a day goes through `pinDay`, which re-aims each frame until
+    the day holds still under the strip (strip taps: smooth scroll, then
+    `pinDay` on `scrollend`). Use `behavior: "instant"` for those re-aims:
+    `html` has smooth scrolling.
+- **Desktop ↔ phone switch** (crossing 1024 px, e.g. turning a tablet):
+  `shownDay` carries the day across, the new layout opens on it, and the swap
+  fades in (`day-fade` on a wrapper keyed by layout).
 - Desktop: a day highlight that **slides** between the date buttons; the day's
   content **fades** in place. Phone: one list with a sliding ring on the sticky
   date strip.
