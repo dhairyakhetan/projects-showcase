@@ -33,7 +33,7 @@ planner's link preview.
 ```
 src/app/(japan)/
   layout.tsx                      its own root layout: fonts, colours, manifest
-  Japan2026/[[...day]]/page.tsx   /Japan2026, /Japan2026/day1 … day10, /Japan2026/countdown
+  Japan2026/[[...day]]/page.tsx   /Japan2026 and /Japan2026/countdown
   Japan2026/opengraph-image.tsx   link preview: dates and cities only
 src/japan/
   App.tsx                         the planner (desktop + phone)
@@ -49,11 +49,13 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
   design. Own fonts (Shippori Mincho, Zen Kaku Gothic New), colours and dark
   mode (follows the OS). Its Tailwind build scans only `src/japan`; the
   portfolio's skips it. It stays out of the sitemap and is `noindex`.
-- `/Japan2026/day1` … `/day10` are prerendered; the planner renders client-only
+- **No per-day URLs** (he asked, 18 Oct 2026): picking a day swaps it in place
+  and the address stays `/Japan2026`; `/Japan2026/dayN` 404s. Only `/Japan2026`
+  and `/Japan2026/countdown` are prerendered; the planner renders client-only
   because it reads the date, URL and screen width.
 - **Works offline.** `public/japan-sw.js`, registered by `App.tsx` with scope
   `/Japan2026` (the portfolio is never controlled by it). After one online visit
-  the page posts every day's URL and the `/_next/static` files it loaded; the
+  the page posts both URLs and the `/_next/static` files it loaded; the
   worker saves them. Pages are network-first with a 3.5 s timeout, static files
   cache-first; on a redeploy all pages are re-fetched before old files are
   dropped.
@@ -65,8 +67,7 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
   leaving home, 19 Oct 10:55 IST (about 2 h before AI 1874; day 1's timeline
   still says 09:30). During: "Time left in Japan trip", to VZ 770 landing in
   Kolkata, 28 Oct 23:50 IST. After: "Days from Japan trip 2026", years and days
-  only. Clicking the pill opens the countdown and drops whatever `/dayN` was
-  open; "Go back" goes to plain `/Japan2026`. Both swap the view in place
+  only. Clicking the pill opens the countdown; "Go back" goes to `/Japan2026`. Both swap the view in place
   (`pushState`), no reload. `TripTimer`/`Countdown` in `App.tsx`.
 - Fonts have `preload: false`: next/font preloads every CJK unicode-range slice
   whatever `subsets` says (361 files). The page is Latin, so the browser fetches
@@ -109,10 +110,10 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
 
 ### Testing
 
-The repo-wide steps in the main `CLAUDE.md` apply. For the planner also: check
-`/Japan2026/day1` … `day10` at 1440 and 390, open a place sheet on the phone,
+The repo-wide steps in the main `CLAUDE.md` apply. For the planner also: click
+through all ten days at 1440 and 390 (the URL must stay `/Japan2026`), open a place sheet on the phone,
 and watch for console errors. Offline: load a day, wait for `japan-pages-v1` to
-hold 12 entries (the countdown page is one), then `context.setOffline(true)` and open other days. "Today":
+hold `/Japan2026` and `/Japan2026/countdown`, then `context.setOffline(true)` and reload. "Today":
 `page.clock.install` just before midnight JST, then `clock.fastForward`.
 
 ---

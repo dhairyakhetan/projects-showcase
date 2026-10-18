@@ -20,13 +20,6 @@ const weekday = (d: string) => jst(d).toLocaleDateString("en-GB", { weekday: "sh
 const weekdayLong = (d: string) => jst(d).toLocaleDateString("en-GB", { weekday: "long", timeZone: "Asia/Tokyo" });
 const dayNum = (d: string) => Number(d.slice(8, 10));
 const dayId = (i: number) => "day" + (i + 1);
-const dayPath = (i: number) => BASE + "/" + dayId(i);
-/** Index of the day in the URL (/Japan2026/day1 … /day10), or -1. */
-const pathDay = () => {
-  const m = location.pathname.match(/^\/Japan2026\/day(\d+)\/?$/);
-  const i = m ? Number(m[1]) - 1 : -1;
-  return i >= 0 && i < DAYS.length ? i : -1;
-};
 const JAPAN_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" });
 /** Today in Japan, YYYY-MM-DD. */
 const japanToday = () => JAPAN_DATE.format(new Date());
@@ -95,7 +88,7 @@ function useToday() {
 
 /**
  * Saves the planner for use with no signal (public/japan-sw.js). A first
- * visit isn't controlled by the worker yet, so this hands it every day's URL
+ * visit isn't controlled by the worker yet, so this hands it both URLs
  * and the files this visit loaded — once the fonts are in, the last of them.
  */
 function useOffline() {
@@ -113,7 +106,7 @@ function useOffline() {
         .map((url) => url.pathname + url.search);
       registration.active?.postMessage({
         type: "save",
-        pages: [BASE, ...DAYS.map((_, i) => dayPath(i)), COUNTDOWN],
+        pages: [BASE, COUNTDOWN],
         assets: [...new Set(assets)],
       });
     });
@@ -199,8 +192,7 @@ const onCountdown = () => location.pathname.replace(/\/+$/, "") === COUNTDOWN;
 
 /**
  * A link between the planner and the countdown page that swaps the view
- * without a reload. Leaving a day for the countdown drops the /dayN, so
- * coming back opens /Japan2026 as a fresh visit would.
+ * without a reload. Coming back opens /Japan2026 as a fresh visit would.
  */
 function PageLink({ to, className, children }: { to: string; className?: string; children: ReactNode }) {
   return (
@@ -677,13 +669,7 @@ function Tips({ rows }: { rows: Row[] }) {
 
 function Desktop() {
   const today = useToday();
-  const initial = () => {
-    const fromPath = pathDay();
-    if (fromPath >= 0) return fromPath;
-    const todayAt = dayIndexOf(japanToday());
-    return todayAt >= 0 ? todayAt : 0;
-  };
-  const [sel, setSel] = useState(initial);
+  const [sel, setSel] = useState(() => Math.max(0, dayIndexOf(japanToday())));
   const day = DAYS[sel];
   const c = CITY[day.city];
   const rail = useRef<HTMLDivElement>(null);
@@ -696,7 +682,6 @@ function Desktop() {
   const go = useCallback((i: number) => {
     const n = Math.max(0, Math.min(DAYS.length - 1, i));
     setSel(n);
-    if (location.pathname !== dayPath(n)) history.pushState(null, "", dayPath(n));
 
     // Switching days from deep inside a long one would land you mid-way down
     // the next; bring the new day's top up under the pinned date bar instead.
@@ -718,12 +703,6 @@ function Desktop() {
     const todayAt = dayIndexOf(today);
     if (todayAt >= 0) go(todayAt);
   }, [today, go]);
-
-  useEffect(() => {
-    const onPop = () => setSel(initial());
-    addEventListener("popstate", onPop);
-    return () => removeEventListener("popstate", onPop);
-  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -967,7 +946,7 @@ function Mobile() {
       { rootMargin: "-30% 0px -60% 0px" },
     );
     document.querySelectorAll("article[data-day]").forEach((el) => io.observe(el));
-    const start = pathDay() >= 0 ? pathDay() : dayIndexOf(japanToday());
+    const start = dayIndexOf(japanToday());
     if (start >= 0) setTimeout(() => document.getElementById(dayId(start))?.scrollIntoView(), 50);
     return () => io.disconnect();
   }, []);
@@ -983,9 +962,8 @@ function Mobile() {
 
   useEffect(() => {
     const s = strip.current;
-    const t = s?.querySelector<HTMLElement>(`[href="${BASE}/${current}"]`);
+    const t = current ? s?.querySelector<HTMLElement>(`[data-slot="${Number(current.slice(3)) - 1}"]`) : null;
     if (s && t) s.scrollTo({ left: t.offsetLeft - (s.clientWidth - t.offsetWidth) / 2, behavior: "smooth" });
-    if (current && location.pathname !== `${BASE}/${current}`) history.replaceState(null, "", `${BASE}/${current}`);
   }, [current]);
 
   return (
@@ -1032,14 +1010,11 @@ function Mobile() {
             const on = current === id;
             const isToday = d.date === today;
             return (
-              <a
+              <button
+                type="button"
                 key={d.date}
-                href={dayPath(i)}
                 data-slot={i}
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-                }}
+                onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
                 aria-current={on || undefined}
                 className={cx(
                   "min-w-[52px] shrink-0 rounded-xl border border-b-[3px] px-2.5 pt-1.5 pb-1 text-center leading-tight",
@@ -1049,7 +1024,7 @@ function Mobile() {
               >
                 <span className="block font-serif text-lg font-extrabold">{dayNum(d.date)}</span>
                 <span className={cx("text-[.7rem]", isToday ? "text-paper" : "text-muted")}>{weekday(d.date)}</span>
-              </a>
+              </button>
             );
           })}
         </div>

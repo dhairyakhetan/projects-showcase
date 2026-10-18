@@ -8,7 +8,7 @@
  * file gets a new name — so once saved they're served straight from the cache.
  *
  * A first visit isn't controlled by this worker yet, so the page posts what it
- * loaded (and every day's URL) once it has settled; see "save" below.
+ * loaded (and both of its URLs) once it has settled; see "save" below.
  */
 
 const PAGES = "japan-pages-v1";
@@ -40,7 +40,7 @@ self.addEventListener("fetch", event => {
   else if (url.pathname.startsWith("/_next/static/")) event.respondWith(asset(request));
 });
 
-/** "/Japan2026/day3/" and "/Japan2026/day3" are the same saved page. */
+/** "/Japan2026/" and "/Japan2026" are the same saved page. */
 const pageKey = url => new URL(url, self.location.origin).pathname.replace(/\/+$/, "");
 
 async function page(event) {
@@ -54,7 +54,7 @@ async function page(event) {
     network.then(response => (response.ok ? cache.put(key, response.clone()) : undefined)).catch(() => {}),
   );
 
-  // Every day is the same app reading the URL, so any saved page can stand in.
+  // Both pages are the same app reading the URL, so either can stand in.
   const saved = async () => (await cache.match(key)) || (await cache.match("/Japan2026"));
   const slow = new Promise(resolve => setTimeout(resolve, TIMEOUT)).then(saved);
 
@@ -81,7 +81,7 @@ self.addEventListener("message", event => {
 });
 
 /**
- * Saves every day's page and the files this visit loaded. Cached files this
+ * Saves both pages and the files this visit loaded. Cached files this
  * visit didn't load are from an older build — the site was redeployed — and
  * every other saved page still points at them, so all pages are fetched again
  * first, and the old files only go once every page came back.
