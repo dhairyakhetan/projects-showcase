@@ -59,7 +59,12 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
   the page posts both URLs and the `/_next/static` files it loaded; the
   worker saves them. Pages are network-first with a 3.5 s timeout, static files
   cache-first; on a redeploy all pages are re-fetched before old files are
-  dropped.
+  dropped. **Only the latest version is kept** (he asked, 19 Oct 2026): the
+  cache names carry a version (`v2`) and activate deletes every other cache,
+  so bump it whenever old copies must go; "save" also deletes saved pages the
+  build doesn't list (the old `/dayN`); and if slow data made a saved page
+  answer first and the fresh one differs, the worker posts `updated` and the
+  page reloads onto it.
 - "Today" is a `useSyncExternalStore` on the Japan date, rechecked every minute
   and on `visibilitychange`; when it changes the planner moves to the new day.
 - **Trip timer** (he asked for it, 16 Oct 2026): a pill in the header next to
@@ -137,7 +142,7 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
 
 The repo-wide steps in the main `CLAUDE.md` apply. For the planner also: click
 through all ten days at 1440 and 390 (the URL must stay `/Japan2026`), open a place sheet on the phone,
-and watch for console errors. Offline: load a day, wait for `japan-pages-v1` to
+and watch for console errors. Offline: load a day, wait for `japan-pages-v2` to
 hold `/Japan2026` and `/Japan2026/countdown`, then `context.setOffline(true)` and reload. "Today":
 `page.clock.install` just before midnight JST, then `clock.fastForward`.
 

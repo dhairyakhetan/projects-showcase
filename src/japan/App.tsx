@@ -95,6 +95,10 @@ function useOffline() {
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
     navigator.serviceWorker.register("/japan-sw.js", { scope: BASE }).catch(() => {});
+    // Slow data made the worker show a saved, older copy and a newer one has
+    // now arrived: reload onto it, so only the latest version is ever used.
+    const onMessage = (e: MessageEvent) => e.data?.type === "updated" && location.reload();
+    navigator.serviceWorker.addEventListener("message", onMessage);
 
     let cancelled = false;
     Promise.all([navigator.serviceWorker.ready, document.fonts.ready]).then(([registration]) => {
@@ -112,6 +116,7 @@ function useOffline() {
     });
     return () => {
       cancelled = true;
+      navigator.serviceWorker.removeEventListener("message", onMessage);
     };
   }, []);
 }

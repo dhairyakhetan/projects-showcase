@@ -9,10 +9,15 @@
  *
  * A first visit isn't controlled by this worker yet, so the page posts what it
  * loaded (and both of its URLs) once it has settled; see "save" below.
+ *
+ * Only the latest version is ever kept. Renaming the caches (v2) drops every
+ * copy saved by an older worker on activate; "save" drops pages and files the
+ * current build doesn't use; and if slow data made a saved page answer first,
+ * the page is told to reload as soon as a different, newer copy arrives.
  */
 
-const PAGES = "japan-pages-v1";
-const ASSETS = "japan-assets-v1";
+const PAGES = "japan-pages-v2";
+const ASSETS = "japan-assets-v2";
 /** How long one bar of roaming gets before the saved copy answers instead. */
 const TIMEOUT = 3500;
 
@@ -47,16 +52,37 @@ async function page(event) {
   const cache = await caches.open(PAGES);
   const key = pageKey(event.request.url);
 
-  const network = fetch(event.request);
-  // Copied before the page reads the body, and kept alive past the response
-  // so the fresh copy is saved even when the saved one answered first.
-  event.waitUntil(
-    network.then(response => (response.ok ? cache.put(key, response.clone()) : undefined)).catch(() => {}),
-  );
-
   // Both pages are the same app reading the URL, so either can stand in.
   const saved = async () => (await cache.match(key)) || (await cache.match("/Japan2026"));
-  const slow = new Promise(resolve => setTimeout(resolve, TIMEOUT)).then(saved);
+  /** The saved copy, if it answered because the network was slow. */
+  let servedStale = null;
+
+  const network = fetch(event.request);
+  // Copied before the page reads the body, and kept alive past the response
+  // so the fresh copy is saved even when the saved one answered first. If the
+  // saved one did answer and the fresh copy differs, it was an older version:
+  // tell the page to reload onto the new one.
+  event.waitUntil(
+    network
+      .then(async response => {
+        if (!response.ok) return;
+        // Taken now: only a saved copy that answered before this arrived counts.
+        const stale = servedStale;
+        const fresh = stale ? response.clone() : null;
+        await cache.put(key, response.clone());
+        if (stale && (await stale.text()) !== (await fresh.text())) {
+          for (const client of await self.clients.matchAll({ type: "window" })) client.postMessage({ type: "updated" });
+        }
+      })
+      .catch(() => {}),
+  );
+
+  const slow = new Promise(resolve => setTimeout(resolve, TIMEOUT))
+    .then(saved)
+    .then(hit => {
+      if (hit) servedStale = hit.clone();
+      return hit;
+    });
 
   try {
     // Nothing saved yet means waiting for the network after all.
@@ -116,4 +142,8 @@ async function save(pages, assets) {
   );
 
   if (results.every(Boolean)) await Promise.all(stale.map(request => assetCache.delete(request)));
+
+  // Pages this build no longer has (the old /Japan2026/dayN) go too.
+  const keep = new Set(pages.map(path => new URL(pageKey(path), self.location.origin).href));
+  for (const request of await pageCache.keys()) if (!keep.has(request.url)) await pageCache.delete(request);
 }
