@@ -46,8 +46,9 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
 
 - Originally a separate Vite app, ported in. Its own **root layout** (route group
   `(japan)`), so moving between it and the portfolio is a full page load, by
-  design. Own fonts (Shippori Mincho, Zen Kaku Gothic New), colours and dark
-  mode (follows the OS). Its Tailwind build scans only `src/japan`; the
+  design. Own fonts (Shippori Mincho, Zen Kaku Gothic New) and colours.
+  **Always dark** (he asked, 19 Oct 2026): `japan.css` sets the dark tokens on
+  `:root` with no light variant; theme-color and the manifest match. Its Tailwind build scans only `src/japan`; the
   portfolio's skips it. It stays out of the sitemap and is `noindex`.
 - **No per-day URLs** (he asked, 18 Oct 2026): picking a day swaps it in place
   and the address stays `/Japan2026`; `/Japan2026/dayN` 404s. Only `/Japan2026`
