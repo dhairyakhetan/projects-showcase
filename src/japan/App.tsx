@@ -640,7 +640,7 @@ function Hotels() {
 }
 
 const SPOT_STATUS: Record<SpotStatus, { label: string; cls: string }> = {
-  plan: { label: "In your plan", cls: "bg-ink text-paper" },
+  plan: { label: "In your plan", cls: "bg-ink/10 text-ink" },
   tour: { label: "May be on the tour", cls: "border border-ink text-ink" },
   fit: { label: "Fits a gap", cls: "bg-travel-soft text-ink" },
   detour: { label: "Only as a detour", cls: "border border-line text-muted" },
@@ -795,7 +795,7 @@ function Desktop() {
             Flights &amp; hotels ↓
           </button>
           <TripTimer className="px-4 py-2" />
-          <div className="rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper">{countdownText(today)}</div>
+          <div className="rounded-full bg-alert px-4 py-2 text-sm font-bold text-paper">{countdownText(today)}</div>
         </div>
       </header>
 
@@ -857,7 +857,7 @@ function Desktop() {
                   <span className={cx("font-serif text-3xl leading-tight font-extrabold transition-colors duration-300", !on && dc.text)}>{dayNum(d.date)}</span>
                   <span className={cx("mt-auto line-clamp-2 text-xs leading-snug transition-colors duration-300", on ? "text-paper/90" : "text-muted")}>{d.short}</span>
                   {d.date === today && (
-                    <span className="absolute top-2.5 right-2.5 rounded-full bg-alert px-1.5 py-0.5 text-[.6rem] font-bold text-white uppercase">
+                    <span className="absolute top-2.5 right-2.5 rounded-full bg-alert px-1.5 py-0.5 text-[.6rem] font-bold text-paper uppercase">
                       Today
                     </span>
                   )}
@@ -1037,7 +1037,7 @@ function Mobile() {
         <h1 className="mt-1 font-serif text-[2.6rem] leading-none font-extrabold">Japan</h1>
         <p className="mt-2 text-muted">Dhairya, Mum and Dad · Tokyo, Kyoto, Osaka</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-ink px-3 py-1 text-sm font-bold text-paper">{countdownText(today)}</span>
+          <span className="rounded-full bg-alert px-3 py-1 text-sm font-bold text-paper">{countdownText(today)}</span>
           <TripTimer className="px-3 py-1" />
         </div>
         <Legend className="mt-4" />
@@ -1083,11 +1083,11 @@ function Mobile() {
                 className={cx(
                   "min-w-[52px] shrink-0 rounded-xl border border-b-[3px] px-2.5 pt-1.5 pb-1 text-center leading-tight",
                   CITY[d.city].border,
-                  isToday ? "bg-ink text-paper" : "border-t-line border-r-line border-l-line bg-surface",
+                  "border-t-line border-r-line border-l-line bg-surface",
                 )}
               >
                 <span className="block font-serif text-lg font-extrabold">{dayNum(d.date)}</span>
-                <span className={cx("text-[.7rem]", isToday ? "text-paper" : "text-muted")}>{weekday(d.date)}</span>
+                <span className={cx("text-[.7rem]", isToday ? "font-bold text-alert" : "text-muted")}>{isToday ? "Today" : weekday(d.date)}</span>
               </button>
             );
           })}
@@ -1118,7 +1118,7 @@ function Mobile() {
                 </div>
                 <div className="min-w-0">
                   <span className={cx("mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
-                  {d.date === today && <span className="ml-1.5 rounded-full bg-ink px-2.5 py-0.5 text-sm font-bold text-paper">Today</span>}
+                  {d.date === today && <span className="ml-1.5 rounded-full bg-alert px-2.5 py-0.5 text-sm font-bold text-paper">Today</span>}
                   <h2 className="mt-0.5 mb-2 font-serif text-[1.4rem] leading-tight font-extrabold sm:text-2xl">{d.title}</h2>
                   <p className="mb-3">
                     <Rich text={d.gist} />
