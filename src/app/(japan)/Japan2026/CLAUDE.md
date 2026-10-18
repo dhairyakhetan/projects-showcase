@@ -151,9 +151,9 @@ booking refs, which is fine there).
 ### State of the site (18 Oct 2026)
 
 - All ten days are planned and live; the site is ahead of the artifact.
-- Voucher details are in: tour meeting points (20, 21, 24 Oct), Disney and
+- Every voucher is in (he confirmed it is the whole trip): tour meeting points (20, 21, 24 Oct), Disney and
   Kyoto transfers, Thunderbird 18 plus the van on 25 Oct. Universal Studios is
-  **26 Oct** and the Osaka walking tour **27 Oct** (they were swapped).
+  **26 Oct**; 27 Oct is a private 4-hour MagicalTrip tour from the hotel at 08:00 (not the SIC walking tour); airport car 28 Oct 08:00.
 - Open: the USJ return pickup on the voucher says 06:30; he's asking the
   agent for 21:00 (`TODO`).
 
