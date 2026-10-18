@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { DAYS, FLIGHTS, GOSHUIN, HOTELS, METRO, SPOTS, TODO, type City, type Entry, type Place, type Row, type SpotStatus } from "./data";
+import { DAYS, FLIGHTS, GOSHUIN, HOTELS, METRO, SPOTS, TODO, type Cat, type City, type Entry, type Place, type Row, type SpotStatus } from "./data";
 
 /** Where this lives on the portfolio. Every day has its own URL under it. */
 const BASE = "/Japan2026";
@@ -315,9 +315,56 @@ function showPlace(date: string, id: string) {
   el.dataset.hlTimer = String(window.setTimeout(() => delete el.dataset.hl, 2200));
 }
 
+/** What each kind of timeline row is called, and the line icon drawn in its dot. */
+const CATS: Record<Cat, { label: string; icon: ReactNode }> = {
+  train: { label: "Train or metro", icon: <><rect x="5" y="3" width="14" height="13" rx="3" /><path d="M5 10h14M9 16l-2 5M15 16l2 5M8.5 13h.01M15.5 13h.01" /></> },
+  car: { label: "Taxi, car or bus", icon: <><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2M9 17h6" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" /></> },
+  walk: { label: "Walk", icon: <><path d="M7 3c2 0 3 2.5 3 5.5S9 13 7 13s-3-1.5-3-4.5S5 3 7 3ZM5 16h4v1.5a2 2 0 0 1-4 0ZM17 7c2 0 3 2.5 3 5.5S19 17 17 17s-3-1.5-3-4.5S15 7 17 7ZM15 20h4v.5a2 2 0 0 1-4 0Z" /></> },
+  fly: { label: "Flight", icon: <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2Z" /> },
+  eat: { label: "Food", icon: <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /> },
+  shop: { label: "Shopping", icon: <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0" /> },
+  see: { label: "Sightseeing", icon: <><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z" /><circle cx="12" cy="13" r="3" /></> },
+  ride: { label: "Rides and games", icon: <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2ZM13 5v2M13 17v2M13 11v2" /> },
+  shrine: { label: "Shrine or temple", icon: <path d="M3 5.5c6 1.3 12 1.3 18 0M5 9.5h14M7 6.5V21M17 6.5V21M12 6.8v2.7" /> },
+  stay: { label: "Hotel and rest", icon: <path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8v9" /> },
+  note: { label: "Reminder", icon: <><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></> },
+};
+const CAT_ORDER = Object.keys(CATS) as Cat[];
+/** Optional rows get a dashed dot. */
+const isOptional = (t: string, x: string) => /optional/i.test(t) || /^(optional|bonus)/i.test(x);
+/** A card type that gets a symbol beside its name. */
+const typeCat = (type: string): Cat | undefined => (type === "Eat" ? "eat" : type === "Shop" ? "shop" : undefined);
+
+function CatIcon({ cat, className }: { cat: Cat; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      {CATS[cat].icon}
+    </svg>
+  );
+}
+
+/** A row's dot: the icon for what it is, solid if booked, hollow if planned, dashed if optional. */
+function Dot({ cat, planned, optional, city, className }: { cat: Cat; planned: boolean; optional?: boolean; city: City; className?: string }) {
+  const c = CITY[city];
+  return (
+    <span
+      title={CATS[cat].label}
+      className={cx(
+        "flex size-[22px] shrink-0 items-center justify-center rounded-full",
+        planned ? cx("border-[1.5px] bg-surface", c.border, c.text, optional && "border-dashed") : cx(c.bg, "text-paper"),
+        className,
+      )}
+    >
+      <CatIcon cat={cat} className="size-3" />
+      <span className="sr-only">{CATS[cat].label}</span>
+    </span>
+  );
+}
+
 /**
- * A day as one line: what the agent booked (filled dot) and what Dhairya
- * planned around it (hollow dot), in time order. An entry that names a place
+ * A day as one line: what the agent booked (solid dot) and what Dhairya
+ * planned around it (hollow dot), in time order, each dot showing what kind
+ * of thing the row is. An entry that names a place
  * gets a button that jumps to its card.
  */
 function Timeline({
@@ -334,10 +381,11 @@ function Timeline({
   const entries: Entry[] = day.timeline;
   return (
     <ol className={cx("relative", compact && "ml-1.5 border-l-2 border-line")}>
-      {entries.map(([t, x, kind, ref], i) => {
+      {entries.map(([t, x, kind, cat, ref], i) => {
         const planned = kind === "x";
         const place = ref ? day.places.find((p) => p.id === ref) : undefined;
-        const dot = cx("size-3 rounded-full", planned ? cx("border-2 bg-surface", c.border) : c.bg);
+        const chipCat = place && typeCat(place.type);
+        const dot = <Dot cat={cat} planned={planned} optional={isOptional(t, x)} city={day.city} />;
         const body = (
           <span className={cx(planned ? "text-ink" : "font-medium")}>
             <Rich text={x} />
@@ -352,6 +400,7 @@ function Timeline({
                   c.text,
                 )}
               >
+                {chipCat && <CatIcon cat={chipCat} className="mr-1 inline size-3.5 -translate-y-px align-middle" />}
                 {place.name} →
               </button>
             )}
@@ -360,19 +409,19 @@ function Timeline({
 
         if (compact)
           return (
-            <li key={i} className="relative grid grid-cols-[64px_minmax(0,1fr)] gap-2.5 py-1.5 pb-2.5 pl-4">
-              <span className={cx("absolute top-[11px] -left-[7px]", dot)} />
+            <li key={i} className="relative grid grid-cols-[64px_minmax(0,1fr)] gap-2.5 py-1.5 pb-2.5 pl-5">
+              <span className="absolute top-[5px] -left-[12px] rounded-full ring-2 ring-paper">{dot}</span>
               <span className="pt-px text-[.82rem] font-bold text-muted tabular-nums">{t}</span>
               <span className="min-w-0">{body}</span>
             </li>
           );
 
         return (
-          <li key={i} className="grid grid-cols-[96px_28px_minmax(0,1fr)] items-start">
+          <li key={i} className="grid grid-cols-[96px_44px_minmax(0,1fr)] items-start">
             <span className="pt-[3px] text-right text-sm font-bold text-muted tabular-nums">{t}</span>
             <span className="relative flex h-full justify-center">
               {i < entries.length - 1 && <span className="absolute top-3 bottom-0 w-px bg-line" />}
-              <span className={cx("relative mt-[7px] ring-4 ring-surface", dot)} />
+              <span className="relative mt-px rounded-full ring-4 ring-surface">{dot}</span>
             </span>
             <span className="min-w-0 pb-3.5">{body}</span>
           </li>
@@ -393,7 +442,8 @@ function PlaceCard({ place, date, city, popup }: { place: Place; date: string; c
     >
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <span className={cx("text-[.85rem] font-bold tabular-nums", c.text)}>{place.t}</span>
-        <span className="rounded border border-line px-1.5 text-[.68rem] font-bold tracking-wide text-muted uppercase">
+        <span className="flex items-center gap-1 rounded border border-line px-1.5 text-[.68rem] font-bold tracking-wide text-muted uppercase">
+          {typeCat(place.type) && <CatIcon cat={typeCat(place.type)!} className="size-3" />}
           {place.type}
         </span>
       </div>
@@ -492,19 +542,33 @@ function Places({ day }: { day: (typeof DAYS)[number] }) {
 }
 
 /** Which dot means what. */
-function Legend({ city = "tokyo" as City, className }: { city?: City; className?: string }) {
-  const c = CITY[city];
+function Legend({ city = "tokyo" as City, cats, className }: { city?: City; cats?: Cat[]; className?: string }) {
+  const shown = CAT_ORDER.filter((k) => !cats || cats.includes(k));
   return (
-    <p className={cx("flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted", className)}>
-      <span className="flex items-center gap-1.5">
-        <span className={cx("size-2.5 rounded-full", c.bg)} />
-        From your itinerary
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className={cx("size-2.5 rounded-full border-2", c.border)} />
-        Planned by you
-      </span>
-    </p>
+    <div className={cx("flex flex-col gap-1.5 text-sm text-muted", className)}>
+      <p className="flex flex-wrap gap-x-4 gap-y-1">
+        <span className="flex items-center gap-1.5">
+          <Dot cat="see" planned={false} city={city} className="scale-[.8]" />
+          Booked by the agent
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Dot cat="see" planned city={city} className="scale-[.8]" />
+          Planned by you
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Dot cat="see" planned optional city={city} className="scale-[.8]" />
+          Optional
+        </span>
+      </p>
+      <p className="flex flex-wrap gap-x-3.5 gap-y-1">
+        {shown.map((k) => (
+          <span key={k} className="flex items-center gap-1">
+            <CatIcon cat={k} className="size-3.5" />
+            {CATS[k].label}
+          </span>
+        ))}
+      </p>
+    </div>
   );
 }
 
@@ -837,7 +901,7 @@ function Desktop() {
 
           <div className="mt-8 mb-4 flex flex-wrap items-baseline justify-between gap-3">
             <h4 className="text-xs font-bold tracking-[.18em] text-muted uppercase">The day</h4>
-            <Legend city={day.city} />
+            <Legend city={day.city} cats={[...new Set(day.timeline.map((e) => e[3]))]} />
           </div>
           <Timeline day={day} />
         </article>
@@ -1062,7 +1126,7 @@ function Mobile() {
                   <Timeline day={d} compact onPlace={(place, trigger) => setSheet({ place, day: d, trigger })} />
                   {/* Places the timeline doesn't name still need a way in. */}
                   {(() => {
-                    const loose = d.places.filter((p) => !d.timeline.some((e) => e[3] === p.id));
+                    const loose = d.places.filter((p) => !d.timeline.some((e) => e[4] === p.id));
                     if (!loose.length) return null;
                     return (
                       <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">

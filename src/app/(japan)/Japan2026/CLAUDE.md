@@ -83,9 +83,15 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
 
 ### Data model (`src/japan/data.ts`)
 
-- Each day is **one timeline** of `[time, text, kind, place?]`: kind `"i"` is from
-  the agent's itinerary (filled dot), `"x"` is planned by Dhairya (hollow dot).
+- Each day is **one timeline** of `[time, text, kind, cat, place?]`: kind `"i"` is
+  from the agent's itinerary (solid dot), `"x"` is planned by Dhairya (hollow
+  dot); a row whose text starts with "Optional" gets a dashed dot. `cat` (he
+  asked, 18 Oct 2026) is the icon in the dot: train, car (taxi/car/bus), walk,
+  fly, eat, shop, see, ride, shrine, stay, note. The legend lists only the ones
+  the day uses. Eat and Shop cards get the same symbol on their chip and card.
   An empty time means "part of the entry above".
+- Every move says how: metro rows name the line and its colour, the direction,
+  stops, exit, and the walk from the hotel to the station.
 - `place` points at a card in the day's `places` (`t`, `type`, `name`, `what`,
   `dist`, `hours`, `note`, `url` = directions link). Clicking the name scrolls to
   and rings the card. Desktop lists cards in a sticky side column; **phones don't
