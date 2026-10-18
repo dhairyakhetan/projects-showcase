@@ -16,7 +16,7 @@ planner's link preview.
 ## The trip
 
 - **19–28 Oct 2026**, Tokyo → Kyoto → Osaka. Dhairya with Mum (Sweta) and Dad
-  (Dilip). Dad flies on to China from Osaka; Dhairya and Mum fly home to Kolkata.
+  (Dilip). All three fly home to Kolkata together (Dad's China leg was dropped).
 - Package by **Capricorn Tours LLP** (the agent): flights, hotels, transfers,
   tours, the two park tickets, teamLab, the bullet trains, hotel breakfasts.
 - Hotels: **Citadines Shinjuku** (20–22), **Miyako Hotel Kyoto Hachijo** (23–24,
@@ -154,8 +154,8 @@ booking refs, which is fine there).
 - Every voucher is in (he confirmed it is the whole trip): tour meeting points (20, 21, 24 Oct), Disney and
   Kyoto transfers, Thunderbird 18 plus the van on 25 Oct. Universal Studios is
   **26 Oct**; 27 Oct is a private 4-hour MagicalTrip tour from the hotel at 08:00 (not the SIC walking tour); airport car 28 Oct 08:00.
-- Open: the USJ return pickup on the voucher says 06:30; he's asking the
-  agent for 21:00 (`TODO`).
+- USJ (26 Oct): he said to assume the car leaves the hotel at 06:30 and the
+  park at 21:30; the voucher prints 06:30 for both (`TODO`).
 
 ---
 

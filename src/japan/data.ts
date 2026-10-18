@@ -1065,43 +1065,44 @@ export const DAYS: Day[] = [
     date: "2026-10-26", city: "osaka", title: "Universal Studios Japan", short: "Universal Studios Japan",
     gist: "Osaka – Universal Studios (pick and drop transfer, private). Entry ticket only.",
     timeline: [
-      ["07:30","Wake up","x"],
-      ["08:00","Hotel breakfast","x"],
-      ["09:30","Private car from the hotel to Universal Studios (about 25 min). Be in the lobby by 09:20","i","car26"],
-      ["~10:00","Universal Studios Japan (entry ticket included). Check park hours for the day","i"],
-      ["10:05","Walk straight to Harry Potter at the back of the park (about 15 min). If the area needs a timed-entry ticket today, take the free one in the USJ app at the gate","x","hp"],
-      ["10:25","Harry Potter and the Forbidden Journey","x","fj"],
-      ["11:30","Explore Hogsmeade: Ollivanders wand show, Zonko's Joke Shop, Honeydukes, Filch's Emporium, Owl Post","x","hogsmeade"],
-      ["12:15","Flight of the Hippogriff, past Hagrid's hut (walk 2 min)","x","hippo"],
-      ["12:45","Jurassic Park – The Ride: big splash drop (walk about 5 min next door)","x","jp"],
-      ["13:30","Quick lunch: plant-based pho at Lost World Restaurant (walk 2 min)","x","lunch27"],
-      ["14:15","The Flying Dinosaur: face-down coaster (walk 2 min)","x","dino"],
-      ["15:15","Hollywood Dream: pick your song (walk about 15 min to the front of the park)","x","hd"],
-      ["16:15","Hollywood Dream: Backdrop, the same coaster backwards (separate queue)","x","hd"],
-      ["17:00","Back to Hogsmeade: wand magic spots and Butterbeer (walk about 15 min)","x","wands"],
-      ["17:45","Dinner: Three Broomsticks in Hogsmeade","x","dinner27"],
-      ["18:30","Hogwarts lit up at night; Halloween Horror Nights around the park","x","hhn"],
-      ["19:00","Night re-rides while queues drop: the Flying Dinosaur, or Forbidden Journey once more","x","dino"],
-      ["20:40","Walk to the gate for the pickup (about 15 min)","x"],
-      ["21:00","Private car back to the hotel (fix the time on the voucher first, see tips)","i","car26"],
-      ["~21:30","Back at the hotel","x"],
+      ["05:45","Wake up. Breakfast is konbini food bought the night before (the hotel breakfast won't be open yet); eat it in the car or the gate queue","x"],
+      ["06:20","Down to the lobby","x"],
+      ["06:30","Private car from the hotel to Universal Studios (about 25 min)","i","car26"],
+      ["~07:00","At the gates before opening: join the entry queue. Check the opening time in the USJ app","i"],
+      ["Opening","Walk straight to Harry Potter at the back of the park (about 15 min). If the area needs a timed-entry ticket today, take the free one in the USJ app at the gate","x","hp"],
+      ["08:50","Harry Potter and the Forbidden Journey, while the queue is short","x","fj"],
+      ["10:00","Explore Hogsmeade: Ollivanders wand show, Zonko's Joke Shop, Honeydukes, Filch's Emporium, Owl Post","x","hogsmeade"],
+      ["10:45","Flight of the Hippogriff, past Hagrid's hut (walk 2 min)","x","hippo"],
+      ["11:15","Jurassic Park – The Ride: big splash drop (walk about 5 min next door)","x","jp"],
+      ["12:00","Quick lunch: plant-based pho at Lost World Restaurant (walk 2 min)","x","lunch27"],
+      ["12:45","The Flying Dinosaur: face-down coaster (walk 2 min)","x","dino"],
+      ["13:45","Hollywood Dream: pick your song (walk about 15 min to the front of the park)","x","hd"],
+      ["14:45","Hollywood Dream: Backdrop, the same coaster backwards (separate queue)","x","hd"],
+      ["15:45","Back to Hogsmeade: wand magic spots and Butterbeer (walk about 15 min)","x","wands"],
+      ["16:45","Re-ride your favourites; single-rider lines are the fastest. Sit down for a break if you need one: it's a long day","x"],
+      ["18:00","Dinner: Three Broomsticks in Hogsmeade","x","dinner27"],
+      ["18:45","Hogwarts lit up at night; Halloween Horror Nights around the park","x","hhn"],
+      ["19:15","Night re-rides while queues drop: the Flying Dinosaur, or Forbidden Journey once more","x","dino"],
+      ["21:10","Walk to the gate for the pickup (about 15 min)","x"],
+      ["21:30","Private car back to the hotel (about 25 min)","i","car26"],
+      ["~22:00","Back at the hotel","x"],
       ["22:30","Sleep (private tour pickup at the hotel at 08:00 tomorrow)","x"],
     ],
     places: [
       {
         id: "car26",
-        t: "09:30",
+        t: "06:30 and 21:30",
         type: "Go",
         name: "Private car to Universal Studios",
-        what: "Round trip in a private 7-seater car. Pickup at Osaka View Hotel Honmachi at 09:30; the same service brings you back to the hotel. English through a translator.",
+        what: "Round trip in a private 7-seater car. Pickup at Osaka View Hotel Honmachi at 06:30; the return leaves the park at 21:30 and drops you back at the hotel. English through a translator.",
         dist: "About 12 km · 25–30 min by road",
         hours: "Pickups allowed 06:00–22:00",
-        note: "Be in the lobby by 09:20 and keep the voucher QR on your phone. The return time on the voucher is wrong (06:30): see the tips",
+        note: "Be in the lobby by 06:20 and keep the voucher QR on your phone. The voucher prints the return as 06:30 as well, so make sure the driver knows it's 21:30",
         url: "https://www.google.com/maps/dir/?api=1&origin=Osaka+View+Hotel+Honmachi&origin_place_id=ChIJDYCo9OLmAGARHahlNEJ5nhQ&destination=Universal%20Studios%20Japan&travelmode=driving",
       },
       {
         id: "hp",
-        t: "10:05",
+        t: "Opening",
         type: "See",
         name: "Wizarding World of Harry Potter",
         what: "Hogsmeade village with its snowy roofs and Hogwarts castle on the hill, at the back of the park. Most of today is in and around it",
@@ -1112,7 +1113,7 @@ export const DAYS: Day[] = [
       },
       {
         id: "fj",
-        t: "10:25",
+        t: "08:50",
         type: "Ride",
         name: "Harry Potter and the Forbidden Journey",
         what: "Walk through Hogwarts (moving portraits, Dumbledore's office), then fly with Harry over the Quidditch pitch, past a dragon and Dementors",
@@ -1123,7 +1124,7 @@ export const DAYS: Day[] = [
       },
       {
         id: "hogsmeade",
-        t: "11:30",
+        t: "10:00",
         type: "Shop",
         name: "Hogsmeade shops",
         what: "Ollivanders: groups of about 20–30 go in and the wandkeeper picks one guest to find a wand; buy wands after. Zonko's Joke Shop and Honeydukes (Chocolate Frogs, Bertie Bott's beans) share a shop. Also Dervish and Banges, Owl Post and Filch's Emporium. Butterbeer carts along the street",
@@ -1134,7 +1135,7 @@ export const DAYS: Day[] = [
       },
       {
         id: "hippo",
-        t: "12:15",
+        t: "10:45",
         type: "Ride",
         name: "Flight of the Hippogriff",
         what: "Small coaster past Hagrid's hut; bow to Buckbeak on the way",
@@ -1145,7 +1146,7 @@ export const DAYS: Day[] = [
       },
       {
         id: "jp",
-        t: "12:45",
+        t: "11:15",
         type: "Ride",
         name: "Jurassic Park – The Ride",
         what: "Boat ride past dinosaurs that ends in a big drop and a soaking splash",
@@ -1156,7 +1157,7 @@ export const DAYS: Day[] = [
       },
       {
         id: "lunch27",
-        t: "13:30",
+        t: "12:00",
         type: "Eat",
         name: "Lost World Restaurant",
         what: "Quick lunch with plant-based items: vegetable pho with plant-based chicken and vegan spring rolls. USJ marks plant-based dishes with a green icon (no meat, seafood, eggs, dairy or honey)",
@@ -1167,7 +1168,7 @@ export const DAYS: Day[] = [
       },
       {
         id: "dino",
-        t: "14:15",
+        t: "12:45",
         type: "Ride",
         name: "The Flying Dinosaur",
         what: "USJ's wildest coaster: you hang face-down under the track and swoop like a pterosaur",
@@ -1178,7 +1179,7 @@ export const DAYS: Day[] = [
       },
       {
         id: "hd",
-        t: "15:15 and 16:15",
+        t: "13:45 and 14:45",
         type: "Ride",
         name: "Hollywood Dream and Backdrop",
         what: "Fast open coaster where you pick the song before the ride; Chainsaw Man version for 2026. Backdrop is the same track ridden backwards, with its own queue",
@@ -1189,7 +1190,7 @@ export const DAYS: Day[] = [
       },
       {
         id: "wands",
-        t: "17:00",
+        t: "15:45",
         type: "See",
         name: "Wand magic and Butterbeer",
         what: "With an interactive wand, cast spells at about 8 spots around Hogsmeade: fire, water, snow, wind, levitation. Then Butterbeer, cold or frozen",
@@ -1200,7 +1201,7 @@ export const DAYS: Day[] = [
       },
       {
         id: "dinner27",
-        t: "17:45",
+        t: "18:00",
         type: "Eat",
         name: "Three Broomsticks",
         what: "The Hogsmeade pub from the films, with a plant-based dish for your parents and the classic platters for you",
@@ -1211,17 +1212,17 @@ export const DAYS: Day[] = [
       },
       {
         id: "hhn",
-        t: "18:30",
+        t: "18:45",
         type: "See",
         name: "Halloween Horror Nights",
         what: "Runs 11 Sep–8 Nov 2026. After 18:00 zombies and scare actors take over the streets",
         dist: "Across the park, on your way back to the gate",
         hours: "After 18:00",
-        note: "Loud and crowded in places. Your ride home is at 21:00 once the voucher is fixed",
+        note: "Loud and crowded in places. Your ride home leaves at 21:30",
         url: "https://www.google.com/maps/dir/?api=1&origin=Universal%20Studios%20Japan&destination=Universal%20Studios%20Japan&travelmode=walking",
       },
     ],
-    tips: [["Fix the return pickup","The transfer voucher has the return pickup at 06:30, which is 6:30 in the morning. Ask the agent to change it to 21:00 (the latest allowed is 22:00): Hogwarts lit up, Horror Nights and the shortest queues of the day. If they can only do 18:30, leave right after dinner."], ["Single rider","For Hollywood Dream, Backdrop and the Flying Dinosaur, the single-rider line is often much faster; you ride in separate cars."], ["Express Pass","Not sold at ride entrances. Buy it ahead online (official USJ site or Klook) as a bundle with set ride times; pick one that includes Harry Potter and the Forbidden Journey and The Flying Dinosaur. About ¥10,000–22,000 a person depending on the date. Gate booths sometimes have some on the day, but busy days sell out."], ["Monday","Check the park hours for Mon 26 Oct in the USJ app the night before. The car arrives around 10:00, after opening, so walk straight to Harry Potter."]],
+    tips: [["Transfer times","Hotel at 06:30, back from the park at 21:30. The voucher prints both times as 06:30, so confirm 21:30 with the driver in the morning."], ["Single rider","For Hollywood Dream, Backdrop and the Flying Dinosaur, the single-rider line is often much faster; you ride in separate cars."], ["Express Pass","Not sold at ride entrances. Buy it ahead online (official USJ site or Klook) as a bundle with set ride times; pick one that includes Harry Potter and the Forbidden Journey and The Flying Dinosaur. About ¥10,000–22,000 a person depending on the date. Gate booths sometimes have some on the day, but busy days sell out."], ["Before opening","You reach the gates around 07:00, before the park opens: queue at the entrance, then walk straight to Harry Potter. Check the opening time for Mon 26 Oct in the USJ app the night before, and buy the konbini breakfast then too."]],
     sleep: "Osaka View Hotel Honmachi",
   },
   {
@@ -1328,8 +1329,8 @@ export const DAYS: Day[] = [
     sleep: "Osaka View Hotel Honmachi",
   },
   {
-    date: "2026-10-28", city: "travel", title: "Fly home (Dad to China)", short: "Fly home (Dad to China)",
-    gist: "Airport transfer, one way (private). Thai Vietjet, 1 stop in Bangkok. Dhairya and Sweta fly home. Dad flies on to China separately.",
+    date: "2026-10-28", city: "travel", title: "Fly home", short: "Fly home",
+    gist: "Airport transfer, one way (private). Thai Vietjet, 1 stop in Bangkok. All three fly home to Kolkata.",
     timeline: [
       ["06:30","Wake up. Last bag check: 20 kg check-in and 7 kg cabin each, katana in the checked bag","x"],
       ["07:00","Hotel breakfast","x"],
@@ -1367,7 +1368,7 @@ export const DAYS: Day[] = [
         what: "Check your terminal on the boarding pass or the Thai Vietjet app, then: check-in and bag drop, spend leftover Suica money (it works at airport konbini and many shops), security, departure immigration, gate",
         dist: "About 50 km from the hotel · 60 min by the private transfer",
         hours: "Check-in usually opens about 3 h before departure",
-        note: "Ask at check-in whether bags go straight to Kolkata. Dad flies on to China separately, so check his flight and terminal too",
+        note: "Ask at check-in whether bags go straight to Kolkata.",
         url: "https://www.google.com/maps/dir/?api=1&origin=Osaka+View+Hotel+Honmachi&origin_place_id=ChIJDYCo9OLmAGARHahlNEJ5nhQ&destination=Kansai%20International%20Airport&travelmode=driving",
       },
       {
@@ -1405,7 +1406,7 @@ export const FLIGHTS = [
       "Thai Vietjet VZ 567 from Kansai (KIX), 4h 20m stop in Bangkok, then VZ 770",
       "20 kg check-in + 7 kg cabin each",
     ],
-    who: "Dhairya and Sweta Khetan. Dad flies on to China separately.",
+    who: "Dhairya, Dilip and Sweta Khetan",
   },
 ];
 
@@ -1428,7 +1429,7 @@ export const HOTELS: { nights: string; name: string; room: string; city: City; a
 ];
 
 export const TODO = [
-  "Universal Studios return pickup (26 Oct): the voucher says 06:30. Change it to 21:00.",
+  "Universal Studios return car (26 Oct) is 21:30: the voucher prints 06:30, so confirm it with the driver.",
 ];
 
 /** Every temple and shrine near the route that gives a goshuin. `status` says how it fits. */
