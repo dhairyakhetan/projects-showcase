@@ -6,10 +6,10 @@ here. This file also covers `src/japan/` (the planner's code and data), the
 `(japan)` route group, `public/japan-sw.js`, `public/japan2026*` and the
 planner's link preview.
 
-> **Edit the artifact only.** All itinerary changes go to his private artifact,
-> https://claude.ai/artifact/5x3psKogRssTmXxeYFCVAg — **not** `data.ts`, and
-> nothing is pushed to `main` until Dhairya explicitly says "push to main".
-> Then copy only the days he names (see *Copying days to the site*).
+> **Edit the site, not the artifact (since 18 Oct 2026, the trip is on).** All
+> itinerary changes go straight into `src/japan/data.ts` and are pushed to
+> `main`. The artifact (https://claude.ai/artifact/5x3psKogRssTmXxeYFCVAg) is
+> frozen and now behind the site; don't edit it or copy from it.
 
 ---
 
@@ -137,8 +137,8 @@ booking refs, which is fine there).
 - The artifact now has the corrections applied (Kabukiza and the Diet Building
   are drive-bys, no "all sightseeing are photo stops", no PARCO Nintendo stop on
   23 Oct, Kyoto is Miyako Hachijo). If an older copy ever comes back, re-apply them.
-- **Standing rule (10 Oct 2026):** work only in the artifact until he says
-  "push to main". Then copy to the site only the days he names.
+- The artifact-first rule (10 Oct 2026) is retired: from 18 Oct the site is
+  the only copy. Everything below is history.
 
 ### Copying days to the site
 
@@ -148,19 +148,14 @@ booking refs, which is fine there).
 3. Replace only the days asked for in `data.ts`; leave the rest.
 4. `npx tsc --noEmit`, `npm run build`, check the days in Chromium, push to `main`.
 
-### State of the site (10 Oct 2026)
+### State of the site (18 Oct 2026)
 
-- Days **1–5 (19–23 Oct)** match the artifact's new day-by-day plan.
-- Days **6–10 (24–28 Oct)** are still the **older full plan** (his earlier
-  additions). Known stale bits there: 25 Oct Den Den Town card says "you saw
-  Mandarake in Akihabara and Shibuya" (only Akihabara now); 26 Oct Mugiwara card
-  says Nintendo was "done in Shibuya" (it wasn't); 27 Oct HHN card says the ride
-  home is 19:00 (the plan says ~21:00); timeline says Den Den 16:40, card 16:30.
-- `GOSHUIN` notes still mention Uniqlo UT/Graniph on 23 Oct, which the new day 5
-  no longer has.
-- Branch `claude/practical-lamport-j9yvpu` holds an itinerary-only version of
-  `data.ts` (with empty reference sections hidden). It was never merged; he moved
-  that work to the artifact instead.
+- All ten days are planned and live; the site is ahead of the artifact.
+- Voucher details are in: tour meeting points (20, 21, 24 Oct), Disney and
+  Kyoto transfers, Thunderbird 18 plus the van on 25 Oct. Universal Studios is
+  **26 Oct** and the Osaka walking tour **27 Oct** (they were swapped).
+- Open: the USJ return pickup on the voucher says 06:30; he's asking the
+  agent for 21:00 (`TODO`).
 
 ---
 
