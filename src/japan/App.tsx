@@ -1056,7 +1056,7 @@ function Footer() {
 
 /**
  * Puts a phone day just under the date strip and keeps it there while the days
- * above it finish drawing: off-screen days are placeholders (.day-lazy) that
+ * above it finish drawing: days not built yet are placeholders (MobileDays) that
  * take their real height when drawn, which pushes the target. Aims each frame
  * until it holds still; stops the moment the user scrolls. Returns a cancel.
  */
@@ -1090,45 +1090,6 @@ function pinDay(i: number) {
 function dayTop(el: HTMLElement) {
   const strip = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--strip-h")) || 84;
   return el.getBoundingClientRect().top + scrollY - strip;
-}
-
-/**
- * Glides the page to a day, then pins it (pinDay). Done by hand rather than
- * scrollIntoView({ behavior: "smooth" }): iOS 15 Safari cut that short when
- * the strip scrolled sideways at the same time, and has no scrollend to say
- * when it stopped. Each frame re-reads where the day is, so days above it
- * that change height mid-glide don't throw it off. Stops if the user scrolls.
- */
-function glideTo(i: number, onDone: () => void, onCancel: () => void) {
-  const el = document.getElementById(dayId(i));
-  if (!el) return onDone();
-  const from = scrollY;
-  const duration = Math.min(600, 250 + Math.abs(dayTop(el) - from) / 20);
-  const start = performance.now();
-  let stopped = false;
-  const cancel = () => {
-    if (stopped) return;
-    stopped = true;
-    off();
-    onCancel();
-  };
-  const off = () => {
-    removeEventListener("touchstart", cancel);
-    removeEventListener("wheel", cancel);
-  };
-  addEventListener("touchstart", cancel, { passive: true });
-  addEventListener("wheel", cancel, { passive: true });
-  const step = (now: number) => {
-    if (stopped) return;
-    const t = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - t, 3);
-    instantly(() => scrollTo(0, from + (dayTop(el) - from) * eased));
-    if (t < 1) return void requestAnimationFrame(step);
-    stopped = true;
-    off();
-    onDone();
-  };
-  requestAnimationFrame(step);
 }
 
 function Mobile() {
@@ -1174,7 +1135,9 @@ function Mobile() {
     if (current) shownDay = Number(current.slice(3)) - 1;
     const s = strip.current;
     const t = current ? s?.querySelector<HTMLElement>(`[data-slot="${Number(current.slice(3)) - 1}"]`) : null;
-    if (s && t) s.scrollTo({ left: t.offsetLeft - (s.clientWidth - t.offsetWidth) / 2, behavior: "smooth" });
+    // Instant, not smooth: on iOS 15 a sideways smooth scroll here cut the
+    // page's own smooth scroll to the tapped day short.
+    if (s && t) s.scrollLeft = t.offsetLeft - (s.clientWidth - t.offsetWidth) / 2;
   }, [current]);
 
   return (
@@ -1230,14 +1193,27 @@ function Mobile() {
                   // and ignores the days the scroll passes on the way.
                   setCurrent(id);
                   steering.current = true;
-                  glideTo(
-                    i,
-                    () => {
-                      steering.current = false;
-                      pinDay(i);
-                    },
-                    () => (steering.current = false),
-                  );
+                  // One native smooth scroll to just under the strip (dayTop, not
+                  // scroll-margin, which iOS 15 doesn't reliably apply). The days are
+                  // built in the background by now, so their heights hold still.
+                  const el = document.getElementById(id);
+                  if (el) scrollTo({ top: dayTop(el), behavior: "smooth" });
+                  // No scrollend on iOS 15: let the ring follow the page again once
+                  // scrolling has been quiet for a moment, or when the user touches.
+                  let quiet = 0;
+                  const release = () => {
+                    steering.current = false;
+                    clearTimeout(quiet);
+                    removeEventListener("scroll", wait);
+                    removeEventListener("touchstart", release);
+                  };
+                  const wait = () => {
+                    clearTimeout(quiet);
+                    quiet = window.setTimeout(release, 150);
+                  };
+                  addEventListener("scroll", wait, { passive: true });
+                  addEventListener("touchstart", release, { passive: true });
+                  wait();
                 }}
                 aria-current={on || undefined}
                 className={cx(
@@ -1365,7 +1341,7 @@ const MobileDay = memo(function MobileDay({
 }) {
   const c = CITY[d.city];
   return (
-    <article id={dayId(i)} data-day data-i={i} className="day-lazy scroll-mt-[var(--strip-h,84px)] grid grid-cols-[48px_minmax(0,1fr)] gap-x-3 border-b border-line py-7 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-x-4">
+    <article id={dayId(i)} data-day data-i={i} className="grid grid-cols-[48px_minmax(0,1fr)] gap-x-3 border-b border-line py-7 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-x-4">
       {/* Pinned under the date strip while its day scrolls by. Stacked above the day
           (z-[1]) so the timeline beside it is not lifted into a day-tall GPU layer. */}
       <div

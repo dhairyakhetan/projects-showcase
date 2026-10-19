@@ -47,10 +47,6 @@ body {
 :focus-visible { outline: 2px solid var(--tokyo); outline-offset: 2px; border-radius: 6px; }
 
 
-/* Phone: a day far off screen skips layout and paint until you scroll near
-   it, so slow phones only draw the days you can see. The size is a guess
-   for its placeholder; "auto" remembers the real one once it's been drawn. */
-.day-lazy { content-visibility: auto; contain-intrinsic-size: auto 1800px; }
 
 /* Taps answer at once: no wait to see whether it's a double-tap zoom, no
    grey iOS flash; a quick dim while pressed shows the tap landed instead.
