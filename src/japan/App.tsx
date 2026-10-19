@@ -20,13 +20,33 @@ const weekday = (d: string) => jst(d).toLocaleDateString("en-GB", { weekday: "sh
 const weekdayLong = (d: string) => jst(d).toLocaleDateString("en-GB", { weekday: "long", timeZone: "Asia/Tokyo" });
 const dayNum = (d: string) => Number(d.slice(8, 10));
 const dayId = (i: number) => "day" + (i + 1);
+/**
+ * YYYY-MM-DD in a time zone. Built from parts: older Safari (the iPad mini 4
+ * is on iOS 15) doesn't promise en-CA's dashed order from format().
+ */
+const ymd = (fmt: Intl.DateTimeFormat, t: number | Date) => {
+  const p = Object.fromEntries(fmt.formatToParts(t).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}`;
+};
 const JAPAN_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" });
 /** Today in Japan, YYYY-MM-DD. */
-const japanToday = () => JAPAN_DATE.format(new Date());
+const japanToday = () => ymd(JAPAN_DATE, new Date());
 const dayIndexOf = (date: string) => DAYS.findIndex((d) => d.date === date);
 const START = DAYS[0].date;
 const END = DAYS[DAYS.length - 1].date;
 const isWarn = (h: string) => /error|warning/i.test(h);
+
+/**
+ * Scrolls without animating. iOS 15 Safari rejects behavior "instant", and
+ * "auto" follows html's smooth scrolling, so that is switched off for the call.
+ */
+function instantly(scroll: () => void) {
+  const style = document.documentElement.style;
+  const before = style.scrollBehavior;
+  style.scrollBehavior = "auto";
+  scroll();
+  style.scrollBehavior = before;
+}
 
 function cx(...c: (string | false | undefined)[]) {
   return c.filter(Boolean).join(" ");
@@ -137,7 +157,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 const IST_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" });
 /** A moment as its calendar date in India, at UTC midnight so dates subtract cleanly. */
-const istDay = (t: number) => Date.parse(IST_DATE.format(t) + "T00:00:00Z");
+const istDay = (t: number) => Date.parse(ymd(IST_DATE, t) + "T00:00:00Z");
 
 type Unit = [value: number, name: "year" | "day" | "hour" | "minute" | "second"];
 
@@ -208,7 +228,7 @@ function PageLink({ to, className, children }: { to: string; className?: string;
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
         e.preventDefault();
         history.pushState(null, "", to);
-        scrollTo({ top: 0, behavior: "instant" });
+        instantly(() => scrollTo(0, 0));
         dispatchEvent(new Event("japan-navigate"));
       }}
     >
@@ -500,7 +520,7 @@ function PlaceSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end" role="presentation">
-      <div className="sheet-scrim absolute inset-0 bg-ink/40" onClick={onClose} />
+      <div className="sheet-scrim absolute inset-0 bg-[rgba(0,0,0,.6)]" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
@@ -645,7 +665,7 @@ function Hotels() {
 }
 
 const SPOT_STATUS: Record<SpotStatus, { label: string; cls: string }> = {
-  plan: { label: "In your plan", cls: "bg-ink/10 text-ink" },
+  plan: { label: "In your plan", cls: "bg-[rgba(236,238,240,.1)] text-ink" },
   tour: { label: "May be on the tour", cls: "border border-ink text-ink" },
   fit: { label: "Fits a gap", cls: "bg-travel-soft text-ink" },
   detour: { label: "Only as a detour", cls: "border border-line text-muted" },
@@ -785,18 +805,19 @@ function Desktop() {
   }, [sel, go]);
 
   return (
-    <div className="mx-auto max-w-[1320px] px-10 pt-9 pb-16 xl:px-14">
+    <div className="mx-auto max-w-[1320px] px-6 pt-6 pb-16 xl:px-14 xl:pt-9">
       {/* Header */}
-      <header className="flex items-end justify-between gap-10">
+      <header className="flex items-end justify-between gap-6 xl:gap-10">
         <div>
           <p className="text-sm font-bold tracking-[.22em] text-muted uppercase">19 – 28 October 2026</p>
-          <h1 className="mt-1.5 font-serif text-[3.25rem] leading-none font-extrabold tracking-tight xl:text-6xl">Japan</h1>
-          <p className="mt-3 text-lg text-muted">Dhairya, Mum and Dad · Tokyo, Kyoto, Osaka</p>
+          <h1 className="mt-1.5 font-serif text-[2.75rem] leading-none font-extrabold tracking-tight xl:text-6xl">Japan</h1>
+          <p className="mt-2 text-muted xl:mt-3 xl:text-lg">Dhairya, Mum and Dad · Tokyo, Kyoto, Osaka</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3 whitespace-nowrap">
+          {/* Below xl (an iPad on its side) there's no room; the sections are a scroll away. */}
           <button
             onClick={() => document.getElementById("trip-info")?.scrollIntoView({ behavior: "smooth" })}
-            className="cursor-pointer rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold hover:border-muted"
+            className="hidden cursor-pointer rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold hover:border-muted xl:block"
           >
             Flights &amp; hotels ↓
           </button>
@@ -806,7 +827,7 @@ function Desktop() {
       </header>
 
       {/* Timeline */}
-      <div className="mt-7">
+      <div className="mt-5 xl:mt-7">
         <div className="grid grid-cols-10 gap-2.5">
           {SEGMENTS.map((s, i) => (
             <div key={i} style={{ gridColumn: `span ${s.span}` }}>
@@ -855,8 +876,8 @@ function Desktop() {
                   aria-selected={on}
                   onClick={() => go(i)}
                   className={cx(
-                    "group relative flex min-h-[104px] cursor-pointer flex-col rounded-2xl p-3 text-left transition-colors duration-300",
-                    on ? "text-paper" : "hover:bg-ink/[.04]",
+                    "group relative flex min-h-[84px] cursor-pointer flex-col rounded-2xl p-2.5 text-left transition-colors duration-300 xl:min-h-[104px] xl:p-3",
+                    on ? "text-paper" : "hover:bg-[rgba(236,238,240,.05)]",
                   )}
                 >
                   <span className={cx("text-xs font-bold uppercase transition-colors duration-300", on ? "text-paper/80" : "text-muted")}>{weekday(d.date)}</span>
@@ -876,7 +897,7 @@ function Desktop() {
 
       {/* Selected day */}
       <div ref={panel} className="mt-3 grid grid-cols-12 items-start gap-6" role="tabpanel" aria-label={`${dayNum(day.date)} October`}>
-        <article key={day.date} className="day-fade col-span-7 rounded-3xl border border-line bg-surface p-8 xl:p-10">
+        <article key={day.date} className="day-fade col-span-7 rounded-3xl border border-line bg-surface p-6 xl:p-10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className={cx("rounded-full px-3 py-1 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
@@ -894,18 +915,18 @@ function Desktop() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-start gap-6">
-            <div className={cx("font-serif text-[6.5rem] leading-[.8] font-extrabold", c.text)}>{dayNum(day.date)}</div>
+          <div className="mt-5 flex items-start gap-5 xl:mt-6 xl:gap-6">
+            <div className={cx("font-serif text-[5rem] leading-[.8] font-extrabold xl:text-[6.5rem]", c.text)}>{dayNum(day.date)}</div>
             <div className="min-w-0 pt-1">
               <div className="text-sm font-bold tracking-[.14em] text-muted uppercase">{weekdayLong(day.date)}, October</div>
-              <h2 className="mt-1 font-serif text-4xl leading-tight font-extrabold">{day.title}</h2>
+              <h2 className="mt-1 font-serif text-3xl leading-tight font-extrabold xl:text-4xl">{day.title}</h2>
             </div>
           </div>
-          <p className="mt-5 max-w-[62ch] text-lg text-muted">
+          <p className="mt-4 max-w-[62ch] text-muted xl:mt-5 xl:text-lg">
             <Rich text={day.gist} />
           </p>
 
-          <div className="mt-8 mb-4 flex flex-wrap items-baseline justify-between gap-3">
+          <div className="mt-6 mb-4 flex flex-wrap items-baseline justify-between gap-3 xl:mt-8">
             <h4 className="text-xs font-bold tracking-[.18em] text-muted uppercase">The day</h4>
             <Legend city={day.city} cats={[...new Set(day.timeline.map((e) => e[3]))]} />
           </div>
@@ -917,9 +938,9 @@ function Desktop() {
           key={`${day.date}-aside`}
           className="day-fade no-scrollbar sticky top-[var(--bar-h,9rem)] col-span-5 -m-1 flex max-h-[calc(100dvh-var(--bar-h,9rem)-1rem)] flex-col gap-4 overflow-y-auto p-1"
         >
-          <div className={cx("rounded-3xl p-7", c.soft)}>
+          <div className={cx("rounded-3xl p-5 xl:p-7", c.soft)}>
             <div className="text-xs font-bold tracking-[.18em] text-muted uppercase">Tonight</div>
-            <div className={cx("mt-1 font-serif text-2xl font-extrabold", c.text)}>{day.sleep}</div>
+            <div className={cx("mt-1 font-serif text-xl font-extrabold xl:text-2xl", c.text)}>{day.sleep}</div>
           </div>
 
           <Places day={day} />
@@ -1024,7 +1045,7 @@ function pinDay(i: number) {
   const aim = () => {
     const el = document.getElementById(dayId(i));
     if (done || !el || frames++ > 90) return stop();
-    el.scrollIntoView({ behavior: "instant" });
+    instantly(() => el.scrollIntoView());
     const top = el.getBoundingClientRect().top;
     still = top === last ? still + 1 : 0;
     last = top;
@@ -1100,7 +1121,7 @@ function Mobile() {
 
   return (
     <>
-      <header className="mx-auto max-w-[680px] px-4 pt-[calc(env(safe-area-inset-top,0px)+32px)] pb-5 md:px-6">
+      <header className="mx-auto max-w-[680px] px-4 pt-[calc(env(safe-area-inset-top,0px)+32px)] pb-5 md:max-w-[768px] md:px-6">
         <p className="text-xs font-bold tracking-[.2em] text-muted uppercase">19 – 28 October 2026</p>
         <h1 className="mt-1 font-serif text-[2.6rem] leading-none font-extrabold">Japan</h1>
         <p className="mt-2 text-muted">Dhairya, Mum and Dad · Tokyo, Kyoto, Osaka</p>
@@ -1125,7 +1146,7 @@ function Mobile() {
       </header>
 
       <nav ref={nav} aria-label="Jump to a day" className="sticky top-0 z-10 border-b border-line bg-paper pt-[env(safe-area-inset-top,0px)]">
-        <div ref={strip} className="no-scrollbar relative mx-auto flex max-w-[680px] gap-1.5 overflow-x-auto px-4 py-2.5 md:px-6">
+        <div ref={strip} className="no-scrollbar relative mx-auto flex max-w-[680px] gap-1.5 overflow-x-auto px-4 py-2.5 md:max-w-[768px] md:px-6">
           {/* A ring, not a fill, so it can sit on top and slide over the dates
               without hiding them. */}
           <span
@@ -1152,7 +1173,7 @@ function Mobile() {
                 }}
                 aria-current={on || undefined}
                 className={cx(
-                  "min-w-[52px] shrink-0 rounded-xl border border-b-[3px] px-2.5 pt-1.5 pb-1 text-center leading-tight",
+                  "min-w-[52px] shrink-0 rounded-xl border border-b-[3px] px-2.5 pt-1.5 pb-1 text-center leading-tight md:flex-1",
                   CITY[d.city].border,
                   "border-t-line border-r-line border-l-line bg-surface",
                 )}
@@ -1165,7 +1186,7 @@ function Mobile() {
         </div>
       </nav>
 
-      <div className="mx-auto max-w-[680px] px-4 md:px-6">
+      <div className="mx-auto max-w-[680px] px-4 md:max-w-[768px] md:px-6">
         <MobileDays today={today} onPlace={openSheet} />
 
         <MobileInfo />
@@ -1202,6 +1223,13 @@ export default function App() {
  * The phone's ten days. Memoised so that scrolling (which moves the date
  * strip's ring) and opening a place sheet don't redraw every day.
  */
+/**
+ * The phone's ten days. Memoised so that scrolling (which moves the date
+ * strip's ring) and opening a place sheet don't redraw every day. Only the
+ * days near the screen are built: the first draw on a slow tablet (an iPad
+ * mini 4 on iOS 15, which has no content-visibility) is the day you open on
+ * and its neighbours, and the rest are built as you scroll toward them.
+ */
 const MobileDays = memo(function MobileDays({
   today,
   onPlace,
@@ -1209,72 +1237,111 @@ const MobileDays = memo(function MobileDays({
   today: string;
   onPlace: (place: Place, day: (typeof DAYS)[number], trigger: HTMLElement) => void;
 }) {
+  const [drawn, setDrawn] = useState(() => {
+    const start = shownDay ?? Math.max(0, dayIndexOf(japanToday()));
+    return new Set([start - 1, start, start + 1].filter((i) => i >= 0 && i < DAYS.length));
+  });
+  useEffect(() => {
+    const io = new IntersectionObserver(
+      (entries) => {
+        const near = entries.filter((e) => e.isIntersecting).map((e) => Number((e.target as HTMLElement).dataset.i));
+        if (near.length) setDrawn((prev) => (near.every((i) => prev.has(i)) ? prev : new Set([...prev, ...near])));
+      },
+      { rootMargin: "1500px 0px" },
+    );
+    document.querySelectorAll("article[data-day]").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
   return (
     <main>
-      {DAYS.map((d, i) => {
-        const c = CITY[d.city];
-        return (
-          <article key={d.date} id={dayId(i)} data-day className="day-lazy scroll-mt-[var(--strip-h,84px)] grid grid-cols-[48px_minmax(0,1fr)] gap-x-3 border-b border-line py-7 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-x-4">
-            {/* Pinned under the date strip while its day scrolls by. */}
-            <div
-              className={cx(
-                "sticky top-[var(--strip-h,84px)] self-start text-right font-serif text-[2.4rem] leading-[.9] font-extrabold sm:text-5xl",
-                c.text,
-              )}
-            >
-              {dayNum(d.date)}
-              <small className="mt-2 block font-sans text-xs leading-snug font-medium text-muted">
-                {weekday(d.date)}
-                <br />
-                Oct
-                <br />
-                Day {i + 1}
-              </small>
-            </div>
-            <div className="min-w-0">
-              <span className={cx("mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
-              {d.date === today && <span className="ml-1.5 rounded-full bg-alert px-2.5 py-0.5 text-sm font-bold text-paper">Today</span>}
-              <h2 className="mt-0.5 mb-2 font-serif text-[1.4rem] leading-tight font-extrabold sm:text-2xl">{d.title}</h2>
-              <p className="mb-3">
-                <Rich text={d.gist} />
-              </p>
-              <Timeline day={d} compact onPlace={(place, trigger) => onPlace(place, d, trigger)} />
-              {/* Places the timeline doesn't name still need a way in. */}
-              {(() => {
-                const loose = d.places.filter((p) => !d.timeline.some((e) => e[4] === p.id));
-                if (!loose.length) return null;
-                return (
-                  <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">
-                    Also:
-                    {loose.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        aria-haspopup="dialog"
-                        onClick={(e) => onPlace(p, d, e.currentTarget)}
-                        className={cx("rounded-md border border-line px-2 py-px text-[.85rem] font-bold", c.soft, c.text)}
-                      >
-                        {p.name} →
-                      </button>
-                    ))}
-                  </p>
-                );
-              })()}
-              {d.tips.length > 0 && (
-                <div className="mt-3 space-y-2.5">
-                  {d.tips.map(([h, x]) => (
-                    <Tip key={h} head={h} text={x} />
-                  ))}
-                </div>
-              )}
-              <p className="mt-3 text-[.95rem] text-muted">
-                Sleep: <b className="text-ink">{d.sleep}</b>
-              </p>
-            </div>
-          </article>
-        );
-      })}
+      {DAYS.map((d, i) => (
+        <MobileDay key={d.date} d={d} i={i} today={today} drawn={drawn.has(i)} onPlace={onPlace} />
+      ))}
     </main>
+  );
+});
+
+/** One phone day. Memoised, so building a neighbour doesn't redraw it. */
+const MobileDay = memo(function MobileDay({
+  d,
+  i,
+  today,
+  drawn,
+  onPlace,
+}: {
+  d: (typeof DAYS)[number];
+  i: number;
+  today: string;
+  drawn: boolean;
+  onPlace: (place: Place, day: (typeof DAYS)[number], trigger: HTMLElement) => void;
+}) {
+  const c = CITY[d.city];
+  return (
+    <article id={dayId(i)} data-day data-i={i} className="day-lazy scroll-mt-[var(--strip-h,84px)] grid grid-cols-[48px_minmax(0,1fr)] gap-x-3 border-b border-line py-7 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-x-4">
+      {/* Pinned under the date strip while its day scrolls by. */}
+      <div
+        className={cx(
+          "sticky top-[var(--strip-h,84px)] self-start text-right font-serif text-[2.4rem] leading-[.9] font-extrabold sm:text-5xl",
+          c.text,
+        )}
+      >
+        {dayNum(d.date)}
+        <small className="mt-2 block font-sans text-xs leading-snug font-medium text-muted">
+          {weekday(d.date)}
+          <br />
+          Oct
+          <br />
+          Day {i + 1}
+        </small>
+      </div>
+      <div className="min-w-0">
+        <span className={cx("mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
+        {d.date === today && <span className="ml-1.5 rounded-full bg-alert px-2.5 py-0.5 text-sm font-bold text-paper">Today</span>}
+        <h2 className="mt-0.5 mb-2 font-serif text-[1.4rem] leading-tight font-extrabold sm:text-2xl">{d.title}</h2>
+        <p className="mb-3">
+          <Rich text={d.gist} />
+        </p>
+        {drawn ? (
+          <>
+            <Timeline day={d} compact onPlace={(place, trigger) => onPlace(place, d, trigger)} />
+            {/* Places the timeline doesn't name still need a way in. */}
+            {(() => {
+              const loose = d.places.filter((p) => !d.timeline.some((e) => e[4] === p.id));
+              if (!loose.length) return null;
+              return (
+                <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-muted">
+                  Also:
+                  {loose.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      aria-haspopup="dialog"
+                      onClick={(e) => onPlace(p, d, e.currentTarget)}
+                      className={cx("rounded-md border border-line px-2 py-px text-[.85rem] font-bold", c.soft, c.text)}
+                    >
+                      {p.name} →
+                    </button>
+                  ))}
+                </p>
+              );
+            })()}
+            {d.tips.length > 0 && (
+              <div className="mt-3 space-y-2.5">
+                {d.tips.map(([h, x]) => (
+                  <Tip key={h} head={h} text={x} />
+                ))}
+              </div>
+            )}
+            <p className="mt-3 text-[.95rem] text-muted">
+              Sleep: <b className="text-ink">{d.sleep}</b>
+            </p>
+          </>
+        ) : (
+          // Roughly the day's height, so the page doesn't jump much as days are built.
+          <div aria-hidden style={{ height: d.timeline.length * 56 + d.tips.length * 70 + 60 }} />
+        )}
+      </div>
+    </article>
   );
 });
 

@@ -93,6 +93,24 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
     the day holds still under the strip (strip taps: smooth scroll, then
     `pinDay` on `scrollend`). Use `behavior: "instant"` for those re-aims:
     `html` has smooth scrolling.
+- **Must work on an iPad mini 4 (iOS 15.8 Safari, A8, 2 GB)** — his tablet
+  for the trip (19 Oct 2026). Rules that follow from it:
+  - No translucent Tailwind colours (`bg-ink/40`, `text-x/80` …): Tailwind 4
+    builds them with `color-mix()`, which iOS 15 lacks, and falls back to the
+    solid colour (a near-white scrim). Use `bg-[rgba(…)]`.
+  - No `behavior: "instant"` (iOS 15 throws); use `instantly(() => …)`, which
+    turns off `html`'s smooth scrolling for the call.
+  - Dates come from `ymd()` (formatToParts), not `en-CA` `format()`.
+  - No `content-visibility` there, so `MobileDays` builds only the days near
+    the screen (`drawn`, an IntersectionObserver 1500 px ahead); others are
+    placeholders sized from their row count. `MobileDay` is memoised.
+  - `JapanTrip.tsx` imports `App` statically and renders it after mount
+    (`useSyncExternalStore`), so its code downloads with the page instead of
+    after React starts (next/dynamic did that, an extra round trip).
+  - Sideways it's 1024 px wide, the desktop layout's lower edge: below `xl`
+    the desktop uses less padding, smaller headings, 84 px date buttons and
+    hides "Flights & hotels" so the header stays on one line. Upright (768)
+    the phone layout widens to 768 px and the date tiles fill the strip.
 - **Desktop ↔ phone switch** (crossing 1024 px, e.g. turning a tablet):
   `shownDay` carries the day across, the new layout opens on it, and the swap
   fades in (`day-fade` on a wrapper keyed by layout).
