@@ -128,6 +128,8 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
   adds the empty `touchstart` listener iOS needs for `:active`). On desktop the
   tile highlight follows `sel` and the day's content `useDeferredValue(sel)`
   inside the memoised `DayPanel`, so a tap paints the tile before the day.
+  On the phone layout a date tap moves the strip's ring at once and holds it
+  there (`steering`) while the smooth scroll passes other days.
 - **Desktop ↔ phone switch** (crossing 1024 px, e.g. turning a tablet):
   `shownDay` carries the day across and the new layout opens on it.
 - Desktop: a day highlight that **slides** between the date buttons; the day's

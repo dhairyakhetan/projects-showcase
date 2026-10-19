@@ -1086,10 +1086,17 @@ function pinDay(i: number) {
   return stop;
 }
 
-/** Runs once a smooth scroll has finished (or after a second where `scrollend` isn't supported). */
-function afterScroll(fn: () => void) {
+/**
+ * Runs once a smooth scroll has finished (or after a second where `scrollend`
+ * isn't supported). If the user scrolls first, `onCancel` runs instead.
+ */
+function afterScroll(fn: () => void, onCancel?: () => void) {
   let ran = false;
-  const cancel = () => (ran = true);
+  const cancel = () => {
+    if (ran) return;
+    ran = true;
+    onCancel?.();
+  };
   const run = () => {
     removeEventListener("scrollend", run);
     removeEventListener("wheel", cancel);
@@ -1115,12 +1122,14 @@ function Mobile() {
   useHeightVar(nav, "--strip-h", 16);
   const strip = useRef<HTMLDivElement>(null);
   const ring = useSlide(strip, current ? Number(current.slice(3)) - 1 : -1);
+  /** True while a tapped date's smooth scroll runs: the ring already sits on it. */
+  const steering = useRef(false);
 
   useEffect(() => {
     const io = new IntersectionObserver(
       (entries) => {
         const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (vis[0]) setCurrent(vis[0].target.id);
+        if (vis[0] && !steering.current) setCurrent(vis[0].target.id);
       },
       { rootMargin: "-30% 0px -60% 0px" },
     );
@@ -1198,8 +1207,18 @@ function Mobile() {
                 key={d.date}
                 data-slot={i}
                 onClick={() => {
+                  // The ring moves now, not when the scroll reaches the day,
+                  // and ignores the days the scroll passes on the way.
+                  setCurrent(id);
+                  steering.current = true;
                   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-                  afterScroll(() => pinDay(i));
+                  afterScroll(
+                    () => {
+                      steering.current = false;
+                      pinDay(i);
+                    },
+                    () => (steering.current = false),
+                  );
                 }}
                 aria-current={on || undefined}
                 className={cx(
