@@ -90,9 +90,11 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
   - Phone days are `.day-lazy` (`content-visibility: auto`): off-screen days
     skip layout and paint. Their placeholders change height when drawn, so
     every jump to a day goes through `pinDay`, which re-aims each frame until
-    the day holds still under the strip (strip taps: smooth scroll, then
-    `pinDay` on `scrollend`). Use `behavior: "instant"` for those re-aims:
-    `html` has smooth scrolling.
+    the day holds still under the strip. Strip taps use `glideTo`, a
+    hand-driven rAF glide that re-reads the day's position each frame, then
+    `pinDay`. Not scrollIntoView smooth: iOS 15 cut it short (the strip
+    scrolls sideways at the same time) and has no `scrollend`. Both aim with
+    `dayTop()` (the `--strip-h` offset), not scroll-margin.
 - **Must work on an iPad mini 4 (iOS 15.8 Safari, A8, 2 GB)** — his tablet
   for the trip (19 Oct 2026). Rules that follow from it:
   - No translucent Tailwind colours (`bg-ink/40`, `text-x/80` …): Tailwind 4

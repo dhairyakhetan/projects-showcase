@@ -1075,7 +1075,7 @@ function pinDay(i: number) {
   const aim = () => {
     const el = document.getElementById(dayId(i));
     if (done || !el || frames++ > 90) return stop();
-    instantly(() => el.scrollIntoView());
+    instantly(() => scrollTo(0, dayTop(el)));
     const top = el.getBoundingClientRect().top;
     still = top === last ? still + 1 : 0;
     last = top;
@@ -1086,30 +1086,49 @@ function pinDay(i: number) {
   return stop;
 }
 
+/** Where the page must scroll to for a day to sit just under the date strip. */
+function dayTop(el: HTMLElement) {
+  const strip = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--strip-h")) || 84;
+  return el.getBoundingClientRect().top + scrollY - strip;
+}
+
 /**
- * Runs once a smooth scroll has finished (or after a second where `scrollend`
- * isn't supported). If the user scrolls first, `onCancel` runs instead.
+ * Glides the page to a day, then pins it (pinDay). Done by hand rather than
+ * scrollIntoView({ behavior: "smooth" }): iOS 15 Safari cut that short when
+ * the strip scrolled sideways at the same time, and has no scrollend to say
+ * when it stopped. Each frame re-reads where the day is, so days above it
+ * that change height mid-glide don't throw it off. Stops if the user scrolls.
  */
-function afterScroll(fn: () => void, onCancel?: () => void) {
-  let ran = false;
+function glideTo(i: number, onDone: () => void, onCancel: () => void) {
+  const el = document.getElementById(dayId(i));
+  if (!el) return onDone();
+  const from = scrollY;
+  const duration = Math.min(600, 250 + Math.abs(dayTop(el) - from) / 20);
+  const start = performance.now();
+  let stopped = false;
   const cancel = () => {
-    if (ran) return;
-    ran = true;
-    onCancel?.();
+    if (stopped) return;
+    stopped = true;
+    off();
+    onCancel();
   };
-  const run = () => {
-    removeEventListener("scrollend", run);
-    removeEventListener("wheel", cancel);
+  const off = () => {
     removeEventListener("touchstart", cancel);
-    if (ran) return;
-    ran = true;
-    fn();
+    removeEventListener("wheel", cancel);
   };
-  addEventListener("scrollend", run, { once: true });
-  // The user took over mid-scroll: leave them where they are.
-  addEventListener("wheel", cancel, { passive: true });
   addEventListener("touchstart", cancel, { passive: true });
-  setTimeout(run, "onscrollend" in window ? 1500 : 900);
+  addEventListener("wheel", cancel, { passive: true });
+  const step = (now: number) => {
+    if (stopped) return;
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    instantly(() => scrollTo(0, from + (dayTop(el) - from) * eased));
+    if (t < 1) return void requestAnimationFrame(step);
+    stopped = true;
+    off();
+    onDone();
+  };
+  requestAnimationFrame(step);
 }
 
 function Mobile() {
@@ -1211,8 +1230,8 @@ function Mobile() {
                   // and ignores the days the scroll passes on the way.
                   setCurrent(id);
                   steering.current = true;
-                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-                  afterScroll(
+                  glideTo(
+                    i,
                     () => {
                       steering.current = false;
                       pinDay(i);
