@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, memo, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Fragment, memo, useCallback, useDeferredValue, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { DAYS, FLIGHTS, GOSHUIN, HOTELS, METRO, SPOTS, TODO, type Cat, type City, type Entry, type Place, type Row, type SpotStatus } from "./data";
 
 /** Where this lives on the portfolio. Every day has its own URL under it. */
@@ -149,7 +149,7 @@ function countdownText(today: string) {
 }
 
 /** Leaving home for Kolkata airport: about 2 hours before AI 1874 departs at 12:55 IST. */
-const LEAVE_HOME = Date.parse("2026-10-19T10:55:00+05:30");
+const LEAVE_HOME = Date.parse("2026-10-19T10:00:00+05:30");
 /** VZ 770 lands in Kolkata. */
 const TRIP_END = Date.parse("2026-10-28T23:50:00+05:30");
 const COUNTDOWN = BASE + "/countdown";
@@ -184,7 +184,7 @@ function since(now: number): Unit[] {
 
 /** Before the trip, counting down to leaving home; during it, to landing back home; after, counting up. */
 function tripPhase(now: number) {
-  if (now < LEAVE_HOME) return { label: "Time left till Japan trip", units: until(LEAVE_HOME - now), note: "Leaving home Mon 19 Oct, 10:55 IST" };
+  if (now < LEAVE_HOME) return { label: "Time left till Japan trip", units: until(LEAVE_HOME - now), note: "Leaving home Mon 19 Oct, 10:00 IST" };
   if (now < TRIP_END) return { label: "Time left in Japan trip", units: until(TRIP_END - now), note: "Landing in Kolkata Wed 28 Oct, 23:50 IST" };
   return { label: "Days from Japan trip 2026", units: since(now), note: "19–28 October 2026 · Tokyo, Kyoto, Osaka" };
 }
@@ -760,8 +760,8 @@ function Desktop() {
   const today = useToday();
   const [sel, setSel] = useState(() => shownDay ?? Math.max(0, dayIndexOf(japanToday())));
   shownDay = sel;
-  const day = DAYS[sel];
-  const c = CITY[day.city];
+  const shown = useDeferredValue(sel);
+  const c = CITY[DAYS[sel].city];
   const rail = useRef<HTMLDivElement>(null);
   const slide = useSlide(rail, sel);
 
@@ -905,72 +905,9 @@ function Desktop() {
         </div>
       </div>
 
-      {/* Selected day */}
-      <div ref={panel} className="mt-3 grid grid-cols-12 items-start gap-6" role="tabpanel" aria-label={`${dayNum(day.date)} October`}>
-        <article key={day.date} className="col-span-7 rounded-3xl border border-line bg-surface p-6 xl:p-10">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className={cx("rounded-full px-3 py-1 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
-              <span className="text-sm text-muted">
-                Day {sel + 1} of {DAYS.length}
-              </span>
-            </div>
-            <div className="flex gap-1.5">
-              <NavBtn disabled={sel === 0} onClick={() => go(sel - 1)} label="Previous day">
-                ←
-              </NavBtn>
-              <NavBtn disabled={sel === DAYS.length - 1} onClick={() => go(sel + 1)} label="Next day">
-                →
-              </NavBtn>
-            </div>
-          </div>
-
-          <div className="mt-5 flex items-start gap-5 xl:mt-6 xl:gap-6">
-            <div className={cx("font-serif text-[5rem] leading-[.8] font-extrabold xl:text-[6.5rem]", c.text)}>{dayNum(day.date)}</div>
-            <div className="min-w-0 pt-1">
-              <div className="text-sm font-bold tracking-[.14em] text-muted uppercase">{weekdayLong(day.date)}, October</div>
-              <h2 className="mt-1 font-serif text-3xl leading-tight font-extrabold xl:text-4xl">{day.title}</h2>
-            </div>
-          </div>
-          <p className="mt-4 max-w-[62ch] text-muted xl:mt-5 xl:text-lg">
-            <Rich text={day.gist} />
-          </p>
-
-          <div className="mt-6 mb-4 flex flex-wrap items-baseline justify-between gap-3 xl:mt-8">
-            <h4 className="text-xs font-bold tracking-[.18em] text-muted uppercase">The day</h4>
-            <Legend city={day.city} cats={[...new Set(day.timeline.map((e) => e[3]))]} />
-          </div>
-          <Timeline day={day} />
-        </article>
-
-        {/* From xl, sticky and scrollable so a place card is in reach from anywhere in a long
-            day. Below xl (an iPad on its side) it scrolls with the page: a scroller inside a
-            sticky box is an extra layer older iPads struggle to keep painted. */}
-        <aside
-          key={`${day.date}-aside`}
-          className="no-scrollbar col-span-5 flex flex-col gap-4 xl:sticky xl:top-[var(--bar-h,9rem)] xl:-m-1 xl:max-h-[calc(100dvh-var(--bar-h,9rem)-1rem)] xl:overflow-y-auto xl:p-1"
-        >
-          <div className={cx("rounded-3xl p-5 xl:p-7", c.soft)}>
-            <div className="text-xs font-bold tracking-[.18em] text-muted uppercase">Tonight</div>
-            <div className={cx("mt-1 font-serif text-xl font-extrabold xl:text-2xl", c.text)}>{day.sleep}</div>
-          </div>
-
-          <Places day={day} />
-
-          {day.tips.length > 0 && (
-            <div className="flex flex-col gap-3">
-              {day.tips.map(([h, x]) => (
-                <Tip key={h} head={h} text={x} />
-              ))}
-            </div>
-          )}
-
-          <p className="text-center text-sm text-muted">
-            Tip: use <kbd className="rounded border border-line bg-surface px-1.5 font-sans">←</kbd>{" "}
-            <kbd className="rounded border border-line bg-surface px-1.5 font-sans">→</kbd> to switch days
-          </p>
-        </aside>
-      </div>
+      {/* Deferred: a tap moves the tile highlight at once, and the day's
+          content follows in a second render that a newer tap can cut short. */}
+      <DayPanel i={shown} go={go} panel={panel} />
 
       <TripInfo />
 
@@ -978,6 +915,87 @@ function Desktop() {
     </div>
   );
 }
+
+/** The selected day and its places, beside each other. Memoised so a tap redraws only the tiles first. */
+const DayPanel = memo(function DayPanel({
+  i,
+  go,
+  panel,
+}: {
+  i: number;
+  go: (i: number) => void;
+  panel: React.RefObject<HTMLDivElement | null>;
+}) {
+  const day = DAYS[i];
+  const c = CITY[day.city];
+  return (
+    <div ref={panel} className="mt-3 grid grid-cols-12 items-start gap-6" role="tabpanel" aria-label={`${dayNum(day.date)} October`}>
+      <article key={day.date} className="col-span-7 rounded-3xl border border-line bg-surface p-6 xl:p-10">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className={cx("rounded-full px-3 py-1 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
+            <span className="text-sm text-muted">
+              Day {i + 1} of {DAYS.length}
+            </span>
+          </div>
+          <div className="flex gap-1.5">
+            <NavBtn disabled={i === 0} onClick={() => go(i - 1)} label="Previous day">
+              ←
+            </NavBtn>
+            <NavBtn disabled={i === DAYS.length - 1} onClick={() => go(i + 1)} label="Next day">
+              →
+            </NavBtn>
+          </div>
+        </div>
+
+        <div className="mt-5 flex items-start gap-5 xl:mt-6 xl:gap-6">
+          <div className={cx("font-serif text-[5rem] leading-[.8] font-extrabold xl:text-[6.5rem]", c.text)}>{dayNum(day.date)}</div>
+          <div className="min-w-0 pt-1">
+            <div className="text-sm font-bold tracking-[.14em] text-muted uppercase">{weekdayLong(day.date)}, October</div>
+            <h2 className="mt-1 font-serif text-3xl leading-tight font-extrabold xl:text-4xl">{day.title}</h2>
+          </div>
+        </div>
+        <p className="mt-4 max-w-[62ch] text-muted xl:mt-5 xl:text-lg">
+          <Rich text={day.gist} />
+        </p>
+
+        <div className="mt-6 mb-4 flex flex-wrap items-baseline justify-between gap-3 xl:mt-8">
+          <h4 className="text-xs font-bold tracking-[.18em] text-muted uppercase">The day</h4>
+          <Legend city={day.city} cats={[...new Set(day.timeline.map((e) => e[3]))]} />
+        </div>
+        <Timeline day={day} />
+      </article>
+
+      {/* From xl, sticky and scrollable so a place card is in reach from anywhere in a long
+          day. Below xl (an iPad on its side) it scrolls with the page: a scroller inside a
+          sticky box is an extra layer older iPads struggle to keep painted. */}
+      <aside
+        key={`${day.date}-aside`}
+        className="no-scrollbar col-span-5 flex flex-col gap-4 xl:sticky xl:top-[var(--bar-h,9rem)] xl:-m-1 xl:max-h-[calc(100dvh-var(--bar-h,9rem)-1rem)] xl:overflow-y-auto xl:p-1"
+      >
+        <div className={cx("rounded-3xl p-5 xl:p-7", c.soft)}>
+          <div className="text-xs font-bold tracking-[.18em] text-muted uppercase">Tonight</div>
+          <div className={cx("mt-1 font-serif text-xl font-extrabold xl:text-2xl", c.text)}>{day.sleep}</div>
+        </div>
+
+        <Places day={day} />
+
+        {day.tips.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {day.tips.map(([h, x]) => (
+              <Tip key={h} head={h} text={x} />
+            ))}
+          </div>
+        )}
+
+        <p className="text-center text-sm text-muted">
+          Tip: use <kbd className="rounded border border-line bg-surface px-1.5 font-sans">←</kbd>{" "}
+          <kbd className="rounded border border-line bg-surface px-1.5 font-sans">→</kbd> to switch days
+        </p>
+      </aside>
+    </div>
+  );
+});
 
 /** Flights, hotels and the notes under the days. Memoised: nothing in it changes with the day. */
 const TripInfo = memo(function TripInfo() {
@@ -1218,7 +1236,14 @@ function Mobile() {
  */
 let shownDay: number | null = null;
 
+// iOS Safari only shows :active (the press dim in japan.css) once something listens for touches.
+const noop = () => {};
+
 export default function App() {
+  useEffect(() => {
+    document.addEventListener("touchstart", noop, { passive: true });
+    return () => document.removeEventListener("touchstart", noop);
+  }, []);
   const desktop = useMedia("(min-width: 1024px)");
   const countdown = useSyncExternalStore(subscribePath, onCountdown);
   useOffline();

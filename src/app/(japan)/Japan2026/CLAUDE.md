@@ -70,8 +70,8 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
 - **Trip timer** (he asked for it, 16 Oct 2026): a pill in the header next to
   "N days to go", and the same timer big and centred at `/Japan2026/countdown`
   with "← Go back" top left. Before: "Time left till Japan trip", d/h/m/s to
-  leaving home, 19 Oct 10:55 IST (about 2 h before AI 1874; day 1's timeline
-  still says 09:30). During: "Time left in Japan trip", to VZ 770 landing in
+  leaving home, 19 Oct 10:00 IST (he set it on the day; day 1's timeline
+  matches). During: "Time left in Japan trip", to VZ 770 landing in
   Kolkata, 28 Oct 23:50 IST. After: "Days from Japan trip 2026", years and days
   only. Clicking the pill opens the countdown; "Go back" goes to `/Japan2026`. Both swap the view in place
   (`pushState`), no reload. `TripTimer`/`Countdown` in `App.tsx`.
@@ -123,6 +123,11 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
     timeline beside it isn't promoted to a day-tall layer for overlapping it.
   - Phone days not built at first are built in the background (nearest
     first, one every 150 ms from 600 ms), so none is built mid-scroll.
+- **Taps answer at once** (19 Oct 2026): `touch-action: manipulation`, no
+  tap highlight and a `:active` dim on links and buttons (`japan.css`; App
+  adds the empty `touchstart` listener iOS needs for `:active`). On desktop the
+  tile highlight follows `sel` and the day's content `useDeferredValue(sel)`
+  inside the memoised `DayPanel`, so a tap paints the tile before the day.
 - **Desktop ↔ phone switch** (crossing 1024 px, e.g. turning a tablet):
   `shownDay` carries the day across and the new layout opens on it.
 - Desktop: a day highlight that **slides** between the date buttons; the day's

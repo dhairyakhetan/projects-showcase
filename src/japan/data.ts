@@ -40,8 +40,8 @@ export const DAYS: Day[] = [
     gist: "Air India. 13h 30m, 1 stop in Delhi.",
     timeline: [
       ["07:30","Final check: passports, visas, Visit Japan Web QR codes, hotel list, return ticket printout, some yen, plug adapter (Japan uses flat two-pin, 100 V)","x","note"],
-      ["09:30","Leave home for Kolkata airport","x","car"],
-      ["10:00","Check in for both flights. Make sure bags are tagged through to Haneda (HND) and you get both boarding passes","x","fly"],
+      ["10:00","Leave home for Kolkata airport","x","car"],
+      ["10:45","Check in for both flights. Make sure bags are tagged through to Haneda (HND) and you get both boarding passes","x","fly"],
       ["12:55","AI 1874 departs Kolkata (CCU)","i","fly"],
       ["~15:30","Land in Delhi. Follow the international transfer signs to T3 for emigration and security. That takes most of the layover (time from Air India's schedule, check the app)","x","fly"],
       ["Delhi","1 stop in Delhi (DEL), change to AI 358","i","fly"],

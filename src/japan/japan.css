@@ -52,6 +52,12 @@ body {
    for its placeholder; "auto" remembers the real one once it's been drawn. */
 .day-lazy { content-visibility: auto; contain-intrinsic-size: auto 1800px; }
 
+/* Taps answer at once: no wait to see whether it's a double-tap zoom, no
+   grey iOS flash; a quick dim while pressed shows the tap landed instead.
+   (iOS only applies :active when the page listens for touches; App adds one.) */
+a, button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+a:active, button:active { opacity: .65; }
+
 /* A place card the timeline just pointed at. */
 .place { transition: box-shadow 200ms ease, border-color 200ms ease; }
 .place[data-hl] { border-color: var(--hl); box-shadow: 0 0 0 3px color-mix(in srgb, var(--hl) 25%, transparent); }
