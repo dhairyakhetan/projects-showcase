@@ -880,7 +880,7 @@ export const DAYS: Day[] = [
       ["","Optional, for you: Ichiran ramen (pork broth, solo booths, open all night; 2 min from Ebisu Bridge)","x","eat","ichiran"],
       ["21:00","Walk 5 min to Namba Station, Midosuji line (red) toward Umeda, 2 stops to Hommachi, Exit 4, walk 2 min (about 15 min)","x","train","rhome"],
       ["21:15","Back at the hotel: check in. Buy tomorrow's breakfast at a konbini near the hotel","x","stay"],
-      ["22:30","Sleep early: the Universal car is at 06:30","x","stay"],
+      ["22:30","Sleep early: the Universal car is at 07:00","x","stay"],
     ],
     places: [
       {
@@ -1067,10 +1067,10 @@ export const DAYS: Day[] = [
     date: "2026-10-26", city: "osaka", title: "Universal Studios Japan", short: "Universal Studios",
     gist: "Osaka – Universal Studios (pick and drop transfer, private). Entry ticket only.",
     timeline: [
-      ["05:45","Wake up. Breakfast is konbini food bought the night before (the hotel breakfast won't be open yet); eat it in the car or the gate queue","x","stay"],
-      ["06:20","Down to the lobby","x","stay"],
-      ["06:30","Private car from the hotel to Universal Studios (about 25 min)","i","car","car26"],
-      ["~07:00","At the gates before opening: join the entry queue. Check the opening time in the USJ app","i","ride"],
+      ["06:15","Wake up. Breakfast is konbini food bought the night before (the hotel breakfast won't be open yet); eat it in the car or the gate queue","x","stay"],
+      ["06:50","Down to the lobby","x","stay"],
+      ["07:00","Private car from the hotel to Universal Studios (about 25 min)","i","car","car26"],
+      ["~07:30","At the gates before opening: join the entry queue. Check the opening time in the USJ app","i","ride"],
       ["Opening","Walk straight to Harry Potter at the back of the park (about 15 min). If the area needs a timed-entry ticket today, take the free one in the USJ app at the gate","x","walk","hp"],
       ["08:50","Harry Potter and the Forbidden Journey, while the queue is short","x","ride","fj"],
       ["10:00","Explore Hogsmeade: Ollivanders wand show, Zonko's Joke Shop, Honeydukes, Filch's Emporium, Owl Post","x","shop","hogsmeade"],
@@ -1093,13 +1093,13 @@ export const DAYS: Day[] = [
     places: [
       {
         id: "car26",
-        t: "06:30 and 21:30",
+        t: "07:00 and 21:30",
         type: "Go",
         name: "Private car to Universal Studios",
-        what: "Round trip in a private 7-seater car. Pickup at Osaka View Hotel Honmachi at 06:30; the return leaves the park at 21:30 and drops you back at the hotel. English through a translator.",
+        what: "Round trip in a private 7-seater car. Pickup at Osaka View Hotel Honmachi at 07:00; the return leaves the park at 21:30 and drops you back at the hotel. English through a translator.",
         dist: "About 12 km · 25–30 min by road",
         hours: "Pickups allowed 06:00–22:00",
-        note: "Be in the lobby by 06:20 and keep the voucher QR on your phone. The voucher prints the return as 06:30 as well, so make sure the driver knows it's 21:30",
+        note: "Be in the lobby by 06:50 and keep the voucher QR on your phone",
         url: "https://www.google.com/maps/dir/?api=1&origin=Osaka+View+Hotel+Honmachi&origin_place_id=ChIJDYCo9OLmAGARHahlNEJ5nhQ&destination=Universal%20Studios%20Japan&travelmode=driving",
       },
       {
@@ -1224,7 +1224,7 @@ export const DAYS: Day[] = [
         url: "https://www.google.com/maps/dir/?api=1&origin=Universal%20Studios%20Japan&destination=Universal%20Studios%20Japan&travelmode=walking",
       },
     ],
-    tips: [["Transfer times","Hotel at 06:30, back from the park at 21:30. The voucher prints both times as 06:30, so confirm 21:30 with the driver in the morning."], ["Single rider","For Hollywood Dream, Backdrop and the Flying Dinosaur, the single-rider line is often much faster; you ride in separate cars."], ["Express Pass","Not sold at ride entrances. Buy it ahead online (official USJ site or Klook) as a bundle with set ride times; pick one that includes Harry Potter and the Forbidden Journey and The Flying Dinosaur. About ¥10,000–22,000 a person depending on the date. Gate booths sometimes have some on the day, but busy days sell out."], ["Before opening","You reach the gates around 07:00, before the park opens: queue at the entrance, then walk straight to Harry Potter. Check the opening time for Mon 26 Oct in the USJ app the night before, and buy the konbini breakfast then too."]],
+    tips: [["Transfer times","Hotel at 07:00, back from the park at 21:30."], ["Single rider","For Hollywood Dream, Backdrop and the Flying Dinosaur, the single-rider line is often much faster; you ride in separate cars."], ["Express Pass","Not sold at ride entrances. Buy it ahead online (official USJ site or Klook) as a bundle with set ride times; pick one that includes Harry Potter and the Forbidden Journey and The Flying Dinosaur. About ¥10,000–22,000 a person depending on the date. Gate booths sometimes have some on the day, but busy days sell out."], ["Before opening","You reach the gates around 07:30, before the park opens: queue at the entrance, then walk straight to Harry Potter. Check the opening time for Mon 26 Oct in the USJ app the night before, and buy the konbini breakfast then too."]],
     sleep: "Osaka View Hotel Honmachi",
   },
   {
@@ -1430,9 +1430,7 @@ export const HOTELS: { nights: string; name: string; room: string; city: City; a
   },
 ];
 
-export const TODO = [
-  "Universal Studios return car (26 Oct) is 21:30: the voucher prints 06:30, so confirm it with the driver.",
-];
+export const TODO: string[] = [];
 
 /** Every temple and shrine near the route that gives a goshuin. `status` says how it fits. */
 export type SpotStatus = "plan" | "tour" | "fit" | "detour";

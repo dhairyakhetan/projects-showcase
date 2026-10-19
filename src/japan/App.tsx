@@ -728,6 +728,7 @@ function Goshuin() {
 }
 
 function Todo() {
+  if (!TODO.length) return <p className="text-muted">Nothing left to check: every booking is confirmed.</p>;
   return (
     <ol className="space-y-2.5">
       {TODO.map((t, i) => (
