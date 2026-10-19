@@ -9,7 +9,7 @@
 :root {
   /* Dark for everyone, whatever the phone is set to (he asked, 19 Oct 2026). */
   --paper: #15181c; --surface: #1d2126; --ink: #eceef0; --muted: #a3a9b1; --line: #2e343b;
-  --tokyo: #8faedf; --kyoto: #9dc08f; --osaka: #e3b451; --travel: #a3a9b1; --alert: #f08a80;
+  --tokyo: #8faedf; --kyoto: #9dc08f; --osaka: #e3b451; --travel: #858c95; --alert: #f08a80;
   --tokyo-soft: #1f2a3a; --kyoto-soft: #1f2b1d; --osaka-soft: #302613; --travel-soft: #24282e; --alert-soft: #3a1f1c;
   color-scheme: dark;
 }

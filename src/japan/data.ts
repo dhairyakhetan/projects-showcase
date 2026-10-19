@@ -56,7 +56,7 @@ export const DAYS: Day[] = [
     sleep: "On the plane (Delhi → Tokyo)",
   },
   {
-    date: "2026-10-20", city: "tokyo", title: "Tokyo arrival, tour and Akihabara", short: "Tokyo arrival, half-day tour",
+    date: "2026-10-20", city: "tokyo", title: "Tokyo arrival, tour and Akihabara", short: "Arrival and city tour",
     gist: "Tokyo Arrival. Tokyo SIC (shared group) half-day tour.",
     timeline: [
       ["05:55","Land at Haneda Terminal 3","i","fly"],
@@ -701,7 +701,7 @@ export const DAYS: Day[] = [
     sleep: "Miyako Hotel Kyoto Hachijo",
   },
   {
-    date: "2026-10-24", city: "kyoto", title: "Arashiyama, Nara, Fushimi Inari", short: "Arashiyama, Nara, Fushimi Inari",
+    date: "2026-10-24", city: "kyoto", title: "Arashiyama, Nara, Fushimi Inari", short: "Arashiyama and Nara",
     gist: "Bus day tour from Kyoto Station: Arashiyama, Nara Park, Fushimi Inari Taisha.",
     timeline: [
       ["06:45","Wake up","x","stay"],
@@ -1064,7 +1064,7 @@ export const DAYS: Day[] = [
     sleep: "Osaka View Hotel Honmachi",
   },
   {
-    date: "2026-10-26", city: "osaka", title: "Universal Studios Japan", short: "Universal Studios Japan",
+    date: "2026-10-26", city: "osaka", title: "Universal Studios Japan", short: "Universal Studios",
     gist: "Osaka – Universal Studios (pick and drop transfer, private). Entry ticket only.",
     timeline: [
       ["05:45","Wake up. Breakfast is konbini food bought the night before (the hotel breakfast won't be open yet); eat it in the car or the gate queue","x","stay"],

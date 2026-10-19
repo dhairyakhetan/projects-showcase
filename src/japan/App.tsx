@@ -880,11 +880,21 @@ function Desktop() {
                     on ? "text-paper" : "hover:bg-[rgba(236,238,240,.05)]",
                   )}
                 >
-                  <span className={cx("text-xs font-bold uppercase transition-colors duration-300", on ? "text-paper/80" : "text-muted")}>{weekday(d.date)}</span>
+                  <span className={cx("text-xs font-bold uppercase transition-colors duration-300", on ? "text-paper/80" : "text-muted")}>
+                    {/* Below xl (an iPad on its side) the tiles are too narrow for the badge beside the weekday. */}
+                    {d.date === today ? (
+                      <>
+                        <span className={cx("xl:hidden", !on && "text-alert")}>Today</span>
+                        <span className="hidden xl:inline">{weekday(d.date)}</span>
+                      </>
+                    ) : (
+                      weekday(d.date)
+                    )}
+                  </span>
                   <span className={cx("font-serif text-3xl leading-tight font-extrabold transition-colors duration-300", !on && dc.text)}>{dayNum(d.date)}</span>
                   <span className={cx("mt-auto line-clamp-2 text-xs leading-snug transition-colors duration-300", on ? "text-paper/90" : "text-muted")}>{d.short}</span>
                   {d.date === today && (
-                    <span className="absolute top-2.5 right-2.5 rounded-full bg-alert px-1.5 py-0.5 text-[.6rem] font-bold text-paper uppercase">
+                    <span className="absolute top-2.5 right-2.5 hidden rounded-full bg-alert px-1.5 py-0.5 text-[.6rem] font-bold text-paper uppercase xl:block">
                       Today
                     </span>
                   )}
