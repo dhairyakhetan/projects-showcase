@@ -259,7 +259,7 @@ function Countdown() {
           ← Go back
         </PageLink>
       </div>
-      <div role="timer" className="day-fade flex flex-1 flex-col items-center justify-center text-center">
+      <div role="timer" className="flex flex-1 flex-col items-center justify-center text-center">
         <h1 className="text-sm font-bold tracking-[.22em] text-muted uppercase md:text-base">{label}</h1>
         <div className="mt-6 flex gap-3 sm:gap-8 md:mt-8 md:gap-12">
           {units.map(([n, u]) => (
@@ -856,7 +856,7 @@ function Desktop() {
           <span
             aria-hidden
             className={cx(
-              "absolute top-0 left-0 rounded-2xl shadow-lg ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none",
+              "absolute top-0 left-0 rounded-2xl ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none",
               slide && !slide.first ? "transition-[transform,width,background-color] duration-500" : "transition-none",
               c.bg,
               !slide && "opacity-0",
@@ -907,7 +907,7 @@ function Desktop() {
 
       {/* Selected day */}
       <div ref={panel} className="mt-3 grid grid-cols-12 items-start gap-6" role="tabpanel" aria-label={`${dayNum(day.date)} October`}>
-        <article key={day.date} className="day-fade col-span-7 rounded-3xl border border-line bg-surface p-6 xl:p-10">
+        <article key={day.date} className="col-span-7 rounded-3xl border border-line bg-surface p-6 xl:p-10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className={cx("rounded-full px-3 py-1 text-sm font-bold", c.soft, c.text)}>{c.name}</span>
@@ -943,10 +943,12 @@ function Desktop() {
           <Timeline day={day} />
         </article>
 
-        {/* Sticky and scrollable, so a place card is in reach from anywhere in a long day. */}
+        {/* From xl, sticky and scrollable so a place card is in reach from anywhere in a long
+            day. Below xl (an iPad on its side) it scrolls with the page: a scroller inside a
+            sticky box is an extra layer older iPads struggle to keep painted. */}
         <aside
           key={`${day.date}-aside`}
-          className="day-fade no-scrollbar sticky top-[var(--bar-h,9rem)] col-span-5 -m-1 flex max-h-[calc(100dvh-var(--bar-h,9rem)-1rem)] flex-col gap-4 overflow-y-auto p-1"
+          className="no-scrollbar col-span-5 flex flex-col gap-4 xl:sticky xl:top-[var(--bar-h,9rem)] xl:-m-1 xl:max-h-[calc(100dvh-var(--bar-h,9rem)-1rem)] xl:overflow-y-auto xl:p-1"
         >
           <div className={cx("rounded-3xl p-5 xl:p-7", c.soft)}>
             <div className="text-xs font-bold tracking-[.18em] text-muted uppercase">Tonight</div>
@@ -1221,12 +1223,10 @@ export default function App() {
   const countdown = useSyncExternalStore(subscribePath, onCountdown);
   useOffline();
   if (countdown) return <Countdown />;
-  // Keyed so the swap between layouts fades in rather than snapping.
-  return (
-    <div key={desktop ? "desktop" : "mobile"} className="day-fade">
-      {desktop ? <Desktop /> : <Mobile />}
-    </div>
-  );
+  // No fades or wrappers here: an animated element around the whole page can
+  // stay a page-sized GPU layer, and on the iPad mini 4 (2 GB) that showed as
+  // blank patches while scrolling.
+  return desktop ? <Desktop /> : <Mobile />;
 }
 
 /**
@@ -1260,7 +1260,22 @@ const MobileDays = memo(function MobileDays({
       { rootMargin: "1500px 0px" },
     );
     document.querySelectorAll("article[data-day]").forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    // Build the rest in the background, nearest first, one day at a time, so
+    // nothing is left to build mid-scroll (on iOS that work competes with
+    // painting, and the page shows blank patches).
+    const start = shownDay ?? Math.max(0, dayIndexOf(japanToday()));
+    const order = DAYS.map((_, i) => i).sort((a, b) => Math.abs(a - start) - Math.abs(b - start));
+    let timer = 0;
+    const next = (k: number) => {
+      if (k >= order.length) return;
+      setDrawn((prev) => (prev.has(order[k]) ? prev : new Set([...prev, order[k]])));
+      timer = window.setTimeout(() => next(k + 1), 150);
+    };
+    timer = window.setTimeout(() => next(0), 600);
+    return () => {
+      io.disconnect();
+      clearTimeout(timer);
+    };
   }, []);
   return (
     <main>
@@ -1288,10 +1303,11 @@ const MobileDay = memo(function MobileDay({
   const c = CITY[d.city];
   return (
     <article id={dayId(i)} data-day data-i={i} className="day-lazy scroll-mt-[var(--strip-h,84px)] grid grid-cols-[48px_minmax(0,1fr)] gap-x-3 border-b border-line py-7 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-x-4">
-      {/* Pinned under the date strip while its day scrolls by. */}
+      {/* Pinned under the date strip while its day scrolls by. Stacked above the day
+          (z-[1]) so the timeline beside it is not lifted into a day-tall GPU layer. */}
       <div
         className={cx(
-          "sticky top-[var(--strip-h,84px)] self-start text-right font-serif text-[2.4rem] leading-[.9] font-extrabold sm:text-5xl",
+          "sticky top-[var(--strip-h,84px)] z-[1] self-start text-right font-serif text-[2.4rem] leading-[.9] font-extrabold sm:text-5xl",
           c.text,
         )}
       >

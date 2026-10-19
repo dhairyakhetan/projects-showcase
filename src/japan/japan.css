@@ -46,14 +46,6 @@ body {
 .rich a:hover { text-decoration-thickness: 2px; }
 :focus-visible { outline: 2px solid var(--tokyo); outline-offset: 2px; border-radius: 6px; }
 
-/* Switching days: the layout stays put and only the words change, so the new
-   day fades in where it is rather than sliding in from somewhere. */
-@keyframes day-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.day-fade { animation: day-fade 320ms ease-out both; }
-@media (prefers-reduced-motion: reduce) { .day-fade { animation: none; } }
 
 /* Phone: a day far off screen skips layout and paint until you scroll near
    it, so slow phones only draw the days you can see. The size is a guess

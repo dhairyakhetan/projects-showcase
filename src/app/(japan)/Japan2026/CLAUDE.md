@@ -111,11 +111,22 @@ public/japan2026.webmanifest      + japan2026-icon-*.png, "Add to Home Screen"
     the desktop uses less padding, smaller headings, 84 px date buttons and
     hides "Flights & hotels" so the header stays on one line. Upright (768)
     the phone layout widens to 768 px and the date tiles fill the strip.
+- **Blank patches while scrolling** on the iPad mini 4 (19 Oct 2026): it ran
+  out of GPU memory. Keep the page's layer count low (measured with Chromium's
+  LayerTree at 768 and 1024 wide: 7 and 3 layers, ~16 and ~5 Mpx):
+  - No fades or animated wrappers around page-sized content (`day-fade` is
+    gone; a page-wide fade could stay a page-sized layer).
+  - The places column is sticky with its own scroll only from `xl`; below it,
+    it scrolls with the page (a scroller inside a sticky box is extra layers).
+  - No big blurred shadows on moving parts (the date highlight has none).
+  - Each phone day's pinned date has `z-[1]`: drawn above the day, so the
+    timeline beside it isn't promoted to a day-tall layer for overlapping it.
+  - Phone days not built at first are built in the background (nearest
+    first, one every 150 ms from 600 ms), so none is built mid-scroll.
 - **Desktop ↔ phone switch** (crossing 1024 px, e.g. turning a tablet):
-  `shownDay` carries the day across, the new layout opens on it, and the swap
-  fades in (`day-fade` on a wrapper keyed by layout).
+  `shownDay` carries the day across and the new layout opens on it.
 - Desktop: a day highlight that **slides** between the date buttons; the day's
-  content **fades** in place. Phone: one list with a sliding ring on the sticky
+  content swaps in place (no fade: see *Blank patches* below). Phone: one list with a sliding ring on the sticky
   date strip.
 - **The dates stay pinned while scrolling** (he asked for it). Desktop: the date
   bar is sticky and the places column sticks under it (`--bar-h`); picking a day
