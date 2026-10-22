@@ -45,8 +45,7 @@ content — edit that file. Anything marked `// TODO` there is a known gap.
   pushing (see *Testing*), then say what changed in plain words.
 - **Keep the root clean.** He objected loudly to clutter. Root holds only config
   files plus `cloudflare/`, `public/`, `src/`. Static files go in `public/`. No
-  wrangler config, no stray READMEs in subfolders. The one exception is the trip
-  planner's own `CLAUDE.md` (see the end of this file); he asked for it.
+  wrangler config, no stray READMEs in subfolders.
 - **Keep comments to the ones that explain a non-obvious decision.** No narration.
 - Commit messages: imperative subject, a body explaining *why*.
 - Stack: Next.js 15 (App Router), React 19, TypeScript, Tailwind v4,
@@ -66,7 +65,6 @@ src/app/
     page.tsx                  "/" → redirect to /home
     [panel]/page.tsx          /home /about /qualification /projects /contact
     opengraph-image.tsx       link preview for every portfolio page
-  (japan)/                    the trip planner — see the end of this file
   api/repos/route.ts          same-origin JSON for the full repo list
 src/middleware.ts             hard refresh → re-ask the audience question
 src/lib/                      content, audience, featured, repos, tech, og, theme, fonts
@@ -84,8 +82,12 @@ next.config.ts                only to switch on experimental.globalNotFound
   `[panel]/layout.tsx` — a layout under a dynamic segment remounts whenever the
   param changes, which rebuilt the cursor, dots and palette on every click.
 - `[panel]` has `dynamicParams = false`; anything else 404s.
-- With two root layouts a wrong URL matches neither, so Next served its bare white
-  404. `global-not-found.tsx` (needs `experimental.globalNotFound`) repeats the
+- `/Japan2026` (a trip planner) was taken down on 22 Oct 2026 at his request; it
+  now 404s. `public/japan-sw.js` is a kill switch for its old offline worker:
+  it deletes the saved copy on devices and unregisters. Delete it after a few
+  weeks.
+- The only root layout is in the `(site)` group, so a wrong URL matches no layout
+  and Next served its bare white 404. `global-not-found.tsx` (needs `experimental.globalNotFound`) repeats the
   portfolio's `<html>` — fonts, pre-paint scripts, `<Chrome>` — around a 404 panel.
   Chrome shows `404` in the status bar when the path isn't a panel.
 
@@ -183,7 +185,7 @@ twin with `<Variant>`.
 - **Projects** — featured cards, then "show all public repos" (fetched only on
   click), then the open-slot card. One featured project renders as a single card;
   two or more stack on scroll (sticky; covered cards recede). Currently featured:
-  **TerraNotes**, then the trip planner.
+  **TerraNotes**.
 - **Contact** — "Let's *talk.*", rows that say what each platform is for (**never
   print the handle** — it's his name on all of them). Note text is a size smaller
   than the label. Email row copies on click. The form opens the visitor's own mail
@@ -263,13 +265,6 @@ run, and never `pkill -f "next start"` or loop over `/proc` matching "next start
 (both match and kill the calling shell). Start it as
 `node node_modules/next/dist/bin/next start -p <port> & echo $! > pidfile` and kill
 that PID.
-
----
-
-## Japan 2026 (`/Japan2026`)
-
-The trip planner has its own notes: **`src/app/(japan)/Japan2026/CLAUDE.md`**.
-Read it before touching `/Japan2026`, `src/japan/` or anything else of the planner's.
 
 ---
 

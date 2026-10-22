@@ -30,7 +30,7 @@ export interface FeaturedProject {
   imageBackground: string | null;
 }
 
-/** Other sites open in a new tab; a page on this site (like /Japan2026) opens in place. */
+/** Other sites open in a new tab; a page on this site opens in place. */
 export function openProject(href: string) {
   if (href.startsWith("/")) window.location.assign(href);
   else window.open(href, "_blank", "noopener,noreferrer");

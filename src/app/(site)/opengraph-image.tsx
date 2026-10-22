@@ -136,7 +136,7 @@ export default async function Image() {
               <span style={{ display: "flex" }}>
                 <span style={{ color: C.accent, marginRight: 10 }}>$</span>ls projects/
               </span>
-              <span style={{ color: C.dim }}>terranotes  japan2026</span>
+              <span style={{ color: C.dim }}>terranotes</span>
               <span style={{ display: "flex" }}>
                 <span style={{ color: C.accent, marginRight: 10 }}>$</span>
                 <span style={{ width: 9, height: 18, backgroundColor: C.accent }} />

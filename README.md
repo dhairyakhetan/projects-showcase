@@ -68,46 +68,18 @@ never invoke it. Pages render **both** versions through
 first paint instead of swapping in after hydration. The question itself is in
 the server HTML too, shown only while the attribute is `unset`.
 
-## Japan 2026 at /Japan2026
-
-A second site living inside this one: a day-by-day planner for a family trip,
-originally a separate Vite app. It sits in its own route group with its **own
-root layout** — its fonts, colours and dark mode, none of the portfolio's
-chrome — so moving between it and the portfolio is a full page load. Its
-Tailwind build only scans `src/japan`, and the portfolio's skips that folder,
-so neither site's tokens leak into the other.
-
-Every day has a real URL (`/Japan2026/day1` … `/day10`), all prerendered. The
-planner itself renders client-side only, because it reads today's date, the
-URL and the screen width as it renders. Booking references and ticket numbers
-are deliberately not in its data, and the page asks search engines not to
-index it.
-
-It works with no signal. `public/japan-sw.js` is a service worker scoped to
-`/Japan2026` (the portfolio never goes through it): after one online visit,
-every day's page and the files they need are saved on the phone. Online, pages
-still come from the network first, so the plan is always the latest; the saved
-copy answers only when the network fails or takes more than a few seconds.
-"Today" is rechecked whenever the page comes back into view, and the page has a
-web app manifest and icon, so "Add to Home Screen" opens it like an app.
-
-Its two Japanese fonts are not preloaded: next/font marks every one of their
-~600 unicode-range slices for preload, which was 361 files on every visit. The
-page is Latin text, so the browser now fetches the handful of slices it draws.
-
 ## Wrong URLs
 
-The site has two root layouts, so a URL that matches neither used to get
-Next's bare white 404. `src/app/global-not-found.tsx` (enabled by
+The root layout lives in the `(site)` route group, so a URL that matches no
+page used to get Next's bare white 404. `src/app/global-not-found.tsx` (enabled by
 `experimental.globalNotFound` in `next.config.ts`) renders it in the
 portfolio's own chrome instead.
 
 ## Link previews
 
-Two Open Graph images, generated at build time from JSX with `next/og`:
-`src/app/(site)/opengraph-image.tsx` for every portfolio page (each page keeps
-its own title) and `src/app/(japan)/Japan2026/opengraph-image.tsx` for the trip
-planner and all its days — dates and cities only, no names or bookings.
+One Open Graph image, generated at build time from JSX with `next/og`:
+`src/app/(site)/opengraph-image.tsx`, shared by every portfolio page (each page
+keeps its own title).
 
 ## Routing
 
@@ -146,13 +118,11 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   └── worker.js               # committed copy of the deployed worker
 │
 ├── public/
-│   ├── japan2026.webp          # screenshot for the Japan 2026 card
 │   ├── terranotes.webp         # mockup for the TerraNotes card
 │   ├── favicon.svg             # "dk_", adapts to light/dark
 │   ├── apple-touch-icon.png    # the same mark for iPhone home screens
 │   ├── me.webp                 # About photo (optional — falls back to initials)
-│   ├── japan-sw.js             # keeps /Japan2026 working offline
-│   └── japan2026.webmanifest   # + japan2026-icon-*.png: "Add to Home Screen"
+│   └── japan-sw.js             # clears the old Japan planner's offline copy, then removes itself
 │
 ├── src/
 │   ├── middleware.ts           # hard refresh → ask "do you write code?" again
@@ -162,15 +132,11 @@ while backgrounded, and twelve navigations that each interrupt the one before.
 │   │   │   ├── layout.tsx      # fonts, metadata, theme script — and Chrome
 │   │   │   ├── page.tsx        # "/" → redirects to /home
 │   │   │   └── [panel]/page.tsx  # /home /about /qualification /projects /contact
-│   │   ├── (japan)/            # the Japan trip planner, its own root layout
-│   │   │   ├── layout.tsx
-│   │   │   └── Japan2026/[[...day]]/page.tsx  # /Japan2026 and /Japan2026/day1…10
-│   │   ├── global-not-found.tsx  # the 404 for any URL, in the site's look
+│   │   │   ├── global-not-found.tsx  # the 404 for any URL, in the site's look
 │   │   ├── sitemap.ts / robots.ts
 │   │   └── api/repos/route.ts  # same-origin JSON endpoint
 │   │
-│   ├── japan/                  # the trip planner's code, data and styles
-│   ├── og-fonts/               # TTFs for the link-preview images (Japanese ones subset)
+│   ├── og-fonts/               # TTFs for the link-preview images
 │   │
 │   ├── lib/
 │   │   ├── content.ts          # ⭐ ALL personal content — edit this one

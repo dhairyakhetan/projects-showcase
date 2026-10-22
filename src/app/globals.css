@@ -1,6 +1,4 @@
 @import "tailwindcss";
-/* The Japan trip page builds its own styles (src/japan/japan.css). */
-@source not "../japan";
 
 /*
  * An editor, not a brochure: warm near-black, one acid accent, a big serif
