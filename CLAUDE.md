@@ -66,6 +66,7 @@ src/app/
     [panel]/page.tsx          /home /about /qualification /projects /contact
     opengraph-image.tsx       link preview for every portfolio page
   api/repos/route.ts          same-origin JSON for the full repo list
+  product-funny/              STRATA fridge concept: strata.html served as-is
 src/middleware.ts             hard refresh → re-ask the audience question
 src/lib/                      content, audience, featured, repos, tech, og, theme, fonts
 src/components/               Chrome, panels/, Terminal, cursor, etc.
@@ -86,6 +87,11 @@ next.config.ts                only to switch on experimental.globalNotFound
   now 404s. `public/japan-sw.js` is a kill switch for its old offline worker:
   it deletes the saved copy on devices and unregisters. Delete it after a few
   weeks.
+- `/product-funny` is the STRATA drink-fridge concept site (his side project), added
+  1 Nov 2026. It's his single self-contained HTML file, served byte-for-byte by a
+  static route handler, outside the portfolio's chrome. **Deliberately unlisted**:
+  nothing on the portfolio links to it, it's not in the sitemap, and it sends
+  `X-Robots-Tag: noindex`. To update it, replace `strata.html` with his new copy.
 - The only root layout is in the `(site)` group, so a wrong URL matches no layout
   and Next served its bare white 404. `global-not-found.tsx` (needs `experimental.globalNotFound`) repeats the
   portfolio's `<html>` — fonts, pre-paint scripts, `<Chrome>` — around a 404 panel.
