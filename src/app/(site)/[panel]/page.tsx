@@ -5,7 +5,8 @@ import ContactPanel from "@/components/panels/ContactPanel";
 import HomePanel from "@/components/panels/HomePanel";
 import ProjectsPanel from "@/components/panels/ProjectsPanel";
 import QualificationPanel from "@/components/panels/QualificationPanel";
-import { identity, panels, type PanelId } from "@/lib/content";
+import { panels, type PanelId } from "@/lib/content";
+import { pageMetadata } from "@/lib/metadata";
 
 /** All five are prerendered; anything else 404s rather than rendering empty. */
 export function generateStaticParams() {
@@ -23,34 +24,8 @@ export async function generateMetadata(
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { panel } = await params;
-  // Setting openGraph here replaces the inherited one wholesale, image
-  // included — so the image from ../opengraph-image.tsx is carried over.
-  const inherited = await parent;
   const match = panels.find(entry => entry.id === panel);
-
-  const title = match && match.id !== "home" ? `${match.label} — ${identity.name}` : identity.name;
-  const description = match?.description ?? identity.blurb;
-
-  return {
-    title: match && match.id !== "home" ? title : undefined,
-    description,
-    alternates: { canonical: `/${panel}` },
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      siteName: identity.name,
-      url: `/${panel}`,
-      locale: "en_IN",
-      images: inherited.openGraph?.images,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: inherited.twitter?.images,
-    },
-  };
+  return match ? pageMetadata(match, parent) : {};
 }
 
 /**

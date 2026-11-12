@@ -11,7 +11,7 @@ import ShaderField from "@/components/ShaderField";
 import ShortcutKey from "@/components/ShortcutKey";
 import ThemeToggle from "@/components/ThemeToggle";
 import Variant from "@/components/Variant";
-import { contact, identity, panels } from "@/lib/content";
+import { contact, extras, identity, panels } from "@/lib/content";
 
 /** Renders nothing time-dependent on the server — a mismatch would be a hydration error. */
 function Clock() {
@@ -87,7 +87,7 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const active = pathname.replace(/^\//, "").split("/")[0] || "home";
   // Undefined on the 404 page, which wears the same chrome.
-  const current = panels.find(panel => panel.id === active);
+  const current = [...panels, ...extras].find(page => page.id === active);
 
   return (
     <>

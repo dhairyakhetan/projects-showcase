@@ -37,7 +37,7 @@ export const config = {
       ],
     },
     {
-      source: "/:panel(home|about|qualification|projects|contact)",
+      source: "/:panel(home|about|qualification|projects|contact|blackjack)",
       has: [{ type: "header", key: "cache-control", value: ".*no-cache.*" }],
       missing: [
         { type: "header", key: "rsc" },

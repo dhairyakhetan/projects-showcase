@@ -14,7 +14,7 @@ interface Line {
   text: string;
 }
 
-const CHIPS = ["help", "whoami", "ls", "jee", "play", "sudo hire-me"];
+const CHIPS = ["help", "whoami", "ls", "jee", "play", "blackjack", "sudo hire-me"];
 const PAGES: string[] = panels.map(panel => panel.id);
 /** The log scrolls, so this only bounds memory. */
 const MAX_LINES = 60;
@@ -46,7 +46,7 @@ const intro = () => [
 /**
  * A tiny shell on the home page. It only knows a dozen commands, and every one
  * of them does something real: moves between pages, opens a project, flips the
- * theme, or launches the game.
+ * theme, or launches a game.
  */
 export default function Terminal({ onPlay }: { onPlay: () => void }) {
   const router = useRouter();
@@ -79,7 +79,7 @@ export default function Terminal({ onPlay }: { onPlay: () => void }) {
     switch (name) {
       case "help":
         return [
-          line("out", "whoami · ls · cd <page> · jee · open <project> · play · theme · mode · clear"),
+          line("out", "whoami · ls · cd <page> · jee · open <project> · play · blackjack · theme · mode · clear"),
           line("out", "tip: typing a page name works too. ↑ recalls history."),
         ];
 
@@ -114,6 +114,10 @@ export default function Terminal({ onPlay }: { onPlay: () => void }) {
       case "flappy":
         later(onPlay, 350);
         return [line("out", "launching flappy… space to flap, esc to quit.")];
+
+      case "blackjack":
+        later(() => router.push("/blackjack"), 420);
+        return [line("out", "dealing you in… pretend chips only.")];
 
       case "mode":
         later(() => setAudience("plain"), 500);

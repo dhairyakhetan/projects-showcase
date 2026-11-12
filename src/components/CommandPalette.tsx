@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import ArrowUpRight from "@/components/ArrowUpRight";
 import { toggleTheme } from "@/components/ThemeToggle";
 import { AUDIENCE_EVENT, getAudience, toggleAudience, type Audience } from "@/lib/audience";
-import { contact, panels } from "@/lib/content";
+import { contact, extras, panels } from "@/lib/content";
 import { featuredProjects, openProject } from "@/lib/featured";
 
 const OPEN_EVENT = "palette:open";
@@ -85,7 +85,7 @@ export default function CommandPalette() {
   }, [open]);
 
   const commands = useMemo<Command[]>(() => {
-    const panelCommands: Command[] = panels.map(panel => ({
+    const panelCommands: Command[] = [...panels, ...extras].map(panel => ({
       id: `panel-${panel.id}`,
       label: panel.label,
       hint: audience === "dev" ? panel.file : "",

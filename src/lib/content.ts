@@ -284,3 +284,18 @@ export const panels = [
 ] as const;
 
 export type PanelId = (typeof panels)[number]["id"];
+
+/**
+ * Pages that wear the same chrome but aren't one of the five tabs. They're
+ * reached from the terminal, the palette and the "start here" list.
+ */
+export const extras = [
+  {
+    id: "blackjack",
+    label: "Blackjack",
+    file: "blackjack.py",
+    description:
+      "A quick game of blackjack against the dealer, on pretend chips: hit, stand, double, " +
+      "split and insurance. Nothing here is real money.",
+  },
+] as const;

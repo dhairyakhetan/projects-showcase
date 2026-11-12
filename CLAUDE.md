@@ -64,11 +64,13 @@ src/app/
     layout.tsx                metadata, theme-color, pre-paint scripts, <Chrome>
     page.tsx                  "/" → redirect to /home
     [panel]/page.tsx          /home /about /qualification /projects /contact
+    blackjack/page.tsx        /blackjack — the card game, in the chrome but not a tab
     opengraph-image.tsx       link preview for every portfolio page
   api/repos/route.ts          same-origin JSON for the full repo list
   product-funny/              STRATA fridge concept: strata.html served as-is
 src/middleware.ts             hard refresh → re-ask the audience question
-src/lib/                      content, audience, featured, repos, tech, og, theme, fonts
+src/lib/                      content, audience, featured, repos, tech, og, theme, fonts,
+                              metadata (per-page title/preview), blackjack (the rules)
 src/components/               Chrome, panels/, Terminal, cursor, etc.
 src/og-fonts/                 TTFs for the OG images
 cloudflare/worker.js          committed copy of the deployed worker (+ tests)
@@ -83,6 +85,10 @@ next.config.ts                only to switch on experimental.globalNotFound
   `[panel]/layout.tsx` — a layout under a dynamic segment remounts whenever the
   param changes, which rebuilt the cursor, dots and palette on every click.
 - `[panel]` has `dynamicParams = false`; anything else 404s.
+- `/blackjack` is a static route beside `[panel]`, listed in `extras` in
+  `content.ts` (pages that wear the chrome but aren't one of the five tabs — the
+  status bar and ⌘K read that list). Not in the sitemap. It's also in the
+  middleware matcher, so a hard refresh re-asks there too.
 - `/Japan2026` (a trip planner) was taken down on 22 Oct 2026 at his request; it
   now 404s. `public/japan-sw.js` is a kill switch for its old offline worker:
   it deletes the saved copy on devices and unregisters. Delete it after a few
@@ -177,7 +183,7 @@ twin with `<Variant>`.
   with `whoami` and `ls projects` already run, and its log scrolls (bottom-anchored
   with `mt-auto` — `justify-end` clipped overflow that couldn't be scrolled to).
   Terminal commands: `help whoami ls [projects] cd <page> jee open <project> play
-  theme mode echo clear sudo hire-me`, ↑/↓ history. `open` knows the featured
+  blackjack theme mode echo clear sudo hire-me`, ↑/↓ history. `open` knows the featured
   projects and `projects.older`. `play` opens the Flappy game (regular
   pipes — he asked for plain obstacles, not project names).
 - **About** — "A student first. A programmer *every other hour.*", jee_mode /
@@ -187,11 +193,26 @@ twin with `<Variant>`.
   TerraNotes tech lead (live), Programming (self-taught), Class 10 (2026).
   Arrow-key navigable tabs.
 - Every page has exactly one `<h1>` (its big serif heading) and its own meta
-  description (`panels[].description` in `content.ts`).
+  description (`panels[].description` in `content.ts`). `lib/metadata.ts` builds
+  each page's metadata; Home must *omit* `title` to inherit the layout's —
+  `title: undefined` left `/home` with no `<title>` at all.
 - **Projects** — featured cards, then "show all public repos" (fetched only on
   click), then the open-slot card. One featured project renders as a single card;
   two or more stack on scroll (sticky; covered cards recede). Currently featured:
   **TerraNotes**.
+- **Blackjack** (`/blackjack`) — quick blackjack on pretend chips, added 12 Nov
+  2026. Reached from `blackjack` in the terminal, ⌘K, or the simple view's "start
+  here" list. Rules live in `src/lib/blackjack.ts` as a pure reducer (the shoe is
+  handed in with the `deal` action, so it never shuffles itself); `Blackjack.tsx`
+  draws the table and paces the dealer. 6 decks, dealer stands on every 17,
+  blackjack pays 3:2, double on any two cards, split up to four hands (one card
+  to each split ace), insurance 2:1, dealer peeks. No surrender. Chips: 1,000 to
+  start, kept in `localStorage` (`blackjack-chips`), saved between rounds only;
+  broke means a free 1,000 more. Keys: enter deal, H/S/D/P, Y/N for insurance.
+  Suits are SVGs, not ♥♠ characters (emoji on some phones). Cards keep a paper
+  face in both themes. From `xl` the heading sits beside the table so a round
+  fits one screen; on phones the controls area has a fixed minimum height so the
+  table doesn't jump between betting and playing.
 - **Contact** — "Let's *talk.*", rows that say what each platform is for (**never
   print the handle** — it's his name on all of them). Note text is a size smaller
   than the label. Email row copies on click. The form opens the visitor's own mail

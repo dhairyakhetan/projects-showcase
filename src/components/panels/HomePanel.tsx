@@ -80,7 +80,7 @@ function StartHere({ onPlay }: { onPlay: () => void }) {
     <div className="panel shadow-[var(--shadow)]">
       <div className="panel-bar">
         <span>start here</span>
-        <span>5 stops</span>
+        <span>6 stops</span>
       </div>
 
       <ul>
@@ -96,13 +96,22 @@ function StartHere({ onPlay }: { onPlay: () => void }) {
           </li>
         ))}
         <li>
-          <button type="button" onClick={onPlay} data-cursor-label="play" className={`${row} border-b-0`}>
+          <button type="button" onClick={onPlay} data-cursor-label="play" className={row}>
             <span className="flex flex-col gap-1">
               <span className="text-sm text-ink">Play a little game</span>
               <span className="text-[11px] text-dim">flappy bird, but you're a dot</span>
             </span>
             <span aria-hidden className="nudge text-accent">▸</span>
           </button>
+        </li>
+        <li>
+          <Link href="/blackjack" data-cursor-label="play" className={`${row} border-b-0`}>
+            <span className="flex flex-col gap-1">
+              <span className="text-sm text-ink">Or a hand of blackjack</span>
+              <span className="text-[11px] text-dim">you against the dealer, pretend chips</span>
+            </span>
+            <span aria-hidden className="nudge text-accent">▸</span>
+          </Link>
         </li>
       </ul>
     </div>
