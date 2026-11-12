@@ -6,6 +6,9 @@
  * split ace, insurance at 2:1, and the dealer checks for blackjack before
  * anyone plays. The chips are pretend.
  *
+ * Insurance is offered, not asked: while the dealer shows an ace the player
+ * may insure or simply play, and playing declines it.
+ *
  * `reduce` never shuffles or reads a clock: a new shoe is handed in with the
  * `deal` action, so the same state and action always give the same table.
  */
@@ -68,9 +71,9 @@ export type Action =
   | { type: "rebuy" };
 
 export const DECKS = 6;
-export const BUY_IN = 1000;
-export const MIN_BET = 10;
-export const CHIPS = [10, 50, 100, 500] as const;
+export const BUY_IN = 2500;
+export const MIN_BET = 1;
+export const CHIPS = [1, 10, 100, 500] as const;
 export const MAX_HANDS = 4;
 /** The cut card: a round never starts with fewer cards than this left. */
 const RESHUFFLE_BELOW = 75;
@@ -83,7 +86,7 @@ export function newGame(): Game {
     phase: "bet",
     shoe: [],
     balance: BUY_IN,
-    bet: 50,
+    bet: 0,
     dealer: [],
     holeHidden: true,
     hands: [],
@@ -145,16 +148,21 @@ export function insuranceCost(game: Game) {
   return game.bet / 2;
 }
 
+/** The player's turn, including the moment insurance is still on offer. */
+export function deciding(game: Game) {
+  return game.phase === "player" || game.phase === "insurance";
+}
+
 export function canDouble(game: Game) {
   const hand = game.hands[game.active];
-  return game.phase === "player" && !!hand && hand.cards.length === 2 && game.balance >= hand.bet;
+  return deciding(game) && !!hand && hand.cards.length === 2 && game.balance >= hand.bet;
 }
 
 /** Any two cards worth the same split, so a king and a ten do. */
 export function canSplit(game: Game) {
   const hand = game.hands[game.active];
   return (
-    game.phase === "player" &&
+    deciding(game) &&
     !!hand &&
     hand.cards.length === 2 &&
     cardValue(hand.cards[0].rank) === cardValue(hand.cards[1].rank) &&
@@ -236,7 +244,16 @@ function withActive(game: Game, change: (hand: Hand) => Hand): Hand[] {
   return game.hands.map((hand, index) => (index === game.active ? change(hand) : hand));
 }
 
+const MOVES = ["hit", "stand", "double", "split"];
+
 export function reduce(game: Game, action: Action): Game {
+  // Playing on past an ace turns the insurance down; the dealer then looks,
+  // and the move only counts if there was no blackjack under it.
+  if (game.phase === "insurance" && MOVES.includes(action.type)) {
+    const declined = afterPeek(game);
+    return declined.phase === "player" ? reduce(declined, action) : declined;
+  }
+
   const betting = game.phase === "bet";
   const hand = game.hands[game.active];
 
@@ -254,7 +271,7 @@ export function reduce(game: Game, action: Action): Game {
 
     case "rebuy":
       if (!betting || game.balance >= MIN_BET) return game;
-      return { ...game, balance: BUY_IN, bet: 50 };
+      return { ...game, balance: BUY_IN, bet: 0 };
 
     case "deal": {
       const shoe = action.shoe ?? game.shoe;

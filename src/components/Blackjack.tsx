@@ -11,8 +11,8 @@ import {
   canDouble,
   canSplit,
   cardValue,
+  deciding,
   freshShoe,
-  hasBlackjack,
   insuranceCost,
   needsShuffle,
   newGame,
@@ -41,8 +41,24 @@ const OUTCOME_LABEL: Record<Outcome, string> = {
   bust: "bust",
 };
 
-const chips = (amount: number) => amount.toLocaleString("en-IN");
-const signed = (amount: number) => `${amount > 0 ? "+" : "−"}${chips(Math.abs(amount))}`;
+/** Whole amounts as they are; a half chip (3:2 on an odd bet) shows its cents. */
+const money = (amount: number) =>
+  `$${amount.toLocaleString("en-IN", { minimumFractionDigits: Number.isInteger(amount) ? 0 : 2 })}`;
+const signed = (amount: number) => `${amount > 0 ? "+" : "−"}${money(Math.abs(amount))}`;
+
+/** The bet as chips, biggest first — only as many as a stack can show. */
+function stackOf(amount: number) {
+  const stack: number[] = [];
+  let rest = Math.floor(amount);
+
+  for (const value of [...CHIPS].reverse()) {
+    while (rest >= value && stack.length < 5) {
+      stack.push(value);
+      rest -= value;
+    }
+  }
+  return stack;
+}
 
 /* Drawn rather than typed: ♥ and ♠ as characters turn into emoji on some phones. */
 function SuitIcon({ suit, className }: { suit: Suit; className?: string }) {
@@ -103,17 +119,17 @@ function PlayingCard({
   );
 }
 
-function EmptySlots() {
-  return (
-    <>
-      <div className="bj-card bj-slot" />
-      <div className="bj-card bj-slot" />
-    </>
-  );
-}
+/** The number beside a hand: big, with "soft" or "bust" said quietly after it. */
+function Total({ cards }: { cards: Card[] }) {
+  const { total: value, soft } = total(cards);
+  const note = value > 21 ? "bust" : soft && value < 21 && cards.length > 1 ? "soft" : null;
 
-function Total({ children }: { children: ReactNode }) {
-  return <span className="tag px-2 py-1 tabular-nums">{children}</span>;
+  return (
+    <span className="flex items-baseline gap-2">
+      <span className="text-xl font-bold tabular-nums text-ink md:text-2xl">{value}</span>
+      {note ? <span className={value > 21 ? "text-err" : "text-faint"}>{note}</span> : null}
+    </span>
+  );
 }
 
 function describeTotal(cards: Card[]) {
@@ -217,9 +233,9 @@ export default function Blackjack() {
         if (target?.closest("button, a") || !canDeal) return;
         event.preventDefault();
         dispatch({ type: "deal", shoe: needsShuffle(game.shoe) ? freshShoe() : null });
-      } else if (game.phase === "insurance" && (key === "y" || key === "n")) {
-        dispatch({ type: "insurance", take: key === "y" });
-      } else if (game.phase === "player") {
+      } else if (game.phase === "insurance" && key === "i") {
+        dispatch({ type: "insurance", take: true });
+      } else if (deciding(game)) {
         const move = ({ h: "hit", s: "stand", d: "double", p: "split" } as const)[key];
         if (move) dispatch({ type: move });
       }
@@ -230,83 +246,61 @@ export default function Blackjack() {
   }, [game, canDeal]);
 
   const result = verdict(game);
-  const acting = game.phase === "player";
+  const acting = deciding(game);
   const multi = game.hands.length > 1;
-  const dealerShown = game.holeHidden ? game.dealer.slice(0, 1) : game.dealer;
-  const dealerTotal =
-    game.dealer.length === 0
-      ? null
-      : game.holeHidden
-        ? String(cardValue(game.dealer[0].rank))
-        : describeTotal(game.dealer);
+  const onTable = game.phase === "bet" ? game.bet : game.hands.reduce((sum, hand) => sum + hand.bet, 0);
+  const stack = stackOf(onTable);
+  const deal = () => dispatch({ type: "deal", shoe: needsShuffle(game.shoe) ? freshShoe() : null });
 
   const hint =
-    game.phase === "insurance"
-      ? "dealer shows an ace"
-      : game.phase === "dealer"
-        ? "dealer's turn"
-        : acting
-          ? multi
-            ? `hand ${game.active + 1} of ${game.hands.length} — your move`
-            : "your move"
-          : broke
-            ? "out of chips"
-            : "place a bet, then deal";
+    game.phase === "dealer"
+      ? "dealer's turn"
+      : multi
+        ? `hand ${game.active + 1} of ${game.hands.length} — your move`
+        : game.phase === "insurance"
+          ? "dealer shows an ace"
+          : "your move";
 
   const spoken = result
     ? `${result.words.join("")} Dealer ${describeTotal(game.dealer)}, you ${game.hands
         .map(hand => describeTotal(hand.cards))
         .join(" and ")}. ${result.amount}.`
-    : game.phase === "insurance"
-      ? "Dealer shows an ace. Insurance?"
-      : acting
-        ? `You have ${describeTotal(game.hands[game.active].cards)}${
-            multi ? ` on hand ${game.active + 1}` : ""
-          }. Dealer shows ${dealerTotal}.`
-        : "";
+    : acting
+      ? `You have ${describeTotal(game.hands[game.active].cards)}${
+          multi ? ` on hand ${game.active + 1}` : ""
+        }. Dealer shows ${cardValue(game.dealer[0].rank)}.${
+          game.phase === "insurance" ? " Insurance is on offer." : ""
+        }`
+      : "";
 
   return (
-    // From xl the heading, chips and rules stand beside the table, so a whole
-    // round fits on a laptop screen without scrolling.
+    // From xl the heading and rules stand beside the table, so a whole round
+    // fits on a laptop screen without scrolling.
     <section
       aria-label="Blackjack"
-      className="flex flex-col gap-5 md:gap-8 xl:grid xl:grid-cols-[300px_minmax(0,1fr)] xl:grid-rows-[auto_1fr] xl:items-start xl:gap-x-14 xl:gap-y-10"
+      className="flex flex-col gap-5 md:gap-8 xl:grid xl:grid-cols-[280px_minmax(0,1fr)] xl:grid-rows-[auto_1fr] xl:items-start xl:gap-x-14 xl:gap-y-10"
     >
-      <div className="flex flex-wrap items-end justify-between gap-6 xl:flex-col xl:items-start xl:gap-10">
-        <div className="flex flex-col gap-3.5">
-          <Reveal>
-            <p className="text-xs text-dim">
-              <Variant
-                dev={
-                  <>
-                    <span className="text-accent">$</span> python blackjack.py
-                  </>
-                }
-                plain={
-                  <>
-                    <span className="text-accent">●</span> a quick game
-                  </>
-                }
-              />
-            </p>
-          </Reveal>
-          <Reveal delay={80}>
-            <h1 className="font-display text-[clamp(2.4rem,8vw,4.5rem)] font-normal leading-none tracking-[-0.02em]">
-              Black<span className="italic text-accent">jack.</span>
-            </h1>
-          </Reveal>
-        </div>
-
-        <Reveal delay={140}>
-          <div className="flex flex-col items-end gap-1.5 xl:items-start">
-            <p className="text-[10px] text-dim">chips · pretend ones</p>
-            <p
-              data-testid="balance"
-              className="font-display text-[clamp(2.25rem,6vw,3.25rem)] leading-none tabular-nums"
-            >
-              {chips(game.balance)}
-            </p>
-          </div>
+      <div className="flex flex-col gap-3.5">
+        <Reveal>
+          <p className="text-xs text-dim">
+            <Variant
+              dev={
+                <>
+                  <span className="text-accent">$</span> python blackjack.py
+                </>
+              }
+              plain={
+                <>
+                  <span className="text-accent">●</span> a quick game
+                </>
+              }
+            />
+          </p>
+        </Reveal>
+        <Reveal delay={80}>
+          <h1 className="font-display text-[clamp(2.4rem,8vw,4.5rem)] font-normal leading-none tracking-[-0.02em]">
+            Black<span className="italic text-accent">jack.</span>
+          </h1>
         </Reveal>
       </div>
 
@@ -320,224 +314,244 @@ export default function Blackjack() {
             </span>
           </div>
 
-          <div className="flex flex-col gap-4 px-5 py-4 md:gap-5 md:px-8 md:py-6">
-            <div className="flex flex-col gap-2.5 md:gap-3">
-              <p className="flex h-5 items-center md:h-6 gap-2.5 text-[11px] text-dim">
-                dealer {dealerTotal ? <Total>{dealerTotal}</Total> : null}
-              </p>
-              <div className="flex" data-testid="dealer">
-                {game.dealer.length === 0 ? <EmptySlots /> : null}
-                {game.dealer.map((card, index) => {
-                  const hidden = index === 1 && game.holeHidden;
-                  // Re-keyed when it turns over, so the face arrives with the flip.
-                  return (
-                    <PlayingCard
-                      key={hidden ? `${card.id}-down` : card.id}
-                      card={card}
-                      hidden={hidden}
-                      flip={index === 1 && !hidden}
-                      delay={index < 2 ? DEAL_STAGGER * (index * 2 + 1) : 0}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-6 gap-y-1 border-y border-line-soft py-2 md:min-h-[52px]">
-              {result ? (
-                <>
-                  <p data-testid="verdict" className="font-display text-[clamp(1.6rem,5vw,2.25rem)] leading-none">
-                    {result.words[0]}
-                    <span className="italic text-accent">{result.words[1]}</span>
-                  </p>
-                  <p
-                    data-testid="net"
-                    className={`text-sm tabular-nums ${
-                      result.net > 0 ? "text-accent" : result.net < 0 ? "text-err" : "text-dim"
-                    }`}
+          <div className="bj-felt flex flex-col gap-4 px-5 py-5 md:gap-6 md:px-8 md:py-7">
+            {/* The bet on the table, and what the table has to say. */}
+            <div className="flex min-h-[112px] items-start gap-4 md:min-h-[132px]">
+              <div className="flex w-[84px] flex-none flex-col items-start gap-2 md:w-[104px]">
+                <span data-testid="bet" className="text-xs tabular-nums text-ink-soft">
+                  {onTable > 0 ? money(onTable) : "\u00a0"}
+                </span>
+                <button
+                  type="button"
+                  disabled={game.phase !== "bet" || game.bet === 0}
+                  onClick={() => dispatch({ type: "clear" })}
+                  aria-label={onTable > 0 ? `bet ${onTable}, take it back` : "no bet yet"}
+                  data-cursor-label="take back"
+                  className="bj-stack"
+                >
+                  {stack.length === 0 ? <span className="bj-stack-empty">bet</span> : null}
+                  {stack.map((value, index) => (
+                    <span
+                      key={index}
+                      data-value={value}
+                      className="bj-chip"
+                      style={{ "--stack-i": index } as CSSProperties}
+                    >
+                      {index === stack.length - 1 ? value : null}
+                    </span>
+                  ))}
+                </button>
+                {game.phase !== "bet" ? (
+                  <button
+                    type="button"
+                    disabled={!canDouble(game)}
+                    onClick={() => dispatch({ type: "double" })}
+                    data-cursor-label="double"
+                    className="chip"
                   >
-                    {result.amount}
+                    double <Key>D</Key>
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="flex flex-1 flex-col items-center gap-2 pt-1 text-center">
+                {game.phase !== "bet" ? (
+                  <p className="pt-3 text-xs text-dim">{hint}</p>
+                ) : result ? (
+                  <>
+                    <p data-testid="verdict" className="font-display text-[clamp(1.75rem,5.5vw,2.75rem)] leading-none">
+                      {result.words[0]}
+                      <span className="italic text-accent">{result.words[1]}</span>
+                    </p>
+                    <p
+                      data-testid="net"
+                      className={`text-sm tabular-nums ${
+                        result.net > 0 ? "text-accent" : result.net < 0 ? "text-err" : "text-dim"
+                      }`}
+                    >
+                      {result.amount}
+                    </p>
+                  </>
+                ) : (
+                  <p className="font-display text-[clamp(1.75rem,5.5vw,2.75rem)] leading-none">
+                    {broke ? (
+                      <>
+                        Out of <span className="italic text-accent">chips.</span>
+                      </>
+                    ) : (
+                      <>
+                        Place your <span className="italic text-accent">bets.</span>
+                      </>
+                    )}
                   </p>
-                </>
-              ) : (
-                <p className="text-xs text-dim">{hint}</p>
-              )}
+                )}
+              </div>
+
+              {/* Balances the bet column so the headline sits in the middle. */}
+              <div aria-hidden className="hidden w-[104px] flex-none md:block" />
             </div>
 
-            <div className="flex flex-wrap gap-x-8 gap-y-5" data-testid="player">
-              {game.hands.length === 0 ? (
-                <div className="flex flex-col gap-2.5 md:gap-3">
-                  <p className="flex h-5 items-center md:h-6 text-[11px] text-dim">you</p>
-                  <div className="flex">
-                    <EmptySlots />
+            {/* You on the left, the dealer on the right. With several hands on a
+                phone there isn't room for both across, so they stack. */}
+            <div
+              className={`grid min-h-[196px] items-start gap-x-4 gap-y-5 md:min-h-[268px] md:grid-cols-2 md:justify-items-center ${
+                multi ? "grid-cols-1" : "grid-cols-2"
+              }`}
+            >
+              <div className="flex flex-col items-start gap-2.5">
+                <div className="flex flex-wrap gap-x-4 gap-y-4" data-testid="player">
+                  {game.hands.map((hand, index) => {
+                    const waiting = acting && multi && index !== game.active;
+
+                    return (
+                      <div
+                        key={index}
+                        className={`flex flex-col gap-1.5 transition-opacity duration-300 ${waiting ? "opacity-45" : ""}`}
+                      >
+                        <p className="flex h-7 items-center gap-2.5 text-[11px] text-dim">
+                          <span className={multi && acting && index === game.active ? "text-accent" : undefined}>
+                            {multi ? `hand ${index + 1}` : "you"}
+                          </span>
+                          <Total cards={hand.cards} />
+                        </p>
+                        <div className="bj-hand">
+                          {hand.cards.map((card, position) => (
+                            <PlayingCard
+                              key={card.id}
+                              card={card}
+                              delay={!hand.split && position < 2 ? DEAL_STAGGER * position * 2 : 0}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-[11px] tabular-nums text-faint">
+                          {handResult(hand) ?? (multi ? `bet ${money(hand.bet)}` : "\u00a0")}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {acting ? (
+                  <div className="flex gap-1.5 sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => dispatch({ type: "hit" })}
+                      data-cursor-label="hit"
+                      className="btn btn-primary px-2.5 sm:px-[26px]"
+                    >
+                      hit <Key>H</Key>
+                    </button>
+                    {canSplit(game) ? (
+                      <button
+                        type="button"
+                        onClick={() => dispatch({ type: "split" })}
+                        data-cursor-label="split"
+                        className="btn btn-ghost px-2.5 sm:px-[26px]"
+                      >
+                        split <Key>P</Key>
+                      </button>
+                    ) : null}
                   </div>
-                  <p className="text-[11px] text-faint">&nbsp;</p>
+                ) : null}
+              </div>
+
+              {game.dealer.length > 0 ? (
+                <div className="flex flex-col items-start gap-2.5">
+                  <div className="flex flex-col gap-1.5">
+                    <p className="flex h-7 items-center gap-2.5 text-[11px] text-dim">
+                      dealer
+                      <Total cards={game.holeHidden ? game.dealer.slice(0, 1) : game.dealer} />
+                    </p>
+                    <div className="bj-hand" data-testid="dealer">
+                      {game.dealer.map((card, index) => {
+                        const hidden = index === 1 && game.holeHidden;
+                        // Re-keyed when it turns over, so the face arrives with the flip.
+                        return (
+                          <PlayingCard
+                            key={hidden ? `${card.id}-down` : card.id}
+                            card={card}
+                            hidden={hidden}
+                            flip={index === 1 && !hidden}
+                            delay={index < 2 ? DEAL_STAGGER * (index * 2 + 1) : 0}
+                          />
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-faint">&nbsp;</p>
+                  </div>
+
+                  {acting ? (
+                    <div className="flex gap-1.5 sm:gap-2">
+                      {game.phase === "insurance" ? (
+                        <button
+                          type="button"
+                          onClick={() => dispatch({ type: "insurance", take: true })}
+                          aria-label={`insure for ${insuranceCost(game)}`}
+                          data-cursor-label={`insure ${money(insuranceCost(game))}`}
+                          className="btn btn-ghost px-2.5 sm:px-[26px]"
+                        >
+                          insure <Key>I</Key>
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => dispatch({ type: "stand" })}
+                        data-cursor-label="stand"
+                        className="btn btn-ghost px-2.5 sm:px-[26px]"
+                      >
+                        stand <Key>S</Key>
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
-
-              {game.hands.map((hand, index) => {
-                const waiting = acting && multi && index !== game.active;
-
-                return (
-                  <div
-                    key={index}
-                    className={`flex flex-col gap-2.5 md:gap-3 transition-opacity duration-300 ${waiting ? "opacity-45" : ""}`}
-                  >
-                    <p className="flex h-5 items-center md:h-6 gap-2.5 text-[11px] text-dim">
-                      {multi ? (
-                        <span className={acting && index === game.active ? "text-accent" : undefined}>
-                          hand {index + 1}
-                        </span>
-                      ) : (
-                        "you"
-                      )}
-                      <Total>{describeTotal(hand.cards)}</Total>
-                    </p>
-                    <div className="flex">
-                      {hand.cards.map((card, position) => (
-                        <PlayingCard
-                          key={card.id}
-                          card={card}
-                          delay={!hand.split && position < 2 ? DEAL_STAGGER * position * 2 : 0}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-[11px] tabular-nums text-faint">
-                      {handResult(hand) ?? `bet ${chips(hand.bet)}`}
-                      {hasBlackjack(hand) && !hand.outcome ? " · blackjack" : ""}
-                    </p>
-                  </div>
-                );
-              })}
             </div>
-          </div>
 
-          {/* A fixed floor, so the table keeps its height from bet to play to
-              result and a round on a phone needs no scrolling. */}
-          <div className="flex min-h-[140px] items-center border-t border-rule px-5 py-4 md:min-h-[92px] md:px-8">
-            {game.phase === "insurance" ? (
-              <div className="flex w-full flex-wrap items-center justify-between gap-3 sm:gap-4">
-                <p className="max-w-[420px] text-xs leading-relaxed text-dim">
-                  Insurance costs <span className="text-ink">{chips(insuranceCost(game))}</span> and pays 2:1 if
-                  the dealer has blackjack.
+            {/* The pile to bet from, the bankroll beside it, and the deal. */}
+            <div className="flex items-end justify-between gap-3">
+              <div className="flex flex-col gap-2.5 sm:flex-row-reverse sm:items-end sm:gap-5">
+                <p data-testid="balance" className="text-sm font-bold tabular-nums md:text-base">
+                  {money(game.phase === "bet" ? game.balance - game.bet : game.balance)}
                 </p>
-                <div className="grid w-full grid-cols-2 gap-2.5 sm:flex sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => dispatch({ type: "insurance", take: true })}
-                    data-cursor-label="insure"
-                    className="btn btn-ghost"
-                  >
-                    insure <Key>Y</Key>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => dispatch({ type: "insurance", take: false })}
-                    data-cursor-label="skip"
-                    className="btn btn-primary"
-                  >
-                    no thanks <Key>N</Key>
-                  </button>
-                </div>
-              </div>
-            ) : game.phase !== "bet" ? (
-              <div className="grid w-full grid-cols-4 gap-2 sm:flex sm:gap-2.5">
-                <button
-                  type="button"
-                  disabled={!acting}
-                  onClick={() => dispatch({ type: "hit" })}
-                  data-cursor-label="hit"
-                  className="btn btn-primary px-0 sm:px-[26px]"
-                >
-                  hit <Key>H</Key>
-                </button>
-                <button
-                  type="button"
-                  disabled={!acting}
-                  onClick={() => dispatch({ type: "stand" })}
-                  data-cursor-label="stand"
-                  className="btn btn-ghost px-0 sm:px-[26px]"
-                >
-                  stand <Key>S</Key>
-                </button>
-                <button
-                  type="button"
-                  disabled={!canDouble(game)}
-                  onClick={() => dispatch({ type: "double" })}
-                  data-cursor-label="double"
-                  className="btn btn-ghost px-0 sm:px-[26px]"
-                >
-                  double <Key>D</Key>
-                </button>
-                <button
-                  type="button"
-                  disabled={!canSplit(game)}
-                  onClick={() => dispatch({ type: "split" })}
-                  data-cursor-label="split"
-                  className="btn btn-ghost px-0 sm:px-[26px]"
-                >
-                  split <Key>P</Key>
-                </button>
-              </div>
-            ) : broke ? (
-              <div className="flex w-full flex-wrap items-center justify-between gap-4">
-                <p className="text-xs leading-relaxed text-dim">
-                  That&apos;s the lot. The house will spot you another {chips(BUY_IN)}.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => dispatch({ type: "rebuy" })}
-                  data-cursor-label="rebuy"
-                  className="btn btn-primary w-full sm:w-auto"
-                >
-                  take {chips(BUY_IN)} more
-                </button>
-              </div>
-            ) : (
-              <div className="grid w-full grid-cols-[1fr_auto] items-center gap-x-7 gap-y-4 sm:flex sm:flex-wrap">
-                <div className="flex min-w-[72px] flex-col gap-1">
-                  <span className="text-[10px] text-dim">bet</span>
-                  <span data-testid="bet" className="text-lg tabular-nums">
-                    {chips(game.bet)}
-                  </span>
-                </div>
-
-                <div className="col-span-2 row-start-2 flex gap-1.5 sm:gap-2">
+                <div className="bj-tray">
                   {CHIPS.map(amount => (
                     <button
                       key={amount}
                       type="button"
-                      disabled={game.bet + amount > game.balance}
+                      disabled={game.phase !== "bet" || game.bet + amount > game.balance}
                       onClick={() => dispatch({ type: "chip", amount })}
-                      aria-label={`add ${amount} to the bet`}
+                      aria-label={`bet ${amount} more`}
+                      data-value={amount}
                       data-cursor-label="bet"
-                      className="chip h-10 flex-1 px-0 tabular-nums sm:h-[30px] sm:flex-none sm:px-3"
+                      className="bj-chip"
                     >
-                      +{amount}
+                      {amount}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    disabled={game.bet === 0}
-                    onClick={() => dispatch({ type: "clear" })}
-                    data-cursor-label="clear"
-                    className="chip h-10 flex-1 px-0 sm:h-[30px] sm:flex-none sm:px-3"
-                  >
-                    clear
-                  </button>
                 </div>
+              </div>
 
+              {broke ? (
+                <button
+                  type="button"
+                  onClick={() => dispatch({ type: "rebuy" })}
+                  data-cursor-label="rebuy"
+                  className="btn btn-primary px-4 sm:px-[26px]"
+                >
+                  take {money(BUY_IN)}
+                </button>
+              ) : game.phase === "bet" ? (
                 <button
                   type="button"
                   disabled={!canDeal}
-                  onClick={() => dispatch({ type: "deal", shoe: needsShuffle(game.shoe) ? freshShoe() : null })}
+                  onClick={deal}
                   data-cursor-label="deal"
-                  className="btn btn-primary col-start-2 row-start-1 sm:ml-auto"
+                  className="btn btn-primary px-5 sm:px-[26px]"
                 >
-                  {game.net === null ? "deal" : "deal again"} <span aria-hidden className="nudge">→</span>
+                  deal <span aria-hidden className="nudge">→</span>
                 </button>
-              </div>
-            )}
+              ) : null}
+            </div>
           </div>
 
           <p aria-live="polite" className="sr-only">
@@ -549,13 +563,14 @@ export default function Blackjack() {
       <Reveal delay={240}>
         <div className="flex flex-col gap-2 text-[11px] leading-relaxed text-faint">
           <p>
-            {DECKS} decks · dealer stands on every 17 · blackjack pays 3:2 · double on any two cards · split up
-            to four hands · insurance pays 2:1. The chips are pretend — nothing here is real money.
+            Tap the chips to bet, tap the bet to take it back. {DECKS} decks · dealer stands on every 17 ·
+            blackjack pays 3:2 · double on any two cards · split up to four hands · insurance pays 2:1. The
+            money is pretend.
           </p>
           <p className="hidden md:block">
             keys: <span className="text-dim">enter</span> deal · <span className="text-dim">H</span> hit ·{" "}
             <span className="text-dim">S</span> stand · <span className="text-dim">D</span> double ·{" "}
-            <span className="text-dim">P</span> split
+            <span className="text-dim">P</span> split · <span className="text-dim">I</span> insure
           </p>
         </div>
       </Reveal>

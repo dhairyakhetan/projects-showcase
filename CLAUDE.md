@@ -200,19 +200,25 @@ twin with `<Variant>`.
   click), then the open-slot card. One featured project renders as a single card;
   two or more stack on scroll (sticky; covered cards recede). Currently featured:
   **TerraNotes**.
-- **Blackjack** (`/blackjack`) — quick blackjack on pretend chips, added 12 Nov
+- **Blackjack** (`/blackjack`) — quick blackjack on pretend money, added 12 Nov
   2026. Reached from `blackjack` in the terminal, ⌘K, or the simple view's "start
-  here" list. Rules live in `src/lib/blackjack.ts` as a pure reducer (the shoe is
-  handed in with the `deal` action, so it never shuffles itself); `Blackjack.tsx`
-  draws the table and paces the dealer. 6 decks, dealer stands on every 17,
-  blackjack pays 3:2, double on any two cards, split up to four hands (one card
-  to each split ace), insurance 2:1, dealer peeks. No surrender. Chips: 1,000 to
-  start, kept in `localStorage` (`blackjack-chips`), saved between rounds only;
-  broke means a free 1,000 more. Keys: enter deal, H/S/D/P, Y/N for insurance.
-  Suits are SVGs, not ♥♠ characters (emoji on some phones). Cards keep a paper
-  face in both themes. From `xl` the heading sits beside the table so a round
-  fits one screen; on phones the controls area has a fixed minimum height so the
-  table doesn't jump between betting and playing.
+  here" list. He asked for it to play and be laid out like 247blackjack.com, in
+  this site's theme: "Place your bets", a pile of round chips (1/10/100/500)
+  bottom-left with the bankroll beside it, the bet as a chip stack on the table
+  (tap to take it back) with Double under it, your hand left and the dealer's
+  right with tilted cards, Hit under yours, Insure + Stand under the dealer's.
+  **The layout is theirs; the art is ours** — chips and cards are drawn in CSS/SVG
+  from the site's tokens. Never copy their images or code.
+  Rules live in `src/lib/blackjack.ts` as a pure reducer (the shoe is handed in
+  with the `deal` action, so it never shuffles itself); `Blackjack.tsx` draws the
+  table and paces the dealer. 6 decks, dealer stands on every 17, blackjack pays
+  3:2, double on any two cards, split up to four hands (one card to each split
+  ace), dealer peeks, no surrender. Insurance (2:1) is an optional button while
+  the dealer shows an ace — playing on declines it. $2,500 to start, kept in
+  `localStorage` (`blackjack-chips`), saved between rounds only; broke means a
+  free $2,500 more. Keys: enter deal, H/S/D/P, I to insure. Suits are SVGs, not
+  ♥♠ characters (emoji on some phones). Chips are the one round thing on the
+  site. From `xl` the heading sits beside the table so a round fits one screen.
 - **Contact** — "Let's *talk.*", rows that say what each platform is for (**never
   print the handle** — it's his name on all of them). Note text is a size smaller
   than the label. Email row copies on click. The form opens the visitor's own mail

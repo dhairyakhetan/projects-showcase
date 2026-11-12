@@ -679,15 +679,18 @@
 }
 
 /* ---- blackjack -----------------------------------------------------------
- * The cards at /blackjack. They keep a paper face in both themes — a card the
- * colour of the table stops reading as a card — and overlap like a held hand,
- * so the corner index of every card stays in view however many are drawn.
+ * The table at /blackjack: cards and chips. Both keep a paper face in either
+ * theme — a card the colour of the table stops reading as a card — and the
+ * chips take their colours from the site's own tokens.
  *
  * Like every entrance here, the resting state is the visible one: `deal` and
- * `flip` only describe how a card arrives.
+ * `flip` only describe how a card arrives. The tilt is on `rotate`, a separate
+ * property, so those keyframes' `transform` doesn't cancel it.
  */
 .bj {
   --card-w: 54px;
+  --chip-w: 50px;
+  --overlap: -0.5;
   --card-face: #ebe8df;
   --card-ink: #14150f;
   --card-red: #b5301b;
@@ -699,8 +702,15 @@
 
 @media (min-width: 768px) {
   .bj {
-    --card-w: 80px;
+    --card-w: 88px;
+    --chip-w: 68px;
+    --overlap: -0.4;
   }
+}
+
+/* A spotlight on the felt, in the accent rather than casino green. */
+.bj-felt {
+  background: radial-gradient(ellipse 70% 60% at 50% 45%, var(--accent-soft), transparent 72%);
 }
 
 .bj-card {
@@ -716,7 +726,22 @@
 }
 
 .bj-card + .bj-card {
-  margin-left: calc(var(--card-w) * -0.4);
+  margin-left: calc(var(--card-w) * var(--overlap));
+}
+
+/* Thrown down, not lined up. */
+.bj-hand {
+  display: flex;
+  padding: 12px 8px 6px;
+}
+
+.bj-hand .bj-card:nth-child(odd) {
+  rotate: -6deg;
+}
+
+.bj-hand .bj-card:nth-child(even) {
+  rotate: 5deg;
+  translate: 0 -6px;
 }
 
 .bj-red {
@@ -761,18 +786,6 @@
   animation: flip 280ms ease-out both;
 }
 
-/* An empty seat, before the first deal. */
-.bj-slot {
-  background: none;
-  border: 1px dashed var(--line);
-  box-shadow: none;
-  animation: none;
-}
-
-.bj-slot + .bj-slot {
-  margin-left: 10px;
-}
-
 @keyframes deal {
   from { opacity: 0; transform: translate(34px, -26px) rotate(7deg); }
   to { opacity: 1; transform: none; }
@@ -781,6 +794,97 @@
 @keyframes flip {
   from { transform: rotateY(90deg); }
   to { transform: none; }
+}
+
+/* The one round thing on a site of sharp corners: a chip has to be a chip.
+   Edge inserts are a conic gradient, the face a radial one on top of it. */
+.bj-chip {
+  --chip: #96998d;
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--chip-w);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid color-mix(in oklab, var(--chip) 62%, #000);
+  background:
+    radial-gradient(closest-side, var(--card-face) 0 54%, var(--chip) 56% 72%, transparent 74%),
+    repeating-conic-gradient(from -11.25deg, var(--card-face) 0 22.5deg, var(--chip) 22.5deg 45deg);
+  box-shadow:
+    0 3px 0 color-mix(in oklab, var(--chip) 45%, #000),
+    0 9px 14px -6px rgba(0, 0, 0, 0.6);
+  color: var(--card-ink);
+  font-size: calc(var(--chip-w) * 0.24);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  transition: transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1), opacity 180ms ease;
+}
+
+.bj-chip[data-value="10"] {
+  --chip: #2f6bc4;
+}
+
+.bj-chip[data-value="100"] {
+  --chip: #23251e;
+}
+
+.bj-chip[data-value="500"] {
+  --chip: var(--accent);
+}
+
+/* The pile to bet from: each chip leans on the last. */
+.bj-tray {
+  display: flex;
+}
+
+.bj-tray .bj-chip + .bj-chip {
+  margin-left: -6px;
+}
+
+.bj-tray .bj-chip:disabled {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .bj-tray .bj-chip:hover,
+  .bj-stack:hover {
+    z-index: 1;
+    transform: translateY(-5px);
+  }
+}
+
+.bj-tray .bj-chip:active {
+  transform: translateY(2px);
+  transition-duration: 60ms;
+}
+
+/* The bet on the table: the same chips, one on top of another. */
+.bj-stack {
+  position: relative;
+  display: block;
+  width: var(--chip-w);
+  height: calc(var(--chip-w) + 20px);
+  transition: transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.bj-stack .bj-chip {
+  position: absolute;
+  left: 0;
+  bottom: calc(var(--stack-i) * 5px);
+}
+
+.bj-stack-empty {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 1px dashed var(--line-strong);
+  border-radius: 50%;
+  color: var(--faint);
+  font-size: 10px;
 }
 
 /* ---- scrollbar ----------------------------------------------------------- */
