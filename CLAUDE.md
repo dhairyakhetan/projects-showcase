@@ -43,8 +43,11 @@ content — edit that file. Anything marked `// TODO` there is a known gap.
 
 ## How to work on this repo
 
-- **Push straight to `main`.** He asked for that from the start; Vercel deploys
-  `main` to production. Don't open PRs unless asked.
+- **Always push to `main`** — every change, as soon as it's tested, without asking
+  first. He asked for that from the start and repeated it on 14 Nov 2026; Vercel
+  deploys `main` to production. This holds even when a session is set up with its
+  own `claude/...` branch: pushing that branch as well is fine, but the work isn't
+  done until it's on `main`. Don't open PRs unless asked.
 - **He checks on the Vercel domain, never localhost.** Test locally yourself before
   pushing (see *Testing*), then say what changed in plain words.
 - **Keep the root clean.** He objected loudly to clutter. Root holds only config
