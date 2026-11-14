@@ -74,8 +74,10 @@ function Card({
   total: number;
 }) {
   const stacked = total > 1;
-  // A finished image (mockup, screenshot) is shown whole and in colour rather
-  // than cropped, over-scaled for parallax and muted like a GitHub preview.
+  // My own images stay in full colour and still; only GitHub's white preview
+  // cards are muted and over-scaled for parallax. A mockup is shown whole on
+  // its background; a scene fills the frame around its chosen point.
+  const own = project.thumbnailAlt !== null;
   const framed = Boolean(project.imageBackground);
   const [failed, setFailed] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -107,7 +109,7 @@ function Card({
       >
         <div
           className={`relative overflow-hidden border-b border-line bg-chip md:aspect-auto md:border-b-0 md:border-r ${
-            framed ? "aspect-[4/3]" : "aspect-[16/10]"
+            own ? "aspect-[4/3]" : "aspect-[16/10]"
           }`}
           style={framed ? { background: project.imageBackground! } : undefined}
         >
@@ -131,13 +133,16 @@ function Card({
             <img
               ref={imgRef}
               src={project.thumbnail}
-              alt={framed ? `${project.title} on a laptop and a phone` : ""}
+              alt={project.thumbnailAlt ?? ""}
               loading={index === 0 ? "eager" : "lazy"}
               decoding="async"
               onError={() => setFailed(true)}
+              style={project.imagePosition ? { objectPosition: project.imagePosition } : undefined}
               className={
-                framed
-                  ? "h-full w-full object-contain transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03]"
+                own
+                  ? `h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03] ${
+                      framed ? "object-contain" : "object-cover"
+                    }`
                   : "stack-media thumb h-full w-full object-cover"
               }
             />
@@ -167,12 +172,12 @@ function Card({
             </p>
           ) : null}
 
-          <p className="max-w-[46ch] text-[13px] leading-[1.8] text-ink-mute [text-wrap:pretty] sm:text-sm">
+          <p className="max-w-[56ch] text-[13px] leading-[1.8] text-ink-mute [text-wrap:pretty] sm:text-sm">
             {project.blurb}
           </p>
 
           {project.outcome ? (
-            <p className="max-w-[46ch] border-l-2 border-accent pl-4 text-[13px] leading-[1.8] text-ink">
+            <p className="max-w-[56ch] border-l-2 border-accent pl-4 text-[13px] leading-[1.8] text-ink">
               {project.outcome}
             </p>
           ) : null}
@@ -253,6 +258,7 @@ export default function FeaturedStack({ projects }: { projects: FeaturedProject[
     // trying to avoid.
     let restTops: number[] = [];
     function measureRestTops() {
+      for (const item of items) item.style.setProperty("--item-h", `${item.offsetHeight}px`);
       restTops = items.map(item => parseFloat(getComputedStyle(item).top) || 0);
     }
 
@@ -300,12 +306,17 @@ export default function FeaturedStack({ projects }: { projects: FeaturedProject[
       onScroll();
     }
 
+    // Cards change height after the fonts swap in, not only on resize.
+    const resizes = new ResizeObserver(onResize);
+    items.forEach(item => resizes.observe(item));
+
     measureRestTops();
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
 
     return () => {
+      resizes.disconnect();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };

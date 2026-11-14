@@ -63,6 +63,7 @@ const REGISTRY: Record<string, Omit<Tech, "slug">> = {
   canvas: { label: "Canvas", category: "tool", color: "#E8A33D" },
   webgl: { label: "WebGL", category: "tool", color: "#E24B4B" },
   threejs: { label: "Three.js", category: "tool", color: "#B0B0B0" },
+  webaudio: { label: "Web Audio", category: "tool", color: "#2DB4A0" },
   api: { label: "API", category: "tool", color: "#8B8FA3" },
   bot: { label: "Bot", category: "tool", color: "#9B8AFB" },
   game: { label: "Game", category: "tool", color: "#EC4899" },
@@ -107,6 +108,7 @@ const TOPIC_ALIASES: Record<string, string> = {
 
   canvas: "canvas", "canvas-api": "canvas",
   webgl: "webgl", three: "threejs", threejs: "threejs", "three-js": "threejs",
+  webaudio: "webaudio", "web-audio": "webaudio", "web-audio-api": "webaudio",
   api: "api", "rest-api": "api",
   bot: "bot", game: "game", gamedev: "game", cli: "cli",
 };

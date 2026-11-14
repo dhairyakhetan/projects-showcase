@@ -21,6 +21,10 @@ odd until you know what broke last time.
   launched September 2026: 6 pieces, 18 team profiles. Live at
   `https://terranotes-aq.vercel.app` (no public repo — link the site only, and
   don't list its features on the card). The URL is one constant in `content.ts`.
+- **Second featured: Archer MRSI** (solo, 2026, added 14 Nov 2026) — a three.js
+  simulation of the Archer 155 mm howitzer firing MRSI, physics built from BAE's
+  published figures. Live at `https://archer-mrsi.vercel.app`; no repo button. The
+  card copy and the image's alt text are his, word for word.
 - Older repos (secondary, pinned at the top of the full repo list; written out in
   `projects.older`, which is also the fallback list and what `open` knows):
   - `shoppy` — storefront for his mother's Tanjore art
@@ -132,8 +136,10 @@ An editor, not a brochure. Based on a Claude Design canvas he provided.
   when the design changed. The loop stops once nothing moves — an idle page costs
   zero frames. Off for touch; static under reduced motion.
 - Images are greyscale at rest and colour on hover (hover devices only — on phones
-  they stay in colour). Featured cards with a finished image (`imageBackground`
-  set) show it whole and in full colour.
+  they stay in colour). A featured card's own image (`image` + `imageAlt` set) is
+  always in full colour: a mockup with `imageBackground` is shown whole on that
+  colour (TerraNotes); a scene fills the frame, cropped around `imagePosition`
+  (Archer — keeps the howitzer and the impact in a tall frame).
 
 ### Motion and feedback
 
@@ -198,8 +204,12 @@ twin with `<Variant>`.
   `title: undefined` left `/home` with no `<title>` at all.
 - **Projects** — featured cards, then "show all public repos" (fetched only on
   click), then the open-slot card. One featured project renders as a single card;
-  two or more stack on scroll (sticky; covered cards recede). Currently featured:
-  **TerraNotes**.
+  two or more stack on scroll (sticky; covered cards recede). A card taller than
+  the room below its sticky slot parks with its bottom edge in view instead
+  (`--item-h`, measured in `FeaturedStack`) — otherwise the next card covered its
+  visit button before it was ever on screen (Archer is ~710px; 1366×768 laptops).
+  Copy measure is 56ch so both cards fit with the stack sliver at 1440×900.
+  Currently featured: **TerraNotes**, then **Archer MRSI**.
 - **Blackjack** (`/blackjack`) — quick blackjack on pretend money, added 12 Nov
   2026. Reached from `blackjack` in the terminal, ⌘K, or the simple view's "start
   here" list. He asked for it to play and be laid out like 247blackjack.com, in

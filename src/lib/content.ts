@@ -200,13 +200,45 @@ export const projects = {
       /** No public repo — the card links to the live site only. */
       repo: null as string | null,
       homepage: TERRANOTES_URL as string | null,
+      /** A finished image of my own, always in full colour — unlike GitHub's muted previews. */
       image: "/terranotes.webp" as string | null,
+      imageAlt: "TerraNotes on a laptop and a phone" as string | null,
       /**
-       * Set for a finished image (a mockup, a screenshot): it's shown whole, in
-       * full colour, on this background, instead of cropped and muted like
-       * GitHub's preview cards. Match it to the image's own edges.
+       * Set for a mockup: it's shown whole on this background instead of filling
+       * the frame. Match it to the image's own edges. Leave null for a scene,
+       * which can be cropped at the edges.
        */
       imageBackground: "#f4ede1" as string | null,
+      /** For a scene: the part to keep (CSS object-position) when the frame crops it. */
+      imagePosition: null as string | null,
+    },
+    {
+      name: "archer-mrsi",
+      title: "Archer MRSI",
+      subtitle: "Artillery physics, solved live in the browser",
+      kind: "solo project · 2026",
+      blurb:
+        "A 3-D simulation of the Archer 155\u00a0mm howitzer doing MRSI: firing up to six shells " +
+        "on different arcs so they all land at the same moment. I built the physics from BAE " +
+        "Systems’ published figures: propellant burn for every charge, a 3-D flight path " +
+        "through real air, wind and the Earth’s rotation, and a fire-control solver that times " +
+        "each shot around the autoloader. Nothing is pre-recorded. Change the range and it " +
+        "works out the whole mission again, down to the synthesised sound of every blast.",
+      outcome:
+        "At 15\u00a0km it fires six rounds over 66 seconds. The first is lobbed at 67° and flies " +
+        "for 92 seconds, the last leaves under 10° and flies for 26, and all six land within " +
+        "a fraction of a second.",
+      tech: ["threejs", "webaudio", "canvas"],
+      repo: null,
+      homepage: "https://archer-mrsi.vercel.app",
+      image: "/archer-mrsi.webp",
+      imageAlt:
+        "A dusk render of the Archer howitzer firing, with six glowing shell trajectories " +
+        "arcing to a single target on the horizon.",
+      imageBackground: null,
+      // Keeps the howitzer on the left and the impact on the right in a tall frame,
+      // and the truck's wheels in a wide one.
+      imagePosition: "23% 60%",
     },
   ],
 
@@ -271,7 +303,7 @@ export const panels = [
     file: "projects/",
     description:
       "Things I've made: TerraNotes, the online magazine of a Kolkata NGO where I'm tech lead, " +
-      "and everything else on GitHub.",
+      "Archer MRSI, an artillery simulation in the browser, and everything else on GitHub.",
   },
   {
     id: "contact",

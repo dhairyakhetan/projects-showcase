@@ -445,9 +445,15 @@
 }
 
 @media (min-width: 768px) {
+  /* A card taller than the room below its slot parks with its bottom edge in
+     view instead — otherwise the next card covers its buttons before they're
+     ever on screen. --item-h is measured by FeaturedStack. */
   .stack-item {
     position: sticky;
-    top: calc(var(--stack-top) + var(--stack-index) * var(--stack-step));
+    top: min(
+      calc(var(--stack-top) + var(--stack-index) * var(--stack-step)),
+      calc(100vh - var(--status-h) - 1rem - var(--item-h, 0px))
+    );
   }
 
   .stack-spacer {
