@@ -236,9 +236,9 @@ export const projects = {
         "A dusk render of the Archer howitzer firing, with six glowing shell trajectories " +
         "arcing to a single target on the horizon.",
       imageBackground: null,
-      // Keeps the howitzer on the left and the impact on the right in a tall frame,
-      // and the truck's wheels in a wide one.
-      imagePosition: "23% 60%",
+      // Keeps the howitzer on the left and the impact on the right in a tall frame;
+      // a wide one crops only the bottom, never the arcs at the top.
+      imagePosition: "23% 0%",
     },
   ],
 

@@ -139,7 +139,10 @@ An editor, not a brochure. Based on a Claude Design canvas he provided.
   they stay in colour). A featured card's own image (`image` + `imageAlt` set) is
   always in full colour: a mockup with `imageBackground` is shown whole on that
   colour (TerraNotes); a scene fills the frame, cropped around `imagePosition`
-  (Archer — keeps the howitzer and the impact in a tall frame).
+  (Archer: `23% 0%` — the howitzer and impact stay in a tall frame, and only the
+  bottom is ever cropped, never the top; he asked for that. Its phone frame is
+  7:6 so that bottom crop takes empty ground, not the truck). Hover zoom grows
+  from the same point.
 
 ### Motion and feedback
 

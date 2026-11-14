@@ -76,7 +76,8 @@ function Card({
   const stacked = total > 1;
   // My own images stay in full colour and still; only GitHub's white preview
   // cards are muted and over-scaled for parallax. A mockup is shown whole on
-  // its background; a scene fills the frame around its chosen point.
+  // its background; a scene fills the frame around its chosen point, and its
+  // frame on a phone is near-square so the crop takes foreground, not sky.
   const own = project.thumbnailAlt !== null;
   const framed = Boolean(project.imageBackground);
   const [failed, setFailed] = useState(false);
@@ -109,7 +110,7 @@ function Card({
       >
         <div
           className={`relative overflow-hidden border-b border-line bg-chip md:aspect-auto md:border-b-0 md:border-r ${
-            own ? "aspect-[4/3]" : "aspect-[16/10]"
+            framed ? "aspect-[4/3]" : own ? "aspect-[7/6]" : "aspect-[16/10]"
           }`}
           style={framed ? { background: project.imageBackground! } : undefined}
         >
@@ -137,7 +138,11 @@ function Card({
               loading={index === 0 ? "eager" : "lazy"}
               decoding="async"
               onError={() => setFailed(true)}
-              style={project.imagePosition ? { objectPosition: project.imagePosition } : undefined}
+              style={
+                project.imagePosition
+                  ? { objectPosition: project.imagePosition, transformOrigin: project.imagePosition }
+                  : undefined
+              }
               className={
                 own
                   ? `h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03] ${
