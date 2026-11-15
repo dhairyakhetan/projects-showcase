@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import ArrowUpRight from "@/components/ArrowUpRight";
 import type { FeaturedProject } from "@/lib/featured";
+import { confirmFailure, markLoaded } from "@/lib/image";
 
 /** New tab for other sites; a page on this one opens in place. */
 function external(href: string) {
@@ -83,11 +84,9 @@ function Card({
   const imgRef = useRef<HTMLImageElement>(null);
   const accent = project.tech[0]?.color ?? "#8B8FA3";
 
-  // A thumbnail that 404s does so while the server HTML parses, before React
-  // attaches onError — so the miss is also caught on mount.
   useEffect(() => {
-    const img = imgRef.current;
-    if (img?.complete && img.naturalWidth === 0) setFailed(true);
+    markLoaded(imgRef.current);
+    confirmFailure(imgRef.current, () => setFailed(true));
   }, []);
 
   const style = {
@@ -108,10 +107,10 @@ function Card({
         className={`stack-card group relative ${stacked ? "" : "lift "} grid overflow-hidden border border-line bg-panel shadow-[var(--shadow)] md:min-h-[min(30rem,64vh)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]`}
       >
         <div
-          className={`relative overflow-hidden border-b border-line bg-chip md:aspect-auto md:border-b-0 md:border-r ${
+          className={`img-frame relative overflow-hidden border-b border-line bg-chip md:aspect-auto md:border-b-0 md:border-r ${
             framed ? "aspect-[4/3]" : own ? "aspect-[7/6]" : "aspect-[16/10]"
           }`}
-          style={framed ? { background: project.imageBackground! } : undefined}
+          style={framed ? { backgroundColor: project.imageBackground! } : undefined}
         >
           {failed || !project.thumbnail ? (
             project.homepage ? (
@@ -134,8 +133,9 @@ function Card({
               ref={imgRef}
               src={project.thumbnail}
               alt={project.thumbnailAlt ?? ""}
-              loading={index === 0 ? "eager" : "lazy"}
+              fetchPriority={index === 0 ? "high" : "auto"}
               decoding="async"
+              onLoad={event => markLoaded(event.currentTarget)}
               onError={() => setFailed(true)}
               style={
                 project.imagePosition

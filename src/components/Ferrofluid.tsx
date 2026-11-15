@@ -143,11 +143,17 @@ let instances = 0;
 export default function Ferrofluid({
   children,
   reach = 240,
+  volume = 1,
+  pour = false,
   className = "",
 }: {
   children: ReactNode;
   /** How far, in px, the liquid will reach for the cursor. */
   reach?: number;
+  /** How much liquid, relative to the usual coat for a button this size. */
+  volume?: number;
+  /** Pour it in from above when it first appears, instead of starting coated. */
+  pour?: boolean;
   className?: string;
 }) {
   const hostRef = useRef<HTMLSpanElement>(null);
@@ -218,6 +224,7 @@ export default function Ferrofluid({
     // Until the observer says otherwise: a hidden button has no size to pour round.
     let visible = false;
     let seededFor: Box | null = null;
+    let pouring = false;
 
     function resize() {
       width = canvas!.clientWidth;
@@ -268,17 +275,23 @@ export default function Ferrofluid({
         const grew = Math.abs(box.hx - seededFor.hx) + Math.abs(box.hy - seededFor.hy);
         if (grew < 0.2 * (seededFor.hx + seededFor.hy)) return liquid;
       }
+      const first = !seededFor;
       seededFor = { ...box };
       const perimeter = 4 * (box.hx + box.hy);
-      liquid = new Liquid(Math.round(Math.min(1100, Math.max(220, perimeter * 0.85))), box);
+      // Phones get a lighter pour: the simulation runs on the main thread.
+      const cap = window.innerWidth < 768 ? 1300 : 2200;
+      const count = Math.round(Math.min(cap, Math.max(220, perimeter * 0.85 * volume)));
+      // Only the first fill pours; a re-seed after a resize just coats.
+      pouring = pour && first && !still;
+      liquid = new Liquid(count, box, { poured: pouring });
       points = new Float32Array(liquid.count * 2);
       // Let the first few jostles happen before anyone sees them.
-      for (let s = 0; s < 40; s++) liquid.step({ box, magnet: null, excite: 0, width, height });
+      if (!pouring) for (let s = 0; s < 40; s++) liquid.step({ box, magnet: null, excite: 0, width, height });
       return liquid;
     }
 
     function draw(sim: Liquid) {
-      for (let i = 0; i < sim.count; i++) {
+      for (let i = 0; i < sim.active; i++) {
         points[i * 2] = sim.x[i];
         points[i * 2 + 1] = sim.y[i];
       }
@@ -296,7 +309,7 @@ export default function Ferrofluid({
       gl!.bindVertexArray(pointVao);
       gl!.bindBuffer(gl!.ARRAY_BUFFER, pointBuffer);
       gl!.bufferData(gl!.ARRAY_BUFFER, points, gl!.DYNAMIC_DRAW);
-      gl!.drawArrays(gl!.POINTS, 0, sim.count);
+      gl!.drawArrays(gl!.POINTS, 0, sim.active);
       gl!.disable(gl!.BLEND);
 
       // Pass 2: cut the field into a surface and light it.
@@ -338,7 +351,7 @@ export default function Ferrofluid({
       const mx = px + pull.x;
       const my = py + pull.y;
       if (strength > 0.01) {
-        const grip = Math.min(1, sim.gripAt(mx, my, 20) / (sim.count * 0.06));
+        const grip = Math.min(1, sim.gripAt(mx, my, 20) / Math.max(1, sim.active * 0.06));
         const ex = Math.max(box.cx - box.hx, Math.min(box.cx + box.hx, px)) - px;
         const ey = Math.max(box.cy - box.hy, Math.min(box.cy + box.hy, py)) - py;
         const gap = Math.hypot(ex, ey) || 1;
@@ -358,6 +371,11 @@ export default function Ferrofluid({
       const steps = Math.min(4, Math.max(1, Math.floor(carry)));
       carry = Math.max(0, carry - steps);
       for (let s = 0; s < steps; s++) {
+        // A stream from high above the button, about a second long.
+        if (pouring) {
+          const rate = Math.ceil(sim.count / (0.9 * SUBSTEPS_PER_SECOND));
+          pouring = sim.pour(rate, box.cx, Math.max(4, box.cy - box.hy - reach * 0.9), Math.min(100, box.hx * 0.45)) > 0;
+        }
         sim.step({
           box,
           magnet: strength > 0.01 ? { x: mx, y: my, strength } : null,
@@ -464,7 +482,7 @@ export default function Ferrofluid({
       document.documentElement.removeEventListener("pointerleave", onLeave);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
-  }, [reach]);
+  }, [reach, volume, pour]);
 
   return (
     <span ref={hostRef} className={`ferro ${className}`} style={{ "--reach": `${reach}px` } as CSSProperties}>

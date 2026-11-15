@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Ferrofluid from "@/components/Ferrofluid";
 import Roll, { HoverRoll } from "@/components/Roll";
 import { INTRO_DONE, INTRO_REPLAY, SEEN_KEY } from "@/lib/intro";
@@ -33,6 +33,26 @@ const SEGMENTS = 36;
 const EXIT_MS = 1300;
 
 type Stage = "loading" | "ready" | "leaving" | "gone";
+
+/** A made-up transfer rate, rolling, for the top bar while it "receives". */
+function Throughput() {
+  const [rate, setRate] = useState("812.4");
+
+  useEffect(() => {
+    let value = 812.4;
+    const timer = setInterval(() => {
+      value = Math.min(999.9, Math.max(380, value + (Math.random() - 0.45) * 160));
+      setRate(value.toFixed(1).padStart(5, "0"));
+    }, 220);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span className="tabular-nums">
+      ↓ <Roll text={rate} /> MB/s
+    </span>
+  );
+}
 
 export default function LoadingDock() {
   const [stage, setStage] = useState<Stage>("loading");
@@ -119,6 +139,16 @@ export default function LoadingDock() {
   const current = step >= 0 ? STEPS[step] : null;
   const pct = current?.pct ?? 0;
   const filled = Math.round((pct / 100) * SEGMENTS);
+  const loading = stage === "loading";
+  // The counter is a tank: it fills as things "load", then drains away into
+  // the button's liquid once everything has.
+  const level = loading ? pct / 100 : 0;
+  const digits = (
+    <>
+      <Roll text={String(pct).padStart(3, "0")} />
+      <span className="dock-pct">%</span>
+    </>
+  );
 
   return (
     <div
@@ -134,26 +164,44 @@ export default function LoadingDock() {
           dk<span className="text-accent">_</span> loading dock
         </span>
         <span className="hidden sm:inline">bay 01 · inbound</span>
-        <span className="text-accent">{stage === "loading" ? "receiving" : "ready"}</span>
+        <span className="text-accent">{loading ? <Throughput /> : "ready"}</span>
       </div>
 
+      {/* A scan line sweeping the bay while it loads. */}
+      <span aria-hidden className="dock-scan" />
+
       <div className="dock-body">
-        <div className="dock-count" aria-live="polite">
+        <div className="dock-count" aria-live="polite" style={{ "--level": level } as CSSProperties}>
           <span className="sr-only">{pct}% loaded</span>
-          <span aria-hidden>
-            <Roll text={String(pct).padStart(3, "0")} />
-            <span className="dock-pct">%</span>
+          <span aria-hidden className="dock-count-empty">
+            {digits}
+          </span>
+          <span aria-hidden className="dock-count-fill">
+            {digits}
           </span>
         </div>
 
         <ol className="dock-log">
-          {STEPS.slice(0, step + 1).map((entry, index) => (
-            <li key={entry.line} className={index === step ? "is-current" : ""}>
-              <span className="dock-line">{entry.line}</span>
-              <span className="dock-leader" aria-hidden />
-              <span className="dock-value">{entry.value}</span>
-            </li>
-          ))}
+          {STEPS.slice(0, step + 1).map((entry, index) => {
+            const done = index < step || !loading;
+            const next = STEPS[index + 1]?.at ?? READY_AT;
+            return (
+              <li key={entry.line} className={index === step && loading ? "is-current" : ""}>
+                <span className="dock-line">{entry.line}</span>
+                <span className="dock-leader" aria-hidden />
+                <span className="dock-value">
+                  {done ? null : (
+                    <span
+                      aria-hidden
+                      className="dock-meter"
+                      style={{ "--meter-ms": `${next - entry.at}ms` } as CSSProperties}
+                    />
+                  )}
+                  <Roll text={done ? entry.value : ""} />
+                </span>
+              </li>
+            );
+          })}
         </ol>
       </div>
 
@@ -166,7 +214,7 @@ export default function LoadingDock() {
       <div className="dock-go">
         <p className="dock-go-note">everything&apos;s loaded. probably.</p>
         <div className="dock-go-button">
-          <Ferrofluid reach={300}>
+          <Ferrofluid reach={320} volume={2} pour>
             <button
               ref={buttonRef}
               type="button"

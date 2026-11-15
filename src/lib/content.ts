@@ -41,13 +41,6 @@ export const home = {
   ],
 } as const;
 
-/** The project I'm proudest of — also the one featured on the Projects page. */
-export const favourite = {
-  name: "terranotes",
-  title: "TerraNotes",
-  url: TERRANOTES_URL,
-} as const;
-
 export const about = {
   /** Two lines; the second is set in the accent italic. */
   heading: ["A student first.", "A programmer", "every other hour."],

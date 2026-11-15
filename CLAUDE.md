@@ -150,6 +150,15 @@ An editor, not a brochure. Based on a Claude Design canvas he provided.
   bottom is ever cropped, never the top; he asked for that. Its phone frame is
   7:6 so that bottom crop takes empty ground, not the truck). Hover zoom grows
   from the same point.
+- **Image loading** (`lib/image.ts`). He reported the photo and both project
+  images not showing after clicking into About/Projects. The components used to
+  decide an image had failed if it was "complete with no width" on mount — but a
+  freshly inserted image can read that way for a moment before its request
+  starts (and some browsers report lazy ones like that), so real pictures got
+  swapped for initials/title covers. `confirmFailure()` now waits on `decode()`
+  before giving up. All three are eager (`fetchPriority` high where above the
+  fold), `prefetchImages()` warms them on idle from Chrome, and their frames
+  (`.img-frame`) show a soft sheen until the picture paints.
 
 ### Motion and feedback
 
@@ -173,7 +182,10 @@ An editor, not a brochure. Based on a Claude Design canvas he provided.
   *actual* liquid, "very smooth", and said not to conserve — so it's a real
   particle fluid (Clavet et al. double-density relaxation: pressure, surface
   tension, viscosity), ~0.85 particles per px of button perimeter (cap 1100),
-  run at 120 fixed substeps a second, continuously while on screen. Extra forces:
+  run at 120 fixed substeps a second, continuously while on screen. `volume`
+  scales the amount; `pour` lets it fall in from above as one stream on first
+  appearance instead of starting coated (each batch fills exactly the gap the
+  last fell, or it froths). Phones cap at 1300 particles, desktop 2200. Extra forces:
   a spring to a band just outside the button's edge, a clockwise current round
   it, a little gravity (drips), the button as a solid, and the cursor as a magnet
   that holds its drop but stops recruiting once the drop has ~8% of the liquid
@@ -223,9 +235,13 @@ what `ls` means.
 
 ## Loading dock (the intro)
 
-A big, theatrical loading screen (`LoadingDock.tsx`) — hazard tape, a giant
-rolling percentage, a log of absurd "loading" steps, a segment meter — that ends
-on one giant **let's go** button with the ferrofluid on it. Pressing it: woosh,
+A big, theatrical loading screen (`LoadingDock.tsx`) — hazard tape, a scan line,
+a rolling fake transfer rate, a giant percentage that's also a **tank** (outlined
+digits filling with liquid, a wave rolling on its surface — two copies of the
+number, the top one masked to `--level`, a registered `@property` so it
+transitions), a log where each line runs a tiny meter then rolls to its result,
+and a segment meter. At 100% the tank drains while the liquid **pours** onto one
+giant **let's go** button (`volume={2}` — he asked for more liquid there). Pressing it: woosh,
 the button sinks into the screen, everything warps outward, and the site opens
 through a hole where the button went (`--hole` is a registered `@property`).
 
@@ -249,7 +265,8 @@ through a hole where the button went (`--hole` is a registered `@property`).
   rolling between `home.typed`, blurb, then the ferrofluid "see projects" button
   and a magnetic "say hi". Right side: the ferrofluid blob, captioned "fig. 01".
 - **About** — "A student first. A programmer *every other hour.*", a JEE mode /
-  code mode toggle (opens on JEE), and the photo beside a plain fact list.
+  code mode toggle (opens on JEE), and the photo beside a plain fact list (no
+  "favourite project" row — removed at his request, 15 Nov 2026).
 - **Qualification** — master/detail: JEE (2028, in prep), Class 11 PCM (ongoing),
   TerraNotes tech lead (live), Programming (self-taught), Class 10 (2026).
   Arrow-key navigable tabs.

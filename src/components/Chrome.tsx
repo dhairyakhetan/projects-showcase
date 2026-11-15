@@ -14,6 +14,7 @@ import ShaderField from "@/components/ShaderField";
 import ShortcutKey from "@/components/ShortcutKey";
 import ThemeToggle from "@/components/ThemeToggle";
 import { identity, panels, SITE_SOURCE, SITE_URL } from "@/lib/content";
+import { prefetchImages } from "@/lib/image";
 import { click, SOUND_EVENT, soundEnabled, toggleSound } from "@/lib/sound";
 
 /** Renders nothing time-dependent on the server — a mismatch would be a hydration error. */
@@ -144,6 +145,8 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
   const active = pathname.replace(/^\//, "").split("/")[0] || "home";
   // Undefined on the 404 page, which wears the same chrome.
   const current = panels.find(page => page.id === active);
+
+  useEffect(() => prefetchImages(), []);
 
   // Every press makes a small click, once sound has been allowed.
   useEffect(() => {

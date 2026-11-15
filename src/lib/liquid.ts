@@ -79,7 +79,10 @@ function edge(box: Box, x: number, y: number) {
 }
 
 export class Liquid {
+  /** Room for this many particles. */
   readonly count: number;
+  /** How many are in play: all of them, unless it's still being poured in. */
+  active: number;
   readonly x: Float32Array;
   readonly y: Float32Array;
   private vx: Float32Array;
@@ -100,8 +103,9 @@ export class Liquid {
   private nx: Float32Array;
   private ny: Float32Array;
 
-  constructor(count: number, box: Box) {
+  constructor(count: number, box: Box, { poured = false } = {}) {
     this.count = count;
+    this.active = poured ? 0 : count;
     this.x = new Float32Array(count);
     this.y = new Float32Array(count);
     this.vx = new Float32Array(count);
@@ -119,7 +123,7 @@ export class Liquid {
     // liquid needs — packed any tighter, its own pressure would blow it apart.
     const perimeter = 4 * (box.hx + box.hy);
     const layer = (count * 30) / perimeter;
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < this.active; i++) {
       this.band[i] = 3 + Math.random() * Math.random() * 16;
       let t = Math.random() * perimeter;
       const out = 2 + Math.random() * layer;
@@ -140,9 +144,29 @@ export class Liquid {
     }
   }
 
+  /**
+   * Lets up to n more particles fall in from around (x, y), as a stream
+   * `spread` wide. Each batch fills exactly the gap the last one has fallen,
+   * so the stream comes out as one column rather than a froth.
+   * Returns how many are still to come.
+   */
+  pour(n: number, x: number, y: number, spread: number) {
+    const speed = 5;
+    const end = Math.min(this.count, this.active + n);
+    for (let i = this.active; i < end; i++) {
+      this.x[i] = this.px[i] = x + (Math.random() - 0.5) * spread;
+      this.y[i] = this.py[i] = y + Math.random() * speed;
+      this.vx[i] = (Math.random() - 0.5) * 0.2;
+      this.vy[i] = speed;
+      this.band[i] = 3 + Math.random() * Math.random() * 16;
+    }
+    this.active = end;
+    return this.count - end;
+  }
+
   /** Scatter outward from the button: a splash. */
   splash(box: Box, power = 6) {
-    for (let i = 0; i < this.count; i++) {
+    for (let i = 0; i < this.active; i++) {
       const { nx, ny } = edge(box, this.x[i], this.y[i]);
       const kick = power * (0.4 + Math.random() * 0.8);
       this.vx[i] += nx * kick;
@@ -159,7 +183,7 @@ export class Liquid {
       this.cellStart = new Int32Array(cols * rows + 1);
       this.cellCount = new Int32Array(cols * rows);
     }
-    const { x, y, count } = this;
+    const { x, y, active: count } = this;
     const counts = this.cellCount;
     counts.fill(0);
     for (let i = 0; i < count; i++) counts[this.cell(x[i], y[i])]++;
@@ -183,12 +207,12 @@ export class Liquid {
   }
 
   step(field: Field) {
-    const { x, y, vx, vy, px, py, band, count } = this;
+    const { x, y, vx, vy, px, py, band, active: count } = this;
     const { box, magnet, excite, width, height } = field;
 
     // The magnet holds whatever it already has, but only draws more while the
     // drop on the cursor is small — otherwise the whole pool would follow it.
-    const recruit = magnet ? Math.max(0, 1 - this.gripAt(magnet.x, magnet.y, HOLD) / (count * DROP_SHARE)) : 0;
+    const recruit = magnet ? Math.max(0, 1 - this.gripAt(magnet.x, magnet.y, HOLD) / Math.max(1, count * DROP_SHARE)) : 0;
 
     // 1. Outside forces, as velocity.
     for (let i = 0; i < count; i++) {
@@ -304,7 +328,7 @@ export class Liquid {
   }
 
   private viscosity() {
-    const { vx, vy, count } = this;
+    const { vx, vy, active: count } = this;
     for (let i = 0; i < count; i++) {
       const n = this.neighbours(i);
       for (let k = 0; k < n; k++) {
@@ -325,7 +349,7 @@ export class Liquid {
   }
 
   private relax() {
-    const { x, y, count } = this;
+    const { x, y, active: count } = this;
     for (let i = 0; i < count; i++) {
       const n = this.neighbours(i);
       let density = 0;
@@ -360,7 +384,7 @@ export class Liquid {
   gripAt(gx: number, gy: number, r: number) {
     let n = 0;
     const r2 = r * r;
-    for (let i = 0; i < this.count; i++) {
+    for (let i = 0; i < this.active; i++) {
       const dx = this.x[i] - gx;
       const dy = this.y[i] - gy;
       if (dx * dx + dy * dy < r2) n++;

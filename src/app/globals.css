@@ -662,6 +662,27 @@
   transition-duration: 80ms;
 }
 
+/* ---- image frames ----------------------------------------------------------
+ * A soft sheen sweeps an image's frame until the picture has painted, so a
+ * slow connection reads as "loading", not "missing". It's only a background,
+ * so if anything goes wrong it just sits behind the image.
+ */
+.img-frame {
+  background-image: linear-gradient(100deg, transparent 30%, var(--accent-soft) 50%, transparent 70%);
+  background-size: 250% 100%;
+  animation: sheen 1.3s ease-in-out infinite;
+}
+
+.img-frame:has(img[data-loaded]) {
+  background-image: none;
+  animation: none;
+}
+
+@keyframes sheen {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
 /* ---- rolling text ---------------------------------------------------------
  * <Roll>: a changed character rolls up and out while its replacement rolls up
  * from below. Both sit in one grid cell, so the slot is as wide as the wider
@@ -851,12 +872,116 @@
   }
 }
 
+/* The counter is a tank. The empty digits are outlines; a filled copy sits
+   on top, masked to the liquid level, with a wave rolling along its surface.
+   One line exactly 1em tall (0.9 line + 0.1 padding), so the mask can be
+   measured in em. --level is registered so it can transition. */
+@property --level {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --wave {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 .dock-count {
+  position: relative;
+  width: max-content;
+  padding-top: 0.1em;
   font-family: var(--font-instrument-serif), Georgia, serif;
   font-size: clamp(7rem, 30vw, 24rem);
-  line-height: 0.8;
+  line-height: 0.9;
   letter-spacing: -0.04em;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  transition: --level 900ms cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.dock-count-empty {
+  display: block;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--line-strong);
+}
+
+.dock-count-fill {
+  position: absolute;
+  inset: 0;
+  padding-top: inherit;
+  color: var(--ink);
+  --wave-h: 0.07em;
+  -webkit-mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 8' preserveAspectRatio='none'%3E%3Cpath d='M0 8V4Q15 0 30 4T60 4V8Z'/%3E%3C/svg%3E"),
+    linear-gradient(#000, #000);
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 8' preserveAspectRatio='none'%3E%3Cpath d='M0 8V4Q15 0 30 4T60 4V8Z'/%3E%3C/svg%3E"),
+    linear-gradient(#000, #000);
+  -webkit-mask-repeat: repeat-x, no-repeat;
+  mask-repeat: repeat-x, no-repeat;
+  -webkit-mask-size: 0.6em var(--wave-h), 100% calc(var(--level) * 1em);
+  mask-size: 0.6em var(--wave-h), 100% calc(var(--level) * 1em);
+  -webkit-mask-position: var(--wave) calc((1 - var(--level)) * 1em - var(--wave-h) + 1px), 0 calc((1 - var(--level)) * 1em);
+  mask-position: var(--wave) calc((1 - var(--level)) * 1em - var(--wave-h) + 1px), 0 calc((1 - var(--level)) * 1em);
+  animation: wave 1.4s linear infinite;
+}
+
+@keyframes wave {
+  to { --wave: 0.6em; }
+}
+
+.dock-count-fill .dock-pct {
+  color: var(--accent);
+}
+
+.dock-count-empty .dock-pct {
+  -webkit-text-stroke-color: color-mix(in oklab, var(--accent) 45%, transparent);
+}
+
+/* A tiny progress bar on the line that's "loading", until it rolls to its result. */
+.dock-meter {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 7px;
+  margin-right: 8px;
+  vertical-align: middle;
+  border: 1px solid var(--line-strong);
+}
+
+.dock-meter::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  background: var(--accent);
+  transform-origin: left;
+  animation: meter var(--meter-ms, 400ms) cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+
+@keyframes meter {
+  from { transform: scaleX(0); }
+}
+
+.dock-scan {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 120px;
+  pointer-events: none;
+  background: linear-gradient(transparent, var(--accent-soft) 85%, color-mix(in oklab, var(--accent) 40%, transparent) 100%);
+  opacity: 0.5;
+  animation: scan 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.loading-dock:not([data-stage="loading"]) .dock-scan {
+  display: none;
+}
+
+@keyframes scan {
+  from { transform: translateY(-120px); }
+  to { transform: translateY(100vh); }
 }
 
 /* At this size the usual roll padding shows the next digit waiting below. */
@@ -982,17 +1107,22 @@
   display: flex;
 }
 
+/* The counter drains first, in plain sight; only then does it all sink back. */
 .loading-dock:is([data-stage="ready"], [data-stage="leaving"]) .dock-body,
 .loading-dock:is([data-stage="ready"], [data-stage="leaving"]) .dock-bar {
   opacity: 0.1;
   filter: blur(3px);
+  transition-delay: 650ms;
 }
 
 .loading-dock:is([data-stage="ready"], [data-stage="leaving"]) .dock-body {
   transform: scale(0.96);
 }
 
+/* Above the button's liquid, which pours down right where this sits. */
 .dock-go-note {
+  position: relative;
+  z-index: 2;
   margin: 0;
   font-size: 12px;
   color: var(--dim);

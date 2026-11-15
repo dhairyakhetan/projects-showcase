@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import ArrowUpRight from "@/components/ArrowUpRight";
+import { confirmFailure } from "@/lib/image";
 import type { Project } from "@/lib/repos";
 
 /**
@@ -27,11 +28,8 @@ export default function ProjectCard({ project, index }: { project: Project; inde
 
   const accent = project.tech[0]?.color ?? "#8B8FA3";
 
-  // A thumbnail that 404s does so while the server HTML parses, before React
-  // attaches onError — so the miss is also caught on mount.
   useEffect(() => {
-    const img = imgRef.current;
-    if (img?.complete && img.naturalWidth === 0) handleError();
+    confirmFailure(imgRef.current, handleError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

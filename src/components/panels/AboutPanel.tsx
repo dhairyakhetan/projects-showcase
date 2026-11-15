@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import ArrowUpRight from "@/components/ArrowUpRight";
 import { Reveal } from "@/components/Reveal";
 import Eyebrow from "@/components/Eyebrow";
-import { about, favourite, identity } from "@/lib/content";
+import { about, identity } from "@/lib/content";
+import { confirmFailure, markLoaded } from "@/lib/image";
 
 type Mode = "jee" | "code";
 
@@ -12,22 +12,21 @@ type Mode = "jee" | "code";
  * The photo. Muted at rest like every image on the site; colour comes back on
  * hover.
  *
- * A missing file means initials, not a broken-image icon. The markup is
- * server-rendered, so a 404 can fire before React attaches onError — the
- * mount check catches that case (a failed image is complete with no width).
+ * A missing file means initials, not a broken-image icon (see
+ * confirmFailure for why that's checked carefully).
  */
 function Portrait({ className = "p-6 sm:p-8" }: { className?: string }) {
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    const img = ref.current;
-    if (img?.complete && img.naturalWidth === 0) setFailed(true);
+    markLoaded(ref.current);
+    confirmFailure(ref.current, () => setFailed(true));
   }, []);
 
   return (
     <div className={`group flex items-center justify-center ${className}`}>
-      <div className="aspect-[577/636] w-full max-w-[300px] overflow-hidden border border-line bg-chip">
+      <div className="img-frame aspect-[577/636] w-full max-w-[300px] overflow-hidden border border-line bg-chip">
         {failed ? (
           <div className="flex h-full w-full items-center justify-center font-display text-7xl text-faint">
             {identity.name
@@ -42,6 +41,8 @@ function Portrait({ className = "p-6 sm:p-8" }: { className?: string }) {
             ref={ref}
             src={about.portrait}
             alt={about.portraitAlt}
+            fetchPriority="high"
+            onLoad={event => markLoaded(event.currentTarget)}
             onError={() => setFailed(true)}
             className="thumb h-full w-full object-cover"
           />
@@ -61,19 +62,6 @@ function Facts() {
     ["preparing for", facts.preparingFor],
     ["knows", facts.writes.join(", ")],
     ["learning", facts.learning.join(", ")],
-    [
-      "favourite project",
-      <a
-        key="fav"
-        href={favourite.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        data-cursor-label="visit"
-        className="text-accent underline decoration-1 underline-offset-4"
-      >
-        {favourite.title} <ArrowUpRight className="inline align-[-0.1em]" />
-      </a>,
-    ],
     ["status", facts.status],
   ];
 
