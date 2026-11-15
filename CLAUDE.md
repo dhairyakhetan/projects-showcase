@@ -168,14 +168,28 @@ An editor, not a brochure. Based on a Claude Design canvas he provided.
   up and out while the new one rolls in from below — the clock, the "I build …"
   words, the dock's counter, copy-link and sound labels. `<HoverRoll>` flips a
   label over itself on hover (tabs, CTAs). Plain text between rolls.
-- **Ferrofluid button** (`Ferrofluid.tsx`) — only on *one main button* per view
-  (home's "see projects", the dock's "let's go"). Black venom pooled behind the
-  button, spikes rising toward the cursor, strands that reach out and grab it, and
-  the drawn cursor is dragged toward the button (`lib/cursor-pull.ts` →
-  `CustomCursor`). One SDF shader; it skips pixels outside a bounding box, uses
-  GPU derivatives for shading, and only draws while something moves. Touch: a tap
-  near it makes it lunge. Its canvas overhangs the button by `reach`, which is why
-  `<main>` is `overflow-x: clip` (not hidden — hidden would break the sticky stack).
+- **Liquid button** (`Ferrofluid.tsx` + `lib/liquid.ts`) — only on *one main
+  button* per view (home's "see projects", the dock's "let's go"). He asked for
+  *actual* liquid, "very smooth", and said not to conserve — so it's a real
+  particle fluid (Clavet et al. double-density relaxation: pressure, surface
+  tension, viscosity), ~0.85 particles per px of button perimeter (cap 1100),
+  run at 120 fixed substeps a second, continuously while on screen. Extra forces:
+  a spring to a band just outside the button's edge, a clockwise current round
+  it, a little gravity (drips), the button as a solid, and the cursor as a magnet
+  that holds its drop but stops recruiting once the drop has ~8% of the liquid
+  (otherwise the whole pool follows). Click splashes it. The drop drags the drawn
+  cursor toward the button (`lib/cursor-pull.ts` → `CustomCursor`).
+  Rendering (WebGL2): each particle is splatted as a gaussian into a half-float
+  texture, then one pass thresholds that field into the surface (anti-aliased
+  with `fwidth`), takes its slope as the normal, and shades glossy black with an
+  accent rim. Tune it offline: the sim is pure TS, so step it in Node and render
+  frames with numpy/PIL — headless Chromium's software GPU runs it ~15× slow-mo.
+  Gotchas that broke it once: never step it while the canvas or button has no
+  size (the dock's button is `display: none` until ready — it seeded around a
+  zero box and exploded); size from `clientWidth`, not the transformed rect;
+  re-seed if the button changes size a lot. Its canvas overhangs the button by
+  `reach`, which is why `<main>` is `overflow-x: clip` (not hidden — hidden would
+  break the sticky stack).
 - **Ferrofluid blob** (`FerroBlob.tsx`) — the home page's right column: a
   raymarched drop whose spikes (a spherical Fibonacci lattice, nearest spike in
   O(1)) lean toward the pointer; click to kick it (with a sound). Waits for the

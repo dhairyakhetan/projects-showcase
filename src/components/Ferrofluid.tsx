@@ -2,155 +2,141 @@
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { setPull } from "@/lib/cursor-pull";
-import { accentRGB, fullscreenProgram, getContext, isLightTheme, isWebGL2, onThemeChange, spring, type GL } from "@/lib/gl";
-import { introShowing } from "@/lib/intro";
+import { accentRGB, isLightTheme, onThemeChange } from "@/lib/gl";
+import { INTRO_DONE, introShowing } from "@/lib/intro";
+import { Liquid, SUBSTEPS_PER_SECOND, type Box } from "@/lib/liquid";
 
 /**
- * Black venom pooled under a button, alive like ferrofluid near a magnet.
+ * Real liquid around a button: a few hundred particles of simulated fluid
+ * (lib/liquid.ts) that pour round the button's edge in a slow current, sag a
+ * little under gravity, and — when the pointer comes near — stream out to it,
+ * gather into a drop on the cursor and drag it toward the button. Click and it
+ * splashes.
  *
- * Bring the pointer close and spikes rise on the side facing it; closer still
- * and strands of liquid reach out, grab the cursor and drag it toward the
- * button. Press, and it splashes. All of it is one signed-distance field —
- * the pool, its spikes, three tapering strands and a drop on the cursor,
- * smooth-unioned so they merge like liquid — shaded as glossy black with a
- * rim of the accent colour.
+ * Drawing it: every particle is splatted as a soft blob into an offscreen
+ * float texture, adding up into one smooth field; a second pass cuts that
+ * field at a threshold to get the surface, takes its slope as the surface
+ * normal, and shades it as glossy black with a rim of the accent. Merging,
+ * necking and beading all come out of that for free.
  *
- * The canvas reaches `reach` px past the button on every side and sits behind
- * it. It only draws while something is moving: far from the pointer and
- * settled, an idle button costs nothing.
+ * The canvas overhangs the button by `reach` on every side and sits behind
+ * it. It runs continuously while on screen — that's the point of it — and
+ * pauses when scrolled away, in a background tab, or behind the intro.
  */
 
-const SHADER = /* glsl */ `
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#else
-precision mediump float;
-#endif
+const SPLAT_VS = `#version 300 es
+in vec2 a_pos;
+uniform vec2 uView;
+uniform float uSize;
+void main() {
+  vec2 c = a_pos / uView * 2.0 - 1.0;
+  gl_Position = vec4(c.x, -c.y, 0.0, 1.0);
+  gl_PointSize = uSize;
+}`;
 
+const SPLAT_FS = `#version 300 es
+precision highp float;
+out vec4 o;
+void main() {
+  vec2 d = gl_PointCoord * 2.0 - 1.0;
+  float r2 = dot(d, d);
+  if (r2 > 1.0) discard;
+  o = vec4(exp(-r2 * 3.2) - 0.0408, 0.0, 0.0, 1.0);
+}`;
+
+const SURFACE_VS = `#version 300 es
+in vec2 a_pos;
+void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }`;
+
+const SURFACE_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uField;
 uniform vec2 uRes;
 uniform float uDpr;
-uniform vec4 uBox;
-uniform float uPad;
-uniform float uRound;
-uniform vec2 uCursor;
-uniform float uSpike;
-uniform float uHover;
-uniform float uTime;
+uniform float uThreshold;
 uniform vec3 uAccent;
 uniform float uLight;
-uniform vec2 uA[3];
-uniform vec2 uC[3];
-uniform vec2 uB[3];
-uniform float uW[3];
-uniform float uTip;
-uniform vec4 uBounds;
+out vec4 o;
 
-float smin(float a, float b, float k) {
-  float h = max(k - abs(a - b), 0.0) / k;
-  return min(a, b) - h * h * k * 0.25;
-}
-
-float roundBox(vec2 p, vec2 b, float r) {
-  vec2 q = abs(p) - b + r;
-  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
-}
-
-float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
-float tri(float x) { return 1.0 - abs(2.0 * fract(x) - 1.0); }
-
-float field(vec2 p) {
-  vec2 r = p - uBox.xy;
-  vec2 b = uBox.zw + uPad;
-  float d = roundBox(r, b, min(uRound, min(b.x, b.y)));
-  d += sin(p.x * 0.07 + uTime * 1.3) * sin(p.y * 0.09 - uTime * 1.1) * 1.6;
-
-  // Spikes run along x on the long edges and along y on the short ones,
-  // blended at the corners; tallest on the side facing the pointer.
-  vec2 a = abs(r) / b;
-  float onLong = smoothstep(-0.12, 0.12, a.y - a.x);
-  float cx = r.x / 15.0 + 0.5;
-  float cy = r.y / 15.0 + 0.5;
-  float sx = pow(tri(cx), 3.0) * (0.5 + 0.5 * hash(floor(cx) + 3.1 * sign(r.y)));
-  float sy = pow(tri(cy), 3.0) * (0.5 + 0.5 * hash(floor(cy) + 7.7 * sign(r.x)));
-  vec2 toCursor = uCursor - uBox.xy;
-  float facing = max(dot(normalize(r + 0.0001), normalize(toCursor + 0.0001)), 0.0);
-  d -= mix(sy, sx, onLong) * (uSpike * (3.0 + 22.0 * facing * facing) + uHover * 8.0);
-
-  for (int i = 0; i < 3; i++) {
-    if (uW[i] > 0.0) {
-      float strand = 1e5;
-      vec2 prev = uA[i];
-      for (int j = 1; j <= 8; j++) {
-        float t = float(j) / 8.0;
-        vec2 q = mix(mix(uA[i], uC[i], t), mix(uC[i], uB[i], t), t);
-        vec2 pa = p - prev;
-        vec2 ba = q - prev;
-        float h = clamp(dot(pa, ba) / max(dot(ba, ba), 0.001), 0.0, 1.0);
-        float along = (float(j) - 1.0 + h) / 8.0;
-        strand = min(strand, length(pa - ba * h) - mix(uW[i], 1.5, pow(along, 0.7)));
-        prev = q;
-      }
-      d = smin(d, strand, 14.0);
-    }
-  }
-
-  if (uTip > 0.0) d = smin(d, length(p - uCursor) - uTip, 10.0);
-  return d;
-}
+float F(vec2 p) { return texture(uField, p / uRes).r; }
 
 void main() {
-  vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uDpr;
-  // Most of the canvas is empty overhang: skip it before doing any work.
-  if (p.x < uBounds.x || p.y < uBounds.y || p.x > uBounds.z || p.y > uBounds.w) { FRAG = vec4(0.0); return; }
+  vec2 p = gl_FragCoord.xy;
+  float f = F(p);
 
-  float d = field(p);
-#ifdef DERIVATIVES
-  vec2 g = vec2(dFdx(d), -dFdy(d)) * uDpr;
-#else
-  vec2 g = vec2(field(p + vec2(0.75, 0.0)) - d, field(p + vec2(0.0, 0.75)) - d) / 0.75;
-#endif
-  if (d > 36.0) { FRAG = vec4(0.0); return; }
+  float w = max(fwidth(f), 0.0001);
+  float body = smoothstep(uThreshold - w, uThreshold + w, f);
+  float halo = smoothstep(uThreshold * 0.3, uThreshold, f);
+  halo = halo * halo * (1.0 - body);
+  if (body <= 0.0 && halo <= 0.003) { o = vec4(0.0); return; }
 
-  // A dome: steep at the rim, flat across the middle.
-  float rim = 1.0 - smoothstep(0.0, 13.0, -d);
-  vec3 n = normalize(vec3(g * (0.06 + 2.2 * rim), 1.0));
+  // The field's slope is the surface's tilt: steep at the rim, flat inside.
+  float e = 1.5 * uDpr;
+  vec2 g = vec2(F(p + vec2(e, 0.0)) - F(p - vec2(e, 0.0)), F(p + vec2(0.0, e)) - F(p - vec2(0.0, e))) / (2.0 * e);
+  vec3 n = normalize(vec3(-g * (14.0 * uDpr) / max(f, uThreshold), 1.0));
 
-  vec3 L = normalize(vec3(-0.5, -0.8, 0.55));
+  vec3 L = normalize(vec3(-0.5, 0.78, 0.62));
   vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
   float nh = max(dot(n, H), 0.0);
-  float spec = pow(nh, 80.0) * 1.4 + pow(nh, 10.0) * 0.07;
-  float fresnel = pow(1.0 - n.z, 2.2);
-  vec3 refl = reflect(vec3(0.0, 0.0, -1.0), n);
-  float sky = smoothstep(0.25, 0.8, -refl.y) * 0.16;
+  float spec = pow(nh, 110.0) * 1.6 + pow(nh, 16.0) * 0.1;
+  vec3 L2 = normalize(vec3(0.7, -0.3, 0.5));
+  float spec2 = pow(max(dot(n, normalize(L2 + vec3(0.0, 0.0, 1.0))), 0.0), 60.0) * 0.35;
+  float fresnel = pow(1.0 - n.z, 2.0);
+  vec3 r = reflect(vec3(0.0, 0.0, -1.0), n);
+  float sky = smoothstep(0.25, 0.85, r.y) * 0.2;
+  float depth = smoothstep(uThreshold, uThreshold * 5.0, f);
 
-  vec3 col = vec3(0.02, 0.022, 0.018) + vec3(spec + sky) + uAccent * fresnel * 0.95;
-  float alpha = clamp(0.5 - d * uDpr, 0.0, 1.0);
+  vec3 col = vec3(0.016, 0.018, 0.014) * (1.0 - depth * 0.5)
+    + vec3(spec + spec2 + sky)
+    + uAccent * fresnel * 0.9;
 
-  float outside = max(d, 0.0);
-  float glow = exp(-outside / 9.0) * 0.3 * (1.0 - uLight);
-  float shadow = exp(-outside / 7.0) * 0.2 * uLight;
-  vec4 halo = vec4(uAccent * glow, glow + shadow);
+  vec4 glow = uLight > 0.5
+    ? vec4(0.0, 0.0, 0.0, halo * 0.22)
+    : vec4(uAccent * halo * 0.3, halo * 0.3);
 
-  FRAG = vec4(col * alpha, alpha) + halo * (1.0 - alpha);
+  o = vec4(col * body, body) + glow * (1.0 - body);
+}`;
+
+const PARTICLE_RADIUS = 11;
+const THRESHOLD = 0.72;
+
+function compile(gl: WebGL2RenderingContext, type: number, source: string) {
+  const shader = gl.createShader(type)!;
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(shader));
+    return null;
+  }
+  return shader;
 }
-`;
 
-function header(gl: GL) {
-  return isWebGL2(gl)
-    ? "#version 300 es\nout highp vec4 fragColor;\n#define FRAG fragColor\n#define DERIVATIVES 1\n"
-    : "#define FRAG gl_FragColor\n";
+function link(gl: WebGL2RenderingContext, vs: string, fs: string) {
+  const v = compile(gl, gl.VERTEX_SHADER, vs);
+  const f = compile(gl, gl.FRAGMENT_SHADER, fs);
+  if (!v || !f) return null;
+  const program = gl.createProgram()!;
+  gl.attachShader(program, v);
+  gl.attachShader(program, f);
+  gl.bindAttribLocation(program, 0, "a_pos");
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(program));
+    return null;
+  }
+  return program;
+}
+
+function boxDistance(box: Box, x: number, y: number) {
+  const qx = Math.abs(x - box.cx) - box.hx;
+  const qy = Math.abs(y - box.cy) - box.hy;
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0);
 }
 
 const smooth = (edge0: number, edge1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
   return t * t * (3 - 2 * t);
 };
-
-function boxDistance(x: number, y: number, bx: number, by: number) {
-  const qx = Math.abs(x) - bx;
-  const qy = Math.abs(y) - by;
-  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0);
-}
 
 let instances = 0;
 
@@ -173,11 +159,43 @@ export default function Ferrofluid({
     const target = host?.querySelector<HTMLElement>(":scope > :not(canvas)");
     if (!host || !canvas || !target) return;
 
-    const gl = getContext(canvas, true);
+    const gl = canvas.getContext("webgl2", { alpha: true, premultipliedAlpha: true, antialias: false });
     if (!gl) return;
-    const built = fullscreenProgram(gl, header(gl) + SHADER);
-    if (!built) return;
-    const { uniform } = built;
+
+    const splat = link(gl, SPLAT_VS, SPLAT_FS);
+    const surface = link(gl, SURFACE_VS, SURFACE_FS);
+    if (!splat || !surface) return;
+
+    // Half floats if the GPU can render to them; plain bytes otherwise.
+    const floats = Boolean(gl.getExtension("EXT_color_buffer_float") ?? gl.getExtension("EXT_color_buffer_half_float"));
+    const fieldTexture = gl.createTexture();
+    const fieldBuffer = gl.createFramebuffer();
+
+    const pointBuffer = gl.createBuffer();
+    const pointVao = gl.createVertexArray();
+    gl.bindVertexArray(pointVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    const quadVao = gl.createVertexArray();
+    gl.bindVertexArray(quadVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+
+    const u = (program: WebGLProgram, name: string) => gl.getUniformLocation(program, name);
+    const splatView = u(splat, "uView");
+    const splatSize = u(splat, "uSize");
+    const surfaceField = u(surface, "uField");
+    const surfaceRes = u(surface, "uRes");
+    const surfaceDpr = u(surface, "uDpr");
+    const surfaceThreshold = u(surface, "uThreshold");
+    const surfaceAccent = u(surface, "uAccent");
+    const surfaceLight = u(surface, "uLight");
+    const maxPoint = (gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE) as Float32Array)[1] || 64;
 
     const id = `ferro-${instances++}`;
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -187,169 +205,171 @@ export default function Ferrofluid({
     let accent = accentRGB();
     let light = isLightTheme() ? 1 : 0;
     let dpr = 1;
+    let width = 1;
+    let height = 1;
 
     const pointer = { x: -1e4, y: -1e4, has: false, touchUntil: 0 };
-    const reachS = { x: 0, v: 0 };
-    const spikeS = { x: 0, v: 0 };
-    const hoverS = { x: 0, v: 0 };
-    const padS = { x: 9, v: 0 };
-    const tipS = { x: 0, v: 0 };
     const pull = { x: 0, y: 0 };
-
+    let liquid: Liquid | null = null;
+    let points = new Float32Array(0);
     let raf = 0;
     let last = performance.now();
-    const born = last;
-    let visible = true;
+    let carry = 0;
+    // Until the observer says otherwise: a hidden button has no size to pour round.
+    let visible = false;
+    let seededFor: Box | null = null;
 
-    // Layout size, not getBoundingClientRect: the button may be mid-way
-    // through a scale animation, and the buffer must match the unscaled box.
     function resize() {
-      const w = canvas!.clientWidth;
-      const h = canvas!.clientHeight;
-      dpr = Math.min(window.devicePixelRatio || 1, 1.75, Math.sqrt(2_400_000 / Math.max(1, w * h)));
-      canvas!.width = Math.max(1, Math.round(w * dpr));
-      canvas!.height = Math.max(1, Math.round(h * dpr));
+      width = canvas!.clientWidth;
+      height = canvas!.clientHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas!.width = Math.max(1, Math.round(width * dpr));
+      canvas!.height = Math.max(1, Math.round(height * dpr));
+
+      gl!.bindTexture(gl!.TEXTURE_2D, fieldTexture);
+      gl!.texImage2D(
+        gl!.TEXTURE_2D,
+        0,
+        floats ? gl!.RGBA16F : gl!.RGBA8,
+        canvas!.width,
+        canvas!.height,
+        0,
+        gl!.RGBA,
+        floats ? gl!.HALF_FLOAT : gl!.UNSIGNED_BYTE,
+        null,
+      );
+      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR);
+      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
+      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
+      gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
+      gl!.bindFramebuffer(gl!.FRAMEBUFFER, fieldBuffer);
+      gl!.framebufferTexture2D(gl!.FRAMEBUFFER, gl!.COLOR_ATTACHMENT0, gl!.TEXTURE_2D, fieldTexture, 0);
+      gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
+    }
+
+    /** The button, in the canvas's own unscaled pixels. */
+    function measure() {
+      const cr = canvas!.getBoundingClientRect();
+      const br = target!.getBoundingClientRect();
+      const scale = cr.width / (width || 1) || 1;
+      const box: Box = {
+        cx: (br.left - cr.left + br.width / 2) / scale,
+        cy: (br.top - cr.top + br.height / 2) / scale,
+        hx: br.width / 2 / scale,
+        hy: br.height / 2 / scale,
+      };
+      return { box, cr, scale, br };
+    }
+
+    function ensureLiquid(box: Box) {
+      // A button that changed size a lot (a resize, a new layout) gets fresh
+      // liquid; otherwise particles left inside it would be shoved out at once.
+      if (liquid && seededFor) {
+        const grew = Math.abs(box.hx - seededFor.hx) + Math.abs(box.hy - seededFor.hy);
+        if (grew < 0.2 * (seededFor.hx + seededFor.hy)) return liquid;
+      }
+      seededFor = { ...box };
+      const perimeter = 4 * (box.hx + box.hy);
+      liquid = new Liquid(Math.round(Math.min(1100, Math.max(220, perimeter * 0.85))), box);
+      points = new Float32Array(liquid.count * 2);
+      // Let the first few jostles happen before anyone sees them.
+      for (let s = 0; s < 40; s++) liquid.step({ box, magnet: null, excite: 0, width, height });
+      return liquid;
+    }
+
+    function draw(sim: Liquid) {
+      for (let i = 0; i < sim.count; i++) {
+        points[i * 2] = sim.x[i];
+        points[i * 2 + 1] = sim.y[i];
+      }
+
+      // Pass 1: every particle adds a soft blob to the field.
+      gl!.bindFramebuffer(gl!.FRAMEBUFFER, fieldBuffer);
       gl!.viewport(0, 0, canvas!.width, canvas!.height);
+      gl!.clearColor(0, 0, 0, 0);
+      gl!.clear(gl!.COLOR_BUFFER_BIT);
+      gl!.enable(gl!.BLEND);
+      gl!.blendFunc(gl!.ONE, gl!.ONE);
+      gl!.useProgram(splat);
+      gl!.uniform2f(splatView, width, height);
+      gl!.uniform1f(splatSize, Math.min(maxPoint, PARTICLE_RADIUS * 2 * dpr));
+      gl!.bindVertexArray(pointVao);
+      gl!.bindBuffer(gl!.ARRAY_BUFFER, pointBuffer);
+      gl!.bufferData(gl!.ARRAY_BUFFER, points, gl!.DYNAMIC_DRAW);
+      gl!.drawArrays(gl!.POINTS, 0, sim.count);
+      gl!.disable(gl!.BLEND);
+
+      // Pass 2: cut the field into a surface and light it.
+      gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
+      gl!.viewport(0, 0, canvas!.width, canvas!.height);
+      gl!.useProgram(surface);
+      gl!.activeTexture(gl!.TEXTURE0);
+      gl!.bindTexture(gl!.TEXTURE_2D, fieldTexture);
+      gl!.uniform1i(surfaceField, 0);
+      gl!.uniform2f(surfaceRes, canvas!.width, canvas!.height);
+      gl!.uniform1f(surfaceDpr, dpr);
+      gl!.uniform1f(surfaceThreshold, floats ? THRESHOLD : THRESHOLD * 0.5);
+      gl!.uniform3f(surfaceAccent, accent[0], accent[1], accent[2]);
+      gl!.uniform1f(surfaceLight, light);
+      gl!.bindVertexArray(quadVao);
+      gl!.drawArrays(gl!.TRIANGLES, 0, 3);
+      gl!.bindVertexArray(null);
     }
 
     function frame(now: number) {
       raf = 0;
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-
-      // Screen positions back into the canvas's own (unscaled) pixels.
-      const cr = canvas!.getBoundingClientRect();
-      const br = target!.getBoundingClientRect();
-      const scale = cr.width / (canvas!.clientWidth || 1) || 1;
-      const cx = (br.left - cr.left + br.width / 2) / scale;
-      const cy = (br.top - cr.top + br.height / 2) / scale;
-      const hx = br.width / 2 / scale;
-      const hy = br.height / 2 / scale;
+      const { box, cr, scale } = measure();
+      if (box.hx < 4 || box.hy < 4 || width < 8) return;
+      const sim = ensureLiquid(box);
 
       if (pointer.touchUntil && now > pointer.touchUntil) {
         pointer.has = false;
         pointer.touchUntil = 0;
       }
 
+      const live = pointer.has && !blocked();
       const px = (pointer.x - cr.left) / scale;
       const py = (pointer.y - cr.top) / scale;
-      const pad = padS.x;
-      const dist = boxDistance(px - cx, py - cy, hx + pad, hy + pad);
-      const over =
-        pointer.has && pointer.x >= br.left && pointer.x <= br.right && pointer.y >= br.top && pointer.y <= br.bottom;
-      const live = pointer.has && !blocked() && !still;
+      const over = live && boxDistance(box, px, py) < 0;
+      const strength = live && !over ? smooth(reach, reach * 0.25, boxDistance(box, px, py)) : 0;
 
-      const settled = [
-        spring(reachS, live && !over ? smooth(reach, reach * 0.45, dist) : 0, dt, 130, 15),
-        spring(spikeS, live ? smooth(reach * 1.3, 0, dist) : 0, dt, 70, 7),
-        spring(hoverS, live && over ? 1 : 0, dt, 160, 14),
-        spring(padS, 9 + (live && over ? 5 : 0) + reachS.x * 3, dt, 120, 12),
-      ].every(Boolean);
-
-      // Strands: from the nearest stretch of pool edge toward the cursor.
-      const bx = hx + pad;
-      const by = hy + pad;
-      const ax = Math.max(-bx, Math.min(bx, px - cx));
-      const ay = Math.max(-by, Math.min(by, py - cy));
-      const onLongEdge = Math.abs(ay) / by >= Math.abs(ax) / bx;
-      const strength = Math.max(0, Math.min(1.15, reachS.x));
-
-      // The cursor itself is dragged toward the button as the liquid takes hold.
-      const toX = cx + ax - px;
-      const toY = cy + ay - py;
-      const gap = Math.hypot(toX, toY) || 1;
-      const drag = strength * strength * Math.min(28, gap * 0.22);
-      pull.x = (toX / gap) * drag;
-      pull.y = (toY / gap) * drag;
+      // The drop on the cursor drags it toward the button, harder the more
+      // liquid it holds.
+      const mx = px + pull.x;
+      const my = py + pull.y;
+      if (strength > 0.01) {
+        const grip = Math.min(1, sim.gripAt(mx, my, 20) / (sim.count * 0.06));
+        const ex = Math.max(box.cx - box.hx, Math.min(box.cx + box.hx, px)) - px;
+        const ey = Math.max(box.cy - box.hy, Math.min(box.cy + box.hy, py)) - py;
+        const gap = Math.hypot(ex, ey) || 1;
+        const drag = grip * strength * Math.min(26, gap * 0.2);
+        pull.x += ((ex / gap) * drag - pull.x) * 0.15;
+        pull.y += ((ey / gap) * drag - pull.y) * 0.15;
+      } else {
+        pull.x *= 0.85;
+        pull.y *= 0.85;
+      }
       setPull(id, Math.round(pull.x * 10) / 10, Math.round(pull.y * 10) / 10);
 
-      const endX = px + pull.x;
-      const endY = py + pull.y;
-      const time = (now - born) / 1000;
-      const spread = Math.min(1, (onLongEdge ? hx : hy) / 40);
-      const offsets = [0, -24 * spread, 22 * spread];
-      const lengths = [1, 0.8, 0.66];
-      const widths = [10, 6, 5];
-      const sags = [0, 0.2, -0.18];
-
-      const A: number[] = [];
-      const B: number[] = [];
-      const C: number[] = [];
-      const W: number[] = [];
-
-      for (let i = 0; i < 3; i++) {
-        let sx = cx + ax + (onLongEdge ? offsets[i] : 0);
-        let sy = cy + ay + (onLongEdge ? 0 : offsets[i]);
-        sx = cx + Math.max(-bx, Math.min(bx, sx - cx));
-        sy = cy + Math.max(-by, Math.min(by, sy - cy));
-        // Start just inside the pool so the strand grows out of it.
-        sx -= Math.sign(px - cx) * (onLongEdge ? 0 : 5);
-        sy -= Math.sign(py - cy) * (onLongEdge ? 5 : 0);
-
-        const reachOut = Math.min(1, strength) * lengths[i];
-        const ex = sx + (endX - sx) * reachOut;
-        const ey = sy + (endY - sy) * reachOut;
-        const len = Math.hypot(ex - sx, ey - sy);
-        const nx = -(ey - sy) / (len || 1);
-        const ny = (ex - sx) / (len || 1);
-        const bend = (sags[i] + Math.sin(time * 2.3 + i * 2.1) * 0.08) * len;
-
-        A.push(sx, sy);
-        B.push(ex, ey);
-        C.push((sx + ex) / 2 + nx * bend, (sy + ey) / 2 + ny * bend);
-        W.push(strength > 0.03 ? widths[i] * Math.sqrt(Math.min(1, strength)) : 0);
+      // Fixed-size substeps, as many as the time that passed calls for.
+      const elapsed = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      carry += elapsed * SUBSTEPS_PER_SECOND;
+      const steps = Math.min(4, Math.max(1, Math.floor(carry)));
+      carry = Math.max(0, carry - steps);
+      for (let s = 0; s < steps; s++) {
+        sim.step({
+          box,
+          magnet: strength > 0.01 ? { x: mx, y: my, strength } : null,
+          excite: over ? 1 : 0,
+          width,
+          height,
+        });
       }
 
-      spring(tipS, strength > 0.92 ? 7 : 0, dt, 200, 18);
+      draw(sim);
 
-      // Everything the liquid could touch this frame, plus room for the glow.
-      let minX = cx - bx - 40;
-      let minY = cy - by - 40;
-      let maxX = cx + bx + 40;
-      let maxY = cy + by + 40;
-      for (let i = 0; i < 6; i += 2) {
-        if (!W[i / 2]) continue;
-        for (const [x, y] of [
-          [B[i], B[i + 1]],
-          [C[i], C[i + 1]],
-        ]) {
-          minX = Math.min(minX, x - 52);
-          minY = Math.min(minY, y - 52);
-          maxX = Math.max(maxX, x + 52);
-          maxY = Math.max(maxY, y + 52);
-        }
-      }
-      // Spikes stand out past the pool on the side facing the pointer.
-      const spikeRoom = 30 * Math.max(0, spikeS.x) + 12;
-      minX -= spikeRoom;
-      minY -= spikeRoom;
-      maxX += spikeRoom;
-      maxY += spikeRoom;
-
-      gl!.uniform2f(uniform("uRes"), canvas!.width, canvas!.height);
-      gl!.uniform1f(uniform("uDpr"), dpr);
-      gl!.uniform4f(uniform("uBox"), cx, cy, hx, hy);
-      gl!.uniform1f(uniform("uPad"), pad);
-      gl!.uniform1f(uniform("uRound"), 16);
-      gl!.uniform2f(uniform("uCursor"), endX, endY);
-      gl!.uniform1f(uniform("uSpike"), Math.max(0, spikeS.x));
-      gl!.uniform1f(uniform("uHover"), Math.max(0, hoverS.x));
-      gl!.uniform1f(uniform("uTime"), still ? 0 : time);
-      gl!.uniform3f(uniform("uAccent"), accent[0], accent[1], accent[2]);
-      gl!.uniform1f(uniform("uLight"), light);
-      gl!.uniform2fv(uniform("uA"), A);
-      gl!.uniform2fv(uniform("uB"), B);
-      gl!.uniform2fv(uniform("uC"), C);
-      gl!.uniform1fv(uniform("uW"), W);
-      gl!.uniform1f(uniform("uTip"), Math.max(0, tipS.x));
-      gl!.uniform4f(uniform("uBounds"), minX, minY, maxX, maxY);
-      gl!.clearColor(0, 0, 0, 0);
-      gl!.clear(gl!.COLOR_BUFFER_BIT);
-      gl!.drawArrays(gl!.TRIANGLES, 0, 3);
-
-      // Keep breathing while the pointer is near; rest once it's gone.
-      const near = live && dist < reach * 1.4;
-      if (visible && (near || !settled)) {
+      if (visible && !blocked() && document.visibilityState === "visible") {
         raf = requestAnimationFrame(frame);
       } else {
         setPull(id, 0, 0);
@@ -357,62 +377,69 @@ export default function Ferrofluid({
     }
 
     function wake() {
-      if (!raf && visible) {
+      if (still) {
+        // Let it settle out of sight once, then show still frames only.
+        const { box } = measure();
+        if (box.hx < 4 || box.hy < 4 || width < 8) return;
+        if (!liquid) {
+          const sim = ensureLiquid(box);
+          for (let s = 0; s < 240; s++) sim.step({ box, magnet: null, excite: 0, width, height });
+        }
+        draw(liquid!);
+        return;
+      }
+      if (!raf && visible && !blocked() && document.visibilityState === "visible") {
         last = performance.now();
         raf = requestAnimationFrame(frame);
       }
     }
 
     function onMove(event: PointerEvent) {
-      if (event.pointerType === "touch") return;
+      if (event.pointerType === "touch" && !pointer.touchUntil) return;
       pointer.x = event.clientX;
       pointer.y = event.clientY;
       pointer.has = true;
-      const rect = target!.getBoundingClientRect();
-      const dx = Math.max(rect.left - event.clientX, 0, event.clientX - rect.right);
-      const dy = Math.max(rect.top - event.clientY, 0, event.clientY - rect.bottom);
-      if (Math.hypot(dx, dy) < reach * 1.5 || raf) wake();
+      if (pointer.touchUntil) pointer.touchUntil = performance.now() + 700;
     }
 
     function onDown(event: PointerEvent) {
       const rect = target!.getBoundingClientRect();
       const dx = Math.max(rect.left - event.clientX, 0, event.clientX - rect.right);
       const dy = Math.max(rect.top - event.clientY, 0, event.clientY - rect.bottom);
-      const d = Math.hypot(dx, dy);
-      if (d > reach) return;
+      if (Math.hypot(dx, dy) > reach) return;
 
-      // A tap on a phone is the only "hover" there is: the liquid lunges for it.
+      // A finger is the only "pointer" a phone has: while it's down near the
+      // button, the liquid reaches for it.
       if (event.pointerType === "touch") {
         pointer.x = event.clientX;
         pointer.y = event.clientY;
         pointer.has = true;
         pointer.touchUntil = performance.now() + 900;
       }
-      if (d === 0) spikeS.v += 9;
-      wake();
+      if (dx === 0 && dy === 0 && liquid) liquid.splash(measure().box);
     }
 
     function onLeave() {
       pointer.has = false;
-      wake();
     }
 
     const sizes = new ResizeObserver(() => {
       resize();
+      if (liquid) draw(liquid);
       wake();
     });
     sizes.observe(canvas);
 
     const sight = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
-      if (visible) wake();
+      wake();
     });
     sight.observe(canvas);
 
     const offTheme = onThemeChange(() => {
       accent = accentRGB();
       light = isLightTheme() ? 1 : 0;
-      wake();
+      if (liquid) draw(liquid);
     });
 
     resize();
@@ -420,7 +447,8 @@ export default function Ferrofluid({
 
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerdown", onDown, { passive: true });
-    window.addEventListener("scroll", wake, { passive: true });
+    window.addEventListener(INTRO_DONE, wake);
+    document.addEventListener("visibilitychange", wake);
     document.documentElement.addEventListener("pointerleave", onLeave);
 
     return () => {
@@ -431,7 +459,8 @@ export default function Ferrofluid({
       offTheme();
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerdown", onDown);
-      window.removeEventListener("scroll", wake);
+      window.removeEventListener(INTRO_DONE, wake);
+      document.removeEventListener("visibilitychange", wake);
       document.documentElement.removeEventListener("pointerleave", onLeave);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
