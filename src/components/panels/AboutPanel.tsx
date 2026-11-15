@@ -3,29 +3,14 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import ArrowUpRight from "@/components/ArrowUpRight";
 import { Reveal } from "@/components/Reveal";
-import Variant from "@/components/Variant";
+import Eyebrow from "@/components/Eyebrow";
 import { about, favourite, identity } from "@/lib/content";
 
 type Mode = "jee" | "code";
-type File = "dhairya.js" | "me.png";
-
-const str = (value: string) => <span className="text-accent">&quot;{value}&quot;</span>;
-const list = (values: readonly string[]) => (
-  <>
-    [
-    {values.map((value, index) => (
-      <span key={value}>
-        {str(value)}
-        {index < values.length - 1 ? ", " : ""}
-      </span>
-    ))}
-    ]
-  </>
-);
 
 /**
- * The photo, as a file open in the editor. Muted at rest like every image on
- * the site; colour comes back on hover.
+ * The photo. Muted at rest like every image on the site; colour comes back on
+ * hover.
  *
  * A missing file means initials, not a broken-image icon. The markup is
  * server-rendered, so a 404 can fire before React attaches onError — the
@@ -57,8 +42,6 @@ function Portrait({ className = "p-6 sm:p-8" }: { className?: string }) {
             ref={ref}
             src={about.portrait}
             alt={about.portraitAlt}
-            // Lazy, so the view that isn't showing it (display: none) never downloads it.
-            loading="lazy"
             onError={() => setFailed(true)}
             className="thumb h-full w-full object-cover"
           />
@@ -68,66 +51,7 @@ function Portrait({ className = "p-6 sm:p-8" }: { className?: string }) {
   );
 }
 
-function Code({ onOpenPhoto }: { onOpenPhoto: () => void }) {
-  const { facts } = about;
-
-  const lines: ReactNode[] = [
-    <>
-      <span className="text-syn-key">const</span> dhairya = {"{"}
-    </>,
-    <>  name: {str(identity.name)},</>,
-    <>  based: {str(facts.based)},</>,
-    <>
-      {"  "}grade: <span className="text-syn-num">{facts.grade}</span>,
-    </>,
-    <>  preparingFor: {str(facts.preparingFor)},</>,
-    <>  writes: {list(facts.writes)},</>,
-    <>  learning: {list(facts.learning)},</>,
-    <>
-      {"  "}finest:{" "}
-      <a
-        href={favourite.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        data-cursor-label="visit"
-        className="text-accent underline decoration-1 underline-offset-4"
-      >
-        &quot;{favourite.name}&quot;
-      </a>
-      ,
-    </>,
-    <>
-      {"  "}face:{" "}
-      <button
-        type="button"
-        onClick={onOpenPhoto}
-        data-cursor-label="view"
-        className="text-accent underline decoration-1 underline-offset-4"
-      >
-        &quot;me.png&quot;
-      </button>
-      ,
-    </>,
-    <>  status: {str(facts.status)}</>,
-    <>{"};"}</>,
-    <span className="text-faint">{"// last updated: always"}</span>,
-  ];
-
-  return (
-    <div className="overflow-x-auto py-[18px] text-xs leading-[2.4] sm:text-sm sm:leading-[2.05]">
-      {lines.map((content, index) => (
-        <div key={index} className="grid grid-cols-[44px_minmax(0,1fr)] sm:grid-cols-[56px_minmax(0,1fr)]">
-          <span aria-hidden className="select-none pr-[18px] text-right text-xs text-ghost">
-            {index + 1}
-          </span>
-          <span className="whitespace-pre pl-1.5 pr-5">{content}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/** The simple view's stand-in for dhairya.js: the same facts, as a list. */
+/** The facts beside the photo — what used to be an object literal, in words. */
 function Facts() {
   const { facts } = about;
 
@@ -178,8 +102,6 @@ function Facts() {
 export default function AboutPanel() {
   // School first, like the heading says.
   const [mode, setMode] = useState<Mode>("jee");
-  const [file, setFile] = useState<File>("dhairya.js");
-  const files: File[] = ["dhairya.js", "me.png"];
 
   return (
     <section
@@ -188,9 +110,7 @@ export default function AboutPanel() {
     >
       <div className="flex flex-col gap-8">
         <Reveal>
-          <p className="text-xs text-dim">
-            <span className="text-accent">02</span> / <Variant dev="about.md" plain="About" />
-          </p>
+          <Eyebrow id="about" />
         </Reveal>
 
         <Reveal delay={80}>
@@ -214,7 +134,7 @@ export default function AboutPanel() {
                   mode === value ? "bg-accent text-on-accent" : "text-dim hover:text-ink"
                 }`}
               >
-                <Variant dev={`${value}_mode`} plain={value === "jee" ? "school" : "coding"} />
+                {value === "jee" ? "JEE mode" : "code mode"}
               </button>
             ))}
           </div>
@@ -232,45 +152,7 @@ export default function AboutPanel() {
       </div>
 
       <Reveal delay={200} y={24}>
-        <Variant
-          block
-          plain={<Facts />}
-          dev={
-            <div className="panel">
-              <div className="panel-bar pl-0">
-                <div role="tablist" aria-label="Open files" className="flex h-full items-stretch">
-                  {files.map(name => (
-                    <button
-                      key={name}
-                      type="button"
-                      role="tab"
-                      aria-selected={file === name}
-                      onClick={() => setFile(name)}
-                      data-cursor-label="open"
-                      className={`relative border-r border-rule px-[18px] transition-colors ${
-                        file === name ? "bg-panel-hi text-ink" : "hover:text-ink"
-                      }`}
-                    >
-                      {file === name ? <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-accent" /> : null}
-                      {name}
-                    </button>
-                  ))}
-                </div>
-                <span>{file === "me.png" ? "577 × 636" : "readonly"}</span>
-              </div>
-
-              <div role="tabpanel" aria-label={file}>
-                {file === "dhairya.js" ? (
-                  <Code onOpenPhoto={() => setFile("me.png")} />
-                ) : (
-                  <div key="photo" className="panel-enter">
-                    <Portrait />
-                  </div>
-                )}
-              </div>
-            </div>
-          }
-        />
+        <Facts />
       </Reveal>
     </section>
   );

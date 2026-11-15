@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import AudiencePrompt from "@/components/AudiencePrompt";
 import CommandPalette, { openPalette } from "@/components/CommandPalette";
 import CustomCursor from "@/components/CustomCursor";
+import { fileTag } from "@/components/Eyebrow";
+import LiquidTransition from "@/components/LiquidTransition";
+import LoadingDock from "@/components/LoadingDock";
+import Roll, { HoverRoll } from "@/components/Roll";
 import ShaderField from "@/components/ShaderField";
 import ShortcutKey from "@/components/ShortcutKey";
 import ThemeToggle from "@/components/ThemeToggle";
-import Variant from "@/components/Variant";
-import { contact, extras, identity, panels } from "@/lib/content";
+import { identity, panels, SITE_SOURCE, SITE_URL } from "@/lib/content";
+import { click, SOUND_EVENT, soundEnabled, toggleSound } from "@/lib/sound";
 
 /** Renders nothing time-dependent on the server — a mismatch would be a hydration error. */
 function Clock() {
@@ -32,7 +35,7 @@ function Clock() {
     return () => clearInterval(timer);
   }, []);
 
-  return <span className="tabular-nums">{now ?? "--:--:--"}</span>;
+  return <Roll text={now ?? "--:--:--"} className="tabular-nums" />;
 }
 
 function Tabs({ active, compact }: { active: string; compact?: boolean }) {
@@ -68,8 +71,9 @@ function Tabs({ active, compact }: { active: string; compact?: boolean }) {
             >
               0{index + 1}
             </span>
-            <span className="relative transition-transform duration-200 group-hover:-translate-y-px group-active:translate-y-px">
-              <Variant dev={panel.file} plain={panel.label} />
+            <span className="relative">
+              <HoverRoll text={panel.label} />
+              <span className="text-faint">{fileTag(panel.file)}</span>
             </span>
           </Link>
         );
@@ -78,23 +82,87 @@ function Tabs({ active, compact }: { active: string; compact?: boolean }) {
   );
 }
 
+/** The current page in the status bar. Clicking copies a link to it. */
+function PageLink({ label }: { label: string }) {
+  const pathname = usePathname();
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(`${SITE_URL}${pathname}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Blocked clipboard: the address bar has it anyway.
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      data-cursor-label="copy link"
+      title="Copy a link to this page"
+      className="text-ink-mute transition-colors hover:text-ink"
+    >
+      <Roll text={copied ? "link copied ✓" : label} />
+    </button>
+  );
+}
+
+function SoundToggle({ className = "" }: { className?: string }) {
+  const [on, setOn] = useState(true);
+
+  useEffect(() => {
+    const read = () => setOn(soundEnabled());
+    read();
+    window.addEventListener(SOUND_EVENT, read);
+    return () => window.removeEventListener(SOUND_EVENT, read);
+  }, []);
+
+  return (
+    <button
+      type="button"
+      onClick={() => toggleSound()}
+      aria-pressed={on}
+      data-cursor-label={on ? "mute" : "unmute"}
+      className={`transition-colors hover:text-ink ${className}`}
+    >
+      <span className="text-accent">♪</span> <Roll text={on ? "sound on " : "sound off"} />
+    </button>
+  );
+}
+
 /**
  * Everything that persists across pages: the dot field, cursor, palette,
- * header tabs and status bar. Mounted once in the root layout, so a page swap
- * replaces only the content between the header and the status bar.
+ * loading dock, page transitions, header tabs and status bar. Mounted once in
+ * the root layout, so a page swap replaces only the content between the
+ * header and the status bar.
  */
 export default function Chrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const active = pathname.replace(/^\//, "").split("/")[0] || "home";
   // Undefined on the 404 page, which wears the same chrome.
-  const current = [...panels, ...extras].find(page => page.id === active);
+  const current = panels.find(page => page.id === active);
+
+  // Every press makes a small click, once sound has been allowed.
+  useEffect(() => {
+    function onDown(event: PointerEvent) {
+      if ((event.target as HTMLElement | null)?.closest("a, button, [role=tab], label")) click();
+    }
+    window.addEventListener("pointerdown", onDown);
+    return () => window.removeEventListener("pointerdown", onDown);
+  }, []);
+
+  const item = "transition-colors hover:text-ink";
 
   return (
     <>
       <ShaderField className="pointer-events-none fixed inset-x-0 top-0 h-lvh w-full" />
       <CustomCursor />
       <CommandPalette />
-      <AudiencePrompt />
+      <LoadingDock />
+      <LiquidTransition />
 
       <header className="sticky top-0 z-40 border-b border-rule bg-bg/85 backdrop-blur-md">
         <div className="flex h-14 items-stretch lg:h-16">
@@ -131,40 +199,47 @@ export default function Chrome({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
 
-      <main className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-[calc(var(--status-h)+3rem)] pt-10 md:px-10 md:pt-14 xl:px-[72px]">
+      {/* overflow-x: clip, not hidden — clip makes no scroll container, so the
+          sticky project stack still sticks, while the ferrofluid's overhang
+          can't widen the page on a phone. */}
+      <main className="relative z-10 mx-auto w-full max-w-[1440px] overflow-x-clip px-5 pb-[calc(var(--status-h)+3rem)] pt-10 md:px-10 md:pt-14 xl:px-[72px]">
         {children}
       </main>
 
+      {/* Laid out like an editor's status bar, but every item in it does something. */}
       <footer className="fixed inset-x-0 bottom-0 z-40 flex h-[var(--status-h)] items-center justify-between gap-4 border-t border-rule bg-panel px-4 text-[10px] text-dim md:px-5">
         <div className="flex min-w-0 items-center gap-[22px]">
-          <a href={`mailto:${contact.email}`} className="flex items-center gap-2 hover:text-ink">
+          <Link href="/contact" data-cursor-label="say hi" className={`flex items-center gap-2 ${item}`}>
             <span className="h-1.5 w-1.5 bg-accent" />
             open to collabs
+          </Link>
+          <a
+            href={SITE_SOURCE}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cursor-label="source"
+            className={`hidden sm:inline ${item}`}
+          >
+            ⎇ view source
           </a>
-          <Variant dev={<span className="hidden sm:inline">⎇ main*</span>} plain={null} />
-          <span className="hidden md:inline">class 11 · jee prep</span>
+          <Link href="/qualification" data-cursor-label="open" className={`hidden md:inline ${item}`}>
+            class 11 · jee prep
+          </Link>
         </div>
 
         <div className="flex shrink-0 items-center gap-[22px]">
-          <span className="text-ink-mute">
-            {current ? <Variant dev={current.file} plain={current.label} /> : "404"}
-          </span>
-          <Variant dev={<span className="hidden md:inline">UTF-8</span>} plain={null} />
+          <PageLink label={current ? `${current.label}${fileTag(current.file)}` : "404"} />
+          <SoundToggle className="hidden sm:inline" />
           {/* The only way into the palette on a phone, so it shows at every size. */}
-          <button
-            type="button"
-            onClick={openPalette}
-            data-cursor-label="menu"
-            className="transition-colors hover:text-ink"
-          >
+          <button type="button" onClick={openPalette} data-cursor-label="menu" className={item}>
             <span className="md:hidden">menu</span>
             <span className="hidden md:inline">
-              <ShortcutKey /> <Variant dev="commands" plain="menu" />
+              <ShortcutKey /> menu
             </span>
           </button>
-          <span className="hidden lg:inline">
+          <Link href="/about" data-cursor-label="about" className={`hidden lg:inline ${item}`}>
             © {new Date().getFullYear()} {identity.name}
-          </span>
+          </Link>
         </div>
       </footer>
     </>

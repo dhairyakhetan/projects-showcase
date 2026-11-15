@@ -33,7 +33,7 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
     // <meta> wasn't in the document yet when that script ran.
     applyTheme(root.dataset.theme === "light" ? "light" : "dark");
 
-    // The terminal and the palette can flip it too.
+    // The palette can flip it too.
     const watcher = new MutationObserver(read);
     watcher.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
     return () => watcher.disconnect();

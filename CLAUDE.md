@@ -26,7 +26,7 @@ odd until you know what broke last time.
   published figures. Live at `https://archer-mrsi.vercel.app`; no repo button. The
   card copy and the image's alt text are his, word for word.
 - Older repos (secondary, pinned at the top of the full repo list; written out in
-  `projects.older`, which is also the fallback list and what `open` knows):
+  `projects.older`, which is also the fallback list):
   - `shoppy` — storefront for his mother's Tanjore art
   - `omrakhi` — his father's business, Om Rakhi Udyog (WIP), `https://omrakhi.vercel.app`
   - `GOAT-GPT` — AI that answers Messi/Ronaldo questions from their stats
@@ -71,14 +71,15 @@ src/app/
     layout.tsx                metadata, theme-color, pre-paint scripts, <Chrome>
     page.tsx                  "/" → redirect to /home
     [panel]/page.tsx          /home /about /qualification /projects /contact
-    blackjack/page.tsx        /blackjack — the card game, in the chrome but not a tab
     opengraph-image.tsx       link preview for every portfolio page
   api/repos/route.ts          same-origin JSON for the full repo list
   product-funny/              STRATA fridge concept: strata.html served as-is
-src/middleware.ts             hard refresh → re-ask the audience question
-src/lib/                      content, audience, featured, repos, tech, og, theme, fonts,
-                              metadata (per-page title/preview), blackjack (the rules)
-src/components/               Chrome, panels/, Terminal, cursor, etc.
+src/middleware.ts             hard refresh → replay the loading dock
+src/lib/                      content, featured, repos, tech, og, theme, fonts, metadata,
+                              intro (dock flags), prepaint, sound (Web Audio), gl (shader
+                              helpers), cursor-pull
+src/components/               Chrome, panels/, LoadingDock, LiquidTransition, Ferrofluid,
+                              FerroBlob, Roll, cursor, etc.
 src/og-fonts/                 TTFs for the OG images
 cloudflare/worker.js          committed copy of the deployed worker (+ tests)
 public/                       me.webp, favicons, card images
@@ -92,10 +93,9 @@ next.config.ts                only to switch on experimental.globalNotFound
   `[panel]/layout.tsx` — a layout under a dynamic segment remounts whenever the
   param changes, which rebuilt the cursor, dots and palette on every click.
 - `[panel]` has `dynamicParams = false`; anything else 404s.
-- `/blackjack` is a static route beside `[panel]`, listed in `extras` in
-  `content.ts` (pages that wear the chrome but aren't one of the five tabs — the
-  status bar and ⌘K read that list). Not in the sitemap. It's also in the
-  middleware matcher, so a hard refresh re-asks there too.
+- `/blackjack` (and the home terminal and flappy game) were removed on 15 Nov
+  2026 when he asked for one view and less cringe; it now 404s. The old
+  `blackjack-chips` key may linger in visitors' localStorage — harmless.
 - `/Japan2026` (a trip planner) was taken down on 22 Oct 2026 at his request; it
   now 404s. `public/japan-sw.js` is a kill switch for its old offline worker:
   it deletes the saved copy on devices and unregisters. Delete it after a few
@@ -123,17 +123,21 @@ An editor, not a brochure. Based on a Claude Design canvas he provided.
 - **Dark is the default.** Warm near-black `#0b0c0a`, one acid accent `#c8f55a`,
   sharp corners everywhere (radius 0). Light theme is the same system on paper
   (`#f3f1e9`, amber accent `#b35900`). Theme lives on `<html data-theme>`, applied
-  by a blocking script before paint; toggle in the header, ⌘K, or `theme` in the
-  terminal. The `theme-color` meta (the phone's browser bar) follows the site's
+  by a blocking script before paint; toggle in the header or ⌘K. The `theme-color` meta (the phone's browser bar) follows the site's
   theme, not the OS — `src/lib/theme.ts`.
 - The palette shortcut reads ⌘K on Apple devices and Ctrl K elsewhere:
   `<ShortcutKey>` renders both and CSS shows one off `<html data-mod>`, set before
-  paint — same idea as `<Variant>`.
-- Header: `dk_` logo, numbered editor tabs (`01 home.js`, `02 about.md`,
-  `03 qualification.json`, `04 projects/`, `05 contact.sh`), IST clock, theme
-  toggle. Below `lg` the tabs get their own scrollable row.
-- Footer is an IDE status bar (open to collabs, branch, class 11 · jee prep,
-  current file, ⌘K). On phones the `menu` button there is the only way into ⌘K.
+  paint.
+- Header: `dk_` logo, numbered tabs with a plain name and a faint file tag
+  (`01 Home.js`, `02 About.md`, `03 Qualification.json`, `04 Projects/`,
+  `05 Contact.sh` — `fileTag()` in `Eyebrow.tsx`), a rolling IST clock, theme
+  toggle. Below `lg` the tabs get their own scrollable row. Each page opens with
+  the same `0N / Name.ext` eyebrow.
+- Footer looks like an IDE status bar, and **every item in it works** (he called
+  out "shell buttons" that did nothing): open to collabs → /contact, ⎇ view source
+  → this repo (`SITE_SOURCE`), class 11 · jee prep → /qualification, the page name
+  → copies a link to the page, ♪ sound on/off, ⌘K menu, © → /about. Never add an
+  inert item there. On phones `menu` is the only way into ⌘K (sound lives there too).
 - **Background dots** (`ShaderField`) sit behind every page: square dots that part
   around the pointer and turn accent-coloured. He explicitly wanted the dots kept
   when the design changed. The loop stops once nothing moves — an idle page costs
@@ -159,48 +163,79 @@ An editor, not a brochure. Based on a Claude Design canvas he provided.
   translucent tint; labels (`data-cursor-label`) sit in a tag **beside** the
   pointer — he complained the old 78px disc covered what it pointed at. I-beam on
   text fields. Off on touch and under reduced motion.
-- Magnetic CTAs on Home; kinetic name letters react to the pointer (idle-stops).
+- Kinetic name letters react to the pointer (idle-stops); "say hi" is magnetic.
+- **Rolling text** (`Roll.tsx`): text that changes rolls each changed character
+  up and out while the new one rolls in from below — the clock, the "I build …"
+  words, the dock's counter, copy-link and sound labels. `<HoverRoll>` flips a
+  label over itself on hover (tabs, CTAs). Plain text between rolls.
+- **Ferrofluid button** (`Ferrofluid.tsx`) — only on *one main button* per view
+  (home's "see projects", the dock's "let's go"). Black venom pooled behind the
+  button, spikes rising toward the cursor, strands that reach out and grab it, and
+  the drawn cursor is dragged toward the button (`lib/cursor-pull.ts` →
+  `CustomCursor`). One SDF shader; it skips pixels outside a bounding box, uses
+  GPU derivatives for shading, and only draws while something moves. Touch: a tap
+  near it makes it lunge. Its canvas overhangs the button by `reach`, which is why
+  `<main>` is `overflow-x: clip` (not hidden — hidden would break the sticky stack).
+- **Ferrofluid blob** (`FerroBlob.tsx`) — the home page's right column: a
+  raymarched drop whose spikes (a spherical Fibonacci lattice, nearest spike in
+  O(1)) lean toward the pointer; click to kick it (with a sound). Waits for the
+  dock to finish, then wakes. Idle-stops; static under reduced motion; CSS sphere
+  if WebGL is missing.
+- **Liquid page transitions** (`LiquidTransition.tsx`) — a plain left-click on a
+  link to one of the five pages floods the screen with black ferrofluid (spiky as
+  it rises), changes route underneath, then drains upward with drips. It works by
+  `preventDefault` in a capture listener, which Next's `<Link>` respects. Skipped
+  for new-tab clicks, outside links, back/forward and reduced motion.
+- **Sound** (`lib/sound.ts`) — every sound is synthesised with Web Audio, no
+  files: a click on presses, a woosh + sub boom for "let's go", a slosh for page
+  floods, a gloop for poking the blob. The AudioContext is only created inside a
+  user gesture (otherwise Chrome warns). On by default once allowed; mute is
+  remembered (`localStorage.sound`).
 
 ---
 
-## Two audiences: developer view and simple view
+## One view for everyone (no modes)
 
-First visit asks **"do you write code?"**.
+Until 15 Nov 2026 the site asked "do you write code?" and showed a developer or a
+simple version. **He hated the two modes**; they were merged into one middle
+ground that programmers relate to and everyone understands. Don't bring modes,
+`<Variant>` or an audience prompt back.
 
-- **Yes → developer view**: file-name tabs, the terminal, the bio as `dhairya.js`,
-  `--name` form labels, `ls`/`grep` wording.
-- **No → simple view**: page names, a "start here" link list instead of the
-  terminal, the bio as a plain fact list next to the photo, plain form labels.
-- Switch any time from ⌘K ("mode"), `mode` in the terminal, or the status-bar menu.
-- **A hard refresh asks again**; a normal refresh keeps the answer.
+The rule for copy: **plain words carry the meaning, code is flavour.** A page is
+"About", with a faint `.md` beside it; form labels say "your name"; buttons say
+"send", "see the code". Mono type, file tags, the status bar and lines like
+"packing your message ...... done" keep it nerdy without anyone needing to know
+what `ls` means.
 
-How it works: the answer is in `localStorage` + `<html data-audience>`, set by a
-blocking script before paint. Pages render **both** versions via
-`<Variant dev plain>` and CSS hides one — no flash of the wrong view. The prompt is
-in the server HTML and shown only while the attribute is `unset`. Hard refresh is
-detected by `middleware.ts` (request has `Cache-Control: no-cache`; Next's own RSC
-and prefetch fetches are excluded) which sets a short cookie the pre-paint script
-reads. The middleware matcher only fires on that header, so normal loads never
-invoke it.
+## Loading dock (the intro)
 
-When adding UI copy that's jargon (file names, shell commands), give it a plain
-twin with `<Variant>`.
+A big, theatrical loading screen (`LoadingDock.tsx`) — hazard tape, a giant
+rolling percentage, a log of absurd "loading" steps, a segment meter — that ends
+on one giant **let's go** button with the ferrofluid on it. Pressing it: woosh,
+the button sinks into the screen, everything warps outward, and the site opens
+through a hole where the button went (`--hole` is a registered `@property`).
 
----
+- **Once per visit**: the first load in a tab (`sessionStorage["intro-seen"]`),
+  and again on a **hard refresh** — `middleware.ts` sees `Cache-Control: no-cache`
+  on a document request (Next's RSC/prefetch fetches excluded) and sets a
+  short cookie that the pre-paint script reads. Normal refreshes skip it.
+  ⌘K → "Replay the intro" brings it back on demand.
+- It's in the server HTML and shown by CSS off `<html data-intro>`, set by the
+  blocking script in `lib/intro.ts` — so it's there at first paint, and no-JS
+  visitors and crawlers never get it. If the page never hydrates, the script
+  lifts it after 15 s rather than leaving a wall up.
+- While it's up, header/main/footer are `inert`. Enter or Escape works the button.
+- Nothing is really loading; the lines say so, more or less. Keep them tied to
+  real things on the site (the magazine, the six shell arcs, the dots…), not
+  generic jokes.
 
 ## Pages
 
-- **Home** — serif name (`Dhairya` / *Khetan.*), typewriter "I build …", blurb,
-  CTAs. Right side: a working terminal (dev) or "start here" (simple). It opens
-  with `whoami` and `ls projects` already run, and its log scrolls (bottom-anchored
-  with `mt-auto` — `justify-end` clipped overflow that couldn't be scrolled to).
-  Terminal commands: `help whoami ls [projects] cd <page> jee open <project> play
-  blackjack theme mode echo clear sudo hire-me`, ↑/↓ history. `open` knows the featured
-  projects and `projects.older`. `play` opens the Flappy game (regular
-  pipes — he asked for plain obstacles, not project names).
-- **About** — "A student first. A programmer *every other hour.*", jee_mode /
-  code_mode toggle (opens on jee_mode), `dhairya.js` + `me.png` tabs (dev) or photo
-  + fact list (simple). The tab says `me.png`; the file is `me.webp` (26 KB).
+- **Home** — serif name (`Dhairya` / *Khetan.*), "I build …" with the last word
+  rolling between `home.typed`, blurb, then the ferrofluid "see projects" button
+  and a magnetic "say hi". Right side: the ferrofluid blob, captioned "fig. 01".
+- **About** — "A student first. A programmer *every other hour.*", a JEE mode /
+  code mode toggle (opens on JEE), and the photo beside a plain fact list.
 - **Qualification** — master/detail: JEE (2028, in prep), Class 11 PCM (ongoing),
   TerraNotes tech lead (live), Programming (self-taught), Class 10 (2026).
   Arrow-key navigable tabs.
@@ -216,25 +251,6 @@ twin with `<Variant>`.
   visit button before it was ever on screen (Archer is ~710px; 1366×768 laptops).
   Copy measure is 56ch so both cards fit with the stack sliver at 1440×900.
   Currently featured: **TerraNotes**, then **Archer MRSI**.
-- **Blackjack** (`/blackjack`) — quick blackjack on pretend money, added 12 Nov
-  2026. Reached from `blackjack` in the terminal, ⌘K, or the simple view's "start
-  here" list. He asked for it to play and be laid out like 247blackjack.com, in
-  this site's theme: "Place your bets", a pile of round chips (1/10/100/500)
-  bottom-left with the bankroll beside it, the bet as a chip stack on the table
-  (tap to take it back) with Double under it, your hand left and the dealer's
-  right with tilted cards, Hit under yours, Insure + Stand under the dealer's.
-  **The layout is theirs; the art is ours** — chips and cards are drawn in CSS/SVG
-  from the site's tokens. Never copy their images or code.
-  Rules live in `src/lib/blackjack.ts` as a pure reducer (the shoe is handed in
-  with the `deal` action, so it never shuffles itself); `Blackjack.tsx` draws the
-  table and paces the dealer. 6 decks, dealer stands on every 17, blackjack pays
-  3:2, double on any two cards, split up to four hands (one card to each split
-  ace), dealer peeks, no surrender. Insurance (2:1) is an optional button while
-  the dealer shows an ace — playing on declines it. $2,500 to start, kept in
-  `localStorage` (`blackjack-chips`), saved between rounds only; broke means a
-  free $2,500 more. Keys: enter deal, H/S/D/P, I to insure. Suits are SVGs, not
-  ♥♠ characters (emoji on some phones). Chips are the one round thing on the
-  site. From `xl` the heading sits beside the table so a round fits one screen.
 - **Contact** — "Let's *talk.*", rows that say what each platform is for (**never
   print the handle** — it's his name on all of them). Note text is a size smaller
   than the label. Email row copies on click. The form opens the visitor's own mail
@@ -298,10 +314,15 @@ There's no test runner in the repo beyond the worker suite. Before pushing:
 2. `npx next start -p <port>` and drive it with Playwright (install with
    `npm install --no-save playwright`; Chromium is at
    `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` in Claude's sandbox).
-   Pre-answer the audience prompt with `localStorage.setItem("audience", "dev")`
-   or the modal covers the page.
-3. Check desktop (1440) and phone (390), both themes, reduced motion, and that no
-   `/api/` request happens on load.
+   Skip the loading dock with `sessionStorage.setItem("intro-seen", "1")` in an
+   init script, or it covers the page for ~4 s and waits for a click.
+   The shaders need WebGL: launch Chromium with
+   `--use-angle=swiftshader --enable-unsafe-swiftshader`. That's a software GPU
+   and very slow — a screenshot can time out while a shader is animating, so
+   move the mouse, wait, then shoot; real GPUs are fine.
+3. Check desktop (1440) and phone (390), both themes, reduced motion, that no
+   `/api/` request happens on load, and that `documentElement.scrollWidth` on a
+   phone is 390 (anything overhanging the viewport makes the page pan sideways).
 4. Repo fallback: the worker is sometimes reachable from the sandbox. To force the
    fallback, delete `.next/cache/fetch-cache` and start the server with
    `NODE_OPTIONS=--require <file>` where the file wraps `globalThis.fetch` to

@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Chrome from "@/components/Chrome";
-import { MOD_KEY_INIT } from "@/components/ShortcutKey";
-import Variant from "@/components/Variant";
-import { AUDIENCE_INIT } from "@/lib/audience";
 import { identity } from "@/lib/content";
 import { fontVariables } from "@/lib/fonts";
-import { THEME_COLOR, THEME_INIT } from "@/lib/theme";
+import { PREPAINT } from "@/lib/prepaint";
+import { THEME_COLOR } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,7 +23,7 @@ export default function GlobalNotFound() {
     <html lang="en" data-theme="dark" className={fontVariables} suppressHydrationWarning>
       <head>
         <meta name="theme-color" content={THEME_COLOR.dark} />
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT + MOD_KEY_INIT + AUDIENCE_INIT }} />
+        <script dangerouslySetInnerHTML={{ __html: PREPAINT }} />
       </head>
       <body>
         <Chrome>
@@ -35,7 +33,7 @@ export default function GlobalNotFound() {
           >
             <p className="text-xs text-dim">
               <span className="text-accent">404</span> /{" "}
-              <Variant dev="no such file or directory" plain="Not found" />
+              page not found
             </p>
 
             <h1 className="font-display text-[clamp(4rem,14vw,7.5rem)] font-normal leading-[0.9] tracking-[-0.03em]">
@@ -49,7 +47,7 @@ export default function GlobalNotFound() {
 
             <div className="flex flex-wrap items-center gap-3.5">
               <Link href="/home" data-cursor-label="home" className="btn btn-primary">
-                <Variant dev="cd ~" plain="go home" /> <span aria-hidden className="nudge">→</span>
+                go home <span aria-hidden className="nudge">→</span>
               </Link>
               <Link href="/projects" data-cursor-label="go" className="btn btn-ghost">
                 see projects

@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Chrome from "@/components/Chrome";
-import { MOD_KEY_INIT } from "@/components/ShortcutKey";
-import { AUDIENCE_INIT } from "@/lib/audience";
 import { identity, SITE_URL } from "@/lib/content";
 import { fontVariables } from "@/lib/fonts";
-import { THEME_COLOR, THEME_INIT } from "@/lib/theme";
+import { PREPAINT } from "@/lib/prepaint";
+import { THEME_COLOR } from "@/lib/theme";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -47,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Written here, not via `viewport.themeColor`, so it sits ahead of
             the script that retints it for a stored light theme. */}
         <meta name="theme-color" content={THEME_COLOR.dark} />
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT + MOD_KEY_INIT + AUDIENCE_INIT }} />
+        <script dangerouslySetInnerHTML={{ __html: PREPAINT }} />
       </head>
       <body>
         <Chrome>{children}</Chrome>

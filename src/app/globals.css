@@ -187,32 +187,10 @@
   }
 }
 
-/* ---- audience ------------------------------------------------------------
- * Both views are in the DOM; this shows one. Anything but "plain" — including
- * a first visit, or no JS at all — gets the dev view.
- */
-.dev-only,
-.plain-only {
-  display: contents;
-}
-
-[data-audience="plain"] .dev-only,
-:root:not([data-audience="plain"]) .plain-only {
-  display: none;
-}
-
-.audience-prompt {
-  display: none;
-}
-
 /* The palette shortcut: ⌘ unless the pre-paint script found a non-Apple device. */
 [data-mod="ctrl"] .key-mac,
 :root:not([data-mod="ctrl"]) .key-ctrl {
   display: none;
-}
-
-[data-audience="unset"] .audience-prompt {
-  display: flex;
 }
 
 /* Only hide the native cursor where a real pointer exists AND the custom one
@@ -684,213 +662,416 @@
   transition-duration: 80ms;
 }
 
-/* ---- blackjack -----------------------------------------------------------
- * The table at /blackjack: cards and chips. Both keep a paper face in either
- * theme — a card the colour of the table stops reading as a card — and the
- * chips take their colours from the site's own tokens.
- *
- * Like every entrance here, the resting state is the visible one: `deal` and
- * `flip` only describe how a card arrives. The tilt is on `rotate`, a separate
- * property, so those keyframes' `transform` doesn't cancel it.
+/* ---- rolling text ---------------------------------------------------------
+ * <Roll>: a changed character rolls up and out while its replacement rolls up
+ * from below. Both sit in one grid cell, so the slot is as wide as the wider
+ * of the two. A little padding (cancelled by margin) keeps descenders from
+ * being clipped mid-roll.
  */
-.bj {
-  --card-w: 54px;
-  --chip-w: 50px;
-  --overlap: -0.5;
-  --card-face: #ebe8df;
-  --card-ink: #14150f;
-  --card-red: #b5301b;
+.roll-slot {
+  display: inline-block;
+  white-space: pre;
 }
 
-[data-theme="light"] .bj {
-  --card-face: #fffdf8;
+.roll-moving {
+  display: inline-grid;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-block: 0.12em;
+  margin-block: -0.12em;
 }
 
-@media (min-width: 768px) {
-  .bj {
-    --card-w: 88px;
-    --chip-w: 68px;
-    --overlap: -0.4;
-  }
+.roll-out,
+.roll-in {
+  grid-area: 1 / 1;
+  animation: 520ms cubic-bezier(0.65, 0, 0.25, 1) var(--roll-delay, 0ms) both;
 }
 
-/* A spotlight on the felt, in the accent rather than casino green. */
-.bj-felt {
-  background: radial-gradient(ellipse 70% 60% at 50% 45%, var(--accent-soft), transparent 72%);
+.roll-out {
+  animation-name: roll-out;
 }
 
-.bj-card {
+.roll-in {
+  animation-name: roll-in;
+}
+
+@keyframes roll-out {
+  to { transform: translateY(-115%); }
+}
+
+@keyframes roll-in {
+  from { transform: translateY(115%); }
+}
+
+/* <HoverRoll>: the label flips over itself, letter by letter, when its link
+   or button is hovered. The copy below each letter is its ::after. */
+.hroll-chars {
+  display: inline-flex;
+  overflow: hidden;
+  vertical-align: top;
+  padding-block: 0.12em;
+  margin-block: -0.12em;
+}
+
+.hroll-c {
   position: relative;
-  flex: none;
-  width: var(--card-w);
-  aspect-ratio: 5 / 7;
-  background: var(--card-face);
-  color: var(--card-ink);
-  border: 1px solid var(--line-strong);
-  box-shadow: -8px 0 14px -10px rgba(0, 0, 0, 0.55);
-  animation: deal 340ms cubic-bezier(0.2, 0.7, 0.2, 1) var(--deal-delay, 0ms) both;
+  display: inline-block;
+  white-space: pre;
+  transition: transform 460ms cubic-bezier(0.7, 0, 0.2, 1);
+  transition-delay: calc(var(--i) * 14ms);
 }
 
-.bj-card + .bj-card {
-  margin-left: calc(var(--card-w) * var(--overlap));
-}
-
-/* Thrown down, not lined up. */
-.bj-hand {
-  display: flex;
-  padding: 12px 8px 6px;
-}
-
-.bj-hand .bj-card:nth-child(odd) {
-  rotate: -6deg;
-}
-
-.bj-hand .bj-card:nth-child(even) {
-  rotate: 5deg;
-  translate: 0 -6px;
-}
-
-.bj-red {
-  color: var(--card-red);
-}
-
-.bj-index {
+.hroll-c::after {
+  content: attr(data-c);
   position: absolute;
-  top: 7%;
-  left: 9%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  font-size: calc(var(--card-w) * 0.2);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.06em;
-}
-
-.bj-index-suit {
-  width: calc(var(--card-w) * 0.17);
-}
-
-.bj-pip {
-  position: absolute;
-  top: 57%;
-  left: 50%;
-  width: 46%;
-  transform: translate(-50%, -50%);
-}
-
-.bj-card-back {
-  border-color: var(--accent);
-  background:
-    repeating-linear-gradient(135deg, transparent 0 6px, var(--accent-soft) 6px 8px),
-    var(--panel-hi);
-  box-shadow: inset 0 0 0 4px var(--panel-hi), inset 0 0 0 5px var(--line-strong);
-}
-
-.bj-card.bj-flip {
-  animation: flip 280ms ease-out both;
-}
-
-@keyframes deal {
-  from { opacity: 0; transform: translate(34px, -26px) rotate(7deg); }
-  to { opacity: 1; transform: none; }
-}
-
-@keyframes flip {
-  from { transform: rotateY(90deg); }
-  to { transform: none; }
-}
-
-/* The one round thing on a site of sharp corners: a chip has to be a chip.
-   Edge inserts are a conic gradient, the face a radial one on top of it. */
-.bj-chip {
-  --chip: #96998d;
-  position: relative;
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: var(--chip-w);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 2px solid color-mix(in oklab, var(--chip) 62%, #000);
-  background:
-    radial-gradient(closest-side, var(--card-face) 0 54%, var(--chip) 56% 72%, transparent 74%),
-    repeating-conic-gradient(from -11.25deg, var(--card-face) 0 22.5deg, var(--chip) 22.5deg 45deg);
-  box-shadow:
-    0 3px 0 color-mix(in oklab, var(--chip) 45%, #000),
-    0 9px 14px -6px rgba(0, 0, 0, 0.6);
-  color: var(--card-ink);
-  font-size: calc(var(--chip-w) * 0.24);
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  transition: transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1), opacity 180ms ease;
-}
-
-.bj-chip[data-value="10"] {
-  --chip: #2f6bc4;
-}
-
-.bj-chip[data-value="100"] {
-  --chip: #23251e;
-}
-
-.bj-chip[data-value="500"] {
-  --chip: var(--accent);
-}
-
-/* The pile to bet from: each chip leans on the last. */
-.bj-tray {
-  display: flex;
-}
-
-.bj-tray .bj-chip + .bj-chip {
-  margin-left: -6px;
-}
-
-.bj-tray .bj-chip:disabled {
-  opacity: 0.38;
-  pointer-events: none;
+  left: 0;
+  top: calc(100% + 0.24em);
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .bj-tray .bj-chip:hover,
-  .bj-stack:hover {
-    z-index: 1;
-    transform: translateY(-5px);
+  :is(a, button, [role="tab"]):hover .hroll-c,
+  :is(a, button):focus-visible .hroll-c {
+    transform: translateY(calc(-100% - 0.24em));
   }
 }
 
-.bj-tray .bj-chip:active {
-  transform: translateY(2px);
-  transition-duration: 60ms;
+@media (prefers-reduced-motion: reduce) {
+  .roll-out,
+  .roll-in {
+    animation-delay: 0ms !important;
+  }
 }
 
-/* The bet on the table: the same chips, one on top of another. */
-.bj-stack {
+/* ---- ferrofluid ------------------------------------------------------------
+ * The venom pool behind a button (Ferrofluid.tsx). The canvas overhangs the
+ * button by --reach on every side so strands have room to reach the cursor.
+ */
+.ferro {
   position: relative;
-  display: block;
-  width: var(--chip-w);
-  height: calc(var(--chip-w) + 20px);
-  transition: transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  display: inline-flex;
+  isolation: isolate;
 }
 
-.bj-stack .bj-chip {
-  position: absolute;
-  left: 0;
-  bottom: calc(var(--stack-i) * 5px);
+.ferro > :not(.ferro-canvas) {
+  position: relative;
+  z-index: 1;
 }
 
-.bj-stack-empty {
+.ferro-canvas {
   position: absolute;
-  inset: auto 0 0 0;
+  top: calc(var(--reach) * -1);
+  left: calc(var(--reach) * -1);
+  width: calc(100% + var(--reach) * 2);
+  height: calc(100% + var(--reach) * 2);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ---- loading dock ----------------------------------------------------------
+ * The intro (LoadingDock.tsx). Hidden unless <html data-intro> says otherwise,
+ * which only the pre-paint script and the dock itself ever set.
+ *
+ * On exit the button sinks into the screen, everything else warps outward,
+ * and a hole opens where the button went — a mask whose radius is a
+ * registered custom property, so it can animate.
+ */
+@property --hole {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.loading-dock {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 115;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    linear-gradient(var(--line-soft) 1px, transparent 1px) 0 0 / 72px 72px,
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px) 0 0 / 72px 72px,
+    var(--bg);
+}
+
+:root[data-intro="on"] .loading-dock,
+:root[data-intro="leaving"] .loading-dock {
+  display: flex;
+}
+
+:root[data-intro="on"] body {
+  overflow: hidden;
+}
+
+/* Hazard tape along the top and bottom edges, crawling while it loads. */
+.loading-dock::before,
+.dock-bar::after {
+  content: "";
+  height: 8px;
+  flex: none;
+  background: repeating-linear-gradient(-45deg, var(--accent) 0 12px, transparent 12px 24px);
+  opacity: 0.85;
+  animation: tape 900ms linear infinite;
+}
+
+.loading-dock[data-stage="ready"]::before,
+.loading-dock[data-stage="ready"] .dock-bar::after {
+  animation-play-state: paused;
+}
+
+@keyframes tape {
+  to { background-position: 34px 0; }
+}
+
+.dock-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.dock-body {
+  flex: 1;
   display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  border: 1px dashed var(--line-strong);
-  border-radius: 50%;
+  align-content: center;
+  gap: 28px;
+  padding: 20px;
+  transition: opacity 500ms ease, filter 500ms ease, transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (min-width: 1024px) {
+  .dock-body {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    align-items: end;
+    gap: 56px;
+    padding: 40px 56px;
+  }
+}
+
+.dock-count {
+  font-family: var(--font-instrument-serif), Georgia, serif;
+  font-size: clamp(7rem, 30vw, 24rem);
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* At this size the usual roll padding shows the next digit waiting below. */
+.dock-count .roll-moving {
+  padding-block: 0;
+  margin-block: 0;
+}
+
+.dock-pct {
+  font-style: italic;
+  color: var(--accent);
+  font-size: 0.42em;
+  margin-left: 0.04em;
+}
+
+.dock-log {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
   color: var(--faint);
-  font-size: 10px;
+}
+
+@media (min-width: 768px) {
+  .dock-log {
+    font-size: 12px;
+  }
+}
+
+.dock-log li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  animation: dock-line 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dock-log li.is-current {
+  color: var(--ink);
+}
+
+.dock-log li.is-current .dock-value {
+  color: var(--accent);
+}
+
+.dock-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock-leader {
+  flex: 1;
+  min-width: 16px;
+  border-bottom: 1px dotted var(--line-strong);
+  transform: translateY(-3px);
+}
+
+.dock-value {
+  flex: none;
+}
+
+@keyframes dock-line {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+/* The segment meter, with the bottom strip of hazard tape under it. */
+.dock-bar {
+  display: grid;
+  grid-template-columns: repeat(36, minmax(0, 1fr));
+  gap: 4px;
+  padding: 0 20px;
+  transition: opacity 500ms ease, filter 500ms ease;
+}
+
+.dock-bar::after {
+  grid-column: 1 / -1;
+  margin: 16px -20px 0;
+}
+
+.dock-bar > span {
+  height: 12px;
+  background: var(--chip);
+  transition: background-color 200ms ease;
+}
+
+.dock-bar > span.is-on {
+  background: var(--accent);
+  animation: segment 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes segment {
+  from { transform: scaleY(2.4); }
+}
+
+@media (min-width: 1024px) {
+  .dock-bar {
+    padding: 0 56px;
+  }
+
+  .dock-bar::after {
+    margin: 16px -56px 0;
+  }
+}
+
+/* The button stage: everything else sinks back behind it. */
+.dock-go {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 20px;
+}
+
+.loading-dock[data-stage="ready"] .dock-go,
+.loading-dock[data-stage="leaving"] .dock-go {
+  display: flex;
+}
+
+.loading-dock:is([data-stage="ready"], [data-stage="leaving"]) .dock-body,
+.loading-dock:is([data-stage="ready"], [data-stage="leaving"]) .dock-bar {
+  opacity: 0.1;
+  filter: blur(3px);
+}
+
+.loading-dock:is([data-stage="ready"], [data-stage="leaving"]) .dock-body {
+  transform: scale(0.96);
+}
+
+.dock-go-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dim);
+  animation: dock-line 500ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms both;
+}
+
+.dock-go-button {
+  animation: dock-arrive 700ms cubic-bezier(0.2, 1.3, 0.3, 1) both;
+}
+
+@keyframes dock-arrive {
+  from { opacity: 0; transform: scale(0.5) translateY(40px); }
+}
+
+.dock-button {
+  height: clamp(84px, 14vw, 128px);
+  padding: 0 clamp(36px, 6vw, 68px);
+  gap: clamp(14px, 2vw, 24px);
+  font-size: clamp(1.6rem, 4.4vw, 2.75rem);
+  letter-spacing: -0.03em;
+}
+
+/* Leaving: the button falls into the screen, the rest warps outward, and the
+   site opens through a hole where the button went. */
+.loading-dock[data-stage="leaving"] {
+  -webkit-mask-image: radial-gradient(circle at var(--hole-x, 50%) var(--hole-y, 50%), transparent var(--hole), #000 calc(var(--hole) + 1px));
+  mask-image: radial-gradient(circle at var(--hole-x, 50%) var(--hole-y, 50%), transparent var(--hole), #000 calc(var(--hole) + 1px));
+  animation: dock-open 760ms cubic-bezier(0.55, 0, 0.2, 1) 520ms both;
+}
+
+.loading-dock[data-stage="leaving"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--hole-x, 50%) var(--hole-y, 50%),
+    transparent var(--hole),
+    var(--accent) calc(var(--hole) + 2px),
+    transparent calc(var(--hole) + 40px)
+  );
+  animation: dock-open 760ms cubic-bezier(0.55, 0, 0.2, 1) 520ms both;
+}
+
+@keyframes dock-open {
+  from { --hole: 0px; }
+  to { --hole: 160vmax; }
+}
+
+.loading-dock[data-stage="leaving"] .dock-go-button {
+  animation: dock-sink 760ms cubic-bezier(0.5, 0, 0.9, 0.3) both;
+}
+
+@keyframes dock-sink {
+  0% { transform: perspective(900px) translateZ(0); }
+  14% { transform: perspective(900px) translateZ(-40px) scale(0.94); }
+  100% { transform: perspective(900px) translateZ(-3200px) rotateX(16deg); opacity: 0; }
+}
+
+.loading-dock[data-stage="leaving"] .dock-top,
+.loading-dock[data-stage="leaving"] .dock-body,
+.loading-dock[data-stage="leaving"] .dock-bar,
+.loading-dock[data-stage="leaving"] .dock-go-note {
+  animation: dock-warp 620ms cubic-bezier(0.6, 0, 0.8, 0.4) both;
+}
+
+/* No "from": each part warps out from wherever it already is, so the faded
+   log and counter don't flash back to full strength first. */
+@keyframes dock-warp {
+  to { transform: scale(1.3); opacity: 0; filter: blur(10px); }
+}
+
+/* The site lands as the hole opens over it. */
+:root[data-intro="leaving"] main {
+  animation: site-land 1000ms cubic-bezier(0.2, 0.8, 0.2, 1) 480ms both;
+}
+
+@keyframes site-land {
+  from { transform: scale(0.94); filter: blur(6px); }
 }
 
 /* ---- scrollbar ----------------------------------------------------------- */

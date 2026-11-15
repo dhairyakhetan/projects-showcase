@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion, useMotionValue, useSpring } from "framer-motion";
+import { currentPull, PULL_EVENT } from "@/lib/cursor-pull";
 
 type Mode = "idle" | "link" | "text";
 
@@ -18,6 +20,9 @@ const LABEL_OFFSET = 22;
  * `data-cursor-label="open"` adds a small tag beside the pointer rather than
  * on top of it; text fields swap the ring for a blinking I-beam.
  *
+ * A ferrofluid that has hold of the cursor drags both off the real pointer
+ * toward its button (see lib/cursor-pull.ts).
+ *
  * Never renders on touch or coarse-pointer devices, or under reduced motion.
  */
 export default function CustomCursor() {
@@ -29,6 +34,7 @@ export default function CustomCursor() {
   const [pressed, setPressed] = useState(false);
   const [visible, setVisible] = useState(false);
 
+  const pathname = usePathname();
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
 
@@ -43,9 +49,17 @@ export default function CustomCursor() {
     setEnabled(true);
     document.body.dataset.cursor = "custom";
 
+    const raw = { x: -100, y: -100 };
+    function place() {
+      const pull = currentPull();
+      x.set(raw.x + pull.x);
+      y.set(raw.y + pull.y);
+    }
+
     function onMove(event: PointerEvent) {
-      x.set(event.clientX);
-      y.set(event.clientY);
+      raw.x = event.clientX;
+      raw.y = event.clientY;
+      place();
       setVisible(true);
 
       // Near the right or bottom edge the tag moves to the other side of the
@@ -79,6 +93,7 @@ export default function CustomCursor() {
     const onUp = () => setPressed(false);
 
     window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener(PULL_EVENT, place);
     document.documentElement.addEventListener("pointerleave", onLeave);
     window.addEventListener("pointerdown", onDown);
     window.addEventListener("pointerup", onUp);
@@ -86,11 +101,18 @@ export default function CustomCursor() {
     return () => {
       delete document.body.dataset.cursor;
       window.removeEventListener("pointermove", onMove);
+      window.removeEventListener(PULL_EVENT, place);
       document.documentElement.removeEventListener("pointerleave", onLeave);
       window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointerup", onUp);
     };
   }, [x, y]);
+
+  // A new page slides in under a still pointer: drop the old target's tag.
+  useEffect(() => {
+    setMode("idle");
+    setLabelled(false);
+  }, [pathname]);
 
   if (!enabled) return null;
 

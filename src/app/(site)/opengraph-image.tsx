@@ -18,9 +18,49 @@ const C = {
   dot: "#262a20",
 };
 
-const TABS = ["home.js", "about.md", "qualification.json", "projects/", "contact.sh"];
+const TABS = [
+  ["Home", ".js"],
+  ["About", ".md"],
+  ["Qualification", ".json"],
+  ["Projects", "/"],
+  ["Contact", ".sh"],
+];
 
-/** The site's link preview: the editor, the name, and a terminal that says what's here. */
+/**
+ * The home page's ferrofluid, flattened for a PNG: a star of spikes whose
+ * lengths wobble, lit from the upper left, with a rim of the accent. Built as
+ * an SVG string because the OG renderer can't run the real shader.
+ */
+function ferrofluidSvg() {
+  const spikes = 46;
+  const cx = 200;
+  const cy = 200;
+  const points: string[] = [];
+  for (let i = 0; i < spikes * 2; i++) {
+    const angle = (i / (spikes * 2)) * Math.PI * 2;
+    // Taller on the upper right, where the "magnet" is.
+    const lean = Math.max(0, Math.cos(angle + Math.PI / 4));
+    const wobble = 0.82 + 0.18 * Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1);
+    const radius = i % 2 === 0 ? (128 + 62 * lean) * wobble : 112;
+    points.push(`${(cx + Math.cos(angle) * radius).toFixed(1)},${(cy + Math.sin(angle) * radius).toFixed(1)}`);
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+<defs>
+<radialGradient id="body" cx="0.36" cy="0.32" r="0.75">
+<stop offset="0" stop-color="#565b4c"/><stop offset="0.4" stop-color="#1a1d16"/><stop offset="1" stop-color="#070806"/>
+</radialGradient>
+<radialGradient id="gloss" cx="0.36" cy="0.3" r="0.12">
+<stop offset="0" stop-color="#ffffff" stop-opacity="0.7"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+</radialGradient>
+</defs>
+<ellipse cx="200" cy="372" rx="120" ry="16" fill="${C.accent}" fill-opacity="0.08"/>
+<polygon points="${points.join(" ")}" fill="url(#body)" stroke="${C.accent}" stroke-opacity="0.9" stroke-width="2" stroke-linejoin="miter"/>
+<circle cx="200" cy="200" r="112" fill="url(#gloss)"/>
+</svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
+/** The site's link preview: the editor chrome, the name, and the ferrofluid. */
 export default async function Image() {
   const [serif, serifItalic, mono] = await Promise.all([
     ogFont("InstrumentSerif-Regular.ttf"),
@@ -48,7 +88,7 @@ export default async function Image() {
           <div style={{ display: "flex", alignItems: "center", padding: "0 28px", fontSize: 20 }}>
             dk<span style={{ color: C.accent }}>_</span>
           </div>
-          {TABS.map((tab, i) => (
+          {TABS.map(([tab, tag], i) => (
             <div
               key={tab}
               style={{
@@ -64,7 +104,10 @@ export default async function Image() {
               }}
             >
               <span style={{ fontSize: 11, color: i === 0 ? C.accent : C.faint }}>0{i + 1}</span>
-              {tab}
+              <span style={{ display: "flex" }}>
+                {tab}
+                <span style={{ color: C.faint }}>{tag}</span>
+              </span>
             </div>
           ))}
         </div>
@@ -72,8 +115,9 @@ export default async function Image() {
         {/* body */}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 64px" }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", fontSize: 18, color: C.dim }}>
-              <span style={{ color: C.accent, marginRight: 12 }}>//</span>hello, world — i'm
+            <div style={{ display: "flex", alignItems: "center", fontSize: 18, color: C.dim }}>
+              <span style={{ width: 9, height: 9, borderRadius: 9, marginRight: 12, backgroundColor: C.accent }} />
+              hello, world — i'm
             </div>
             <div
               style={{
@@ -93,56 +137,11 @@ export default async function Image() {
             </div>
             <div style={{ display: "flex", marginTop: 30, fontSize: 22 }}>
               I build&nbsp;<span style={{ color: C.accent }}>websites</span>
-              <span style={{ width: 11, height: 26, marginLeft: 4, backgroundColor: C.accent }} />
             </div>
           </div>
 
-          {/* terminal */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: 380,
-              border: `1px solid ${C.line}`,
-              backgroundColor: C.panel,
-              boxShadow: "0 30px 80px rgba(0,0,0,0.55)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                height: 38,
-                padding: "0 16px",
-                borderBottom: `1px solid ${C.rule}`,
-                fontSize: 12,
-                color: C.dim,
-              }}
-            >
-              <div style={{ display: "flex", gap: 6 }}>
-                {[0, 1, 2].map(i => (
-                  <span key={i} style={{ width: 9, height: 9, borderRadius: 9, backgroundColor: C.line }} />
-                ))}
-              </div>
-              ~/dhairya — zsh
-              <span style={{ width: 39 }} />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "20px 18px", fontSize: 14, lineHeight: 1.5 }}>
-              <span style={{ display: "flex" }}>
-                <span style={{ color: C.accent, marginRight: 10 }}>$</span>whoami
-              </span>
-              <span style={{ color: C.dim }}>class 11, india. codes after homework.</span>
-              <span style={{ display: "flex" }}>
-                <span style={{ color: C.accent, marginRight: 10 }}>$</span>ls projects/
-              </span>
-              <span style={{ color: C.dim }}>terranotes</span>
-              <span style={{ display: "flex" }}>
-                <span style={{ color: C.accent, marginRight: 10 }}>$</span>
-                <span style={{ width: 9, height: 18, backgroundColor: C.accent }} />
-              </span>
-            </div>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- the OG renderer takes plain <img> */}
+          <img src={ferrofluidSvg()} width={400} height={400} alt="" />
         </div>
 
         {/* status bar */}

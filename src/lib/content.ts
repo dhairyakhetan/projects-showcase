@@ -13,6 +13,9 @@ export const GITHUB_USERNAME = "dhairyakhetan";
 /** The production address — link previews, the sitemap and robots.txt build on it. */
 export const SITE_URL = "https://dhairyakhetan.vercel.app";
 
+/** This site's own code — the status bar's "view source". */
+export const SITE_SOURCE = "https://github.com/dhairyakhetan/projects-showcase";
+
 /** Used by the featured card and the About page, so a move is one edit. */
 const TERRANOTES_URL = "https://terranotes-aq.vercel.app";
 
@@ -66,7 +69,7 @@ export const about = {
   portrait: "/me.webp",
   portraitAlt: "Dhairya Khetan",
 
-  /** The `dhairya.js` object on the About page. */
+  /** The fact list beside the photo on the About page. */
   facts: {
     based: "India",
     grade: 11,
@@ -248,7 +251,7 @@ export const projects = {
   /**
    * The older repos, written out by hand and pinned first in the full list,
    * in this order. When the worker can't be reached these are the list — real
-   * work, just not all of it — and the terminal's `open` knows them too.
+   * work, just not all of it.
    * `name` must match the GitHub repo exactly.
    */
   older: [
@@ -276,7 +279,7 @@ export const projects = {
 } as const;
 
 /**
- * Order drives the tabs, the ⌘K palette and the terminal's `ls`.
+ * Order drives the tabs and the ⌘K palette. `file` is the code tag beside each name.
  * `description` is what search results and link previews show for the page.
  */
 export const panels = [
@@ -316,18 +319,3 @@ export const panels = [
 ] as const;
 
 export type PanelId = (typeof panels)[number]["id"];
-
-/**
- * Pages that wear the same chrome but aren't one of the five tabs. They're
- * reached from the terminal, the palette and the "start here" list.
- */
-export const extras = [
-  {
-    id: "blackjack",
-    label: "Blackjack",
-    file: "blackjack.py",
-    description:
-      "A quick game of blackjack against the dealer, on pretend chips: hit, stand, double, " +
-      "split and insurance. Nothing here is real money.",
-  },
-] as const;

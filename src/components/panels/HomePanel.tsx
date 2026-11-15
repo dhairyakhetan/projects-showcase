@@ -2,54 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
-import Flappy from "@/components/Flappy";
+import FerroBlob from "@/components/FerroBlob";
+import Ferrofluid from "@/components/Ferrofluid";
 import KineticName from "@/components/KineticName";
 import Magnetic from "@/components/Magnetic";
 import { Reveal } from "@/components/Reveal";
-import Terminal from "@/components/Terminal";
-import Variant from "@/components/Variant";
+import Roll, { HoverRoll } from "@/components/Roll";
 import { home, identity } from "@/lib/content";
 
-const TICK = 75;
-const HOLD_FULL = 26;
-const HOLD_EMPTY = 4;
-
-/** "I build …", typed out and backspaced one word at a time. */
-function Typewriter({ words }: { words: readonly string[] }) {
-  const [state, setState] = useState({ word: 0, chars: words[0].length });
+/** "I build …", the last word rolling over to the next every couple of seconds. */
+function Building({ words }: { words: readonly string[] }) {
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    let word = 0;
-    let chars = words[0].length;
-    let deleting = true;
-    let hold = HOLD_FULL;
-
-    const timer = setInterval(() => {
-      if (hold > 0) {
-        hold--;
-        return;
-      }
-
-      if (deleting) {
-        if (chars > 0) chars--;
-        else {
-          deleting = false;
-          word = (word + 1) % words.length;
-          hold = HOLD_EMPTY;
-        }
-      } else if (chars < words[word].length) {
-        chars++;
-      } else {
-        deleting = true;
-        hold = HOLD_FULL;
-      }
-
-      setState({ word, chars });
-    }, TICK);
-
+    const timer = setInterval(() => setIndex(current => (current + 1) % words.length), 2400);
     return () => clearInterval(timer);
   }, [words]);
 
@@ -57,90 +24,22 @@ function Typewriter({ words }: { words: readonly string[] }) {
     <p className="min-h-[1.4em] text-[clamp(1.05rem,2.6vw,1.375rem)] leading-snug">
       <span className="sr-only">I build {words.join(", ")}.</span>
       <span aria-hidden>
-        I build <span className="text-accent">{words[state.word].slice(0, state.chars)}</span>
-        <span className="caret text-accent">▍</span>
+        I build <Roll text={words[index]} className="text-accent" />
       </span>
     </p>
   );
 }
 
-/** The simple view's stand-in for the terminal: the same places, as plain links. */
-function StartHere({ onPlay }: { onPlay: () => void }) {
-  const row =
-    "row-link flex w-full items-center justify-between gap-4 border-b border-rule px-6 py-[18px] text-left";
-
-  const links = [
-    { href: "/about", title: "About me", note: "who I am, in short" },
-    { href: "/projects", title: "Things I've made", note: "a magazine, an artillery simulation, and the rest" },
-    { href: "/qualification", title: "Where I'm at", note: "school, JEE, and coding" },
-    { href: "/contact", title: "Say hi", note: "email, socials, or a quick message" },
-  ];
-
-  return (
-    <div className="panel shadow-[var(--shadow)]">
-      <div className="panel-bar">
-        <span>start here</span>
-        <span>6 stops</span>
-      </div>
-
-      <ul>
-        {links.map(link => (
-          <li key={link.href}>
-            <Link href={link.href} data-cursor-label="go" className={row}>
-              <span className="flex flex-col gap-1">
-                <span className="text-sm text-ink">{link.title}</span>
-                <span className="text-[11px] text-dim">{link.note}</span>
-              </span>
-              <span aria-hidden className="nudge text-dim">→</span>
-            </Link>
-          </li>
-        ))}
-        <li>
-          <button type="button" onClick={onPlay} data-cursor-label="play" className={row}>
-            <span className="flex flex-col gap-1">
-              <span className="text-sm text-ink">Play a little game</span>
-              <span className="text-[11px] text-dim">flappy bird, but you're a dot</span>
-            </span>
-            <span aria-hidden className="nudge text-accent">▸</span>
-          </button>
-        </li>
-        <li>
-          <Link href="/blackjack" data-cursor-label="play" className={`${row} border-b-0`}>
-            <span className="flex flex-col gap-1">
-              <span className="text-sm text-ink">Or a hand of blackjack</span>
-              <span className="text-[11px] text-dim">you against the dealer, pretend chips</span>
-            </span>
-            <span aria-hidden className="nudge text-accent">▸</span>
-          </Link>
-        </li>
-      </ul>
-    </div>
-  );
-}
-
 export default function HomePanel() {
-  const [playing, setPlaying] = useState(false);
-
   return (
     <section
       aria-label="Home"
-      className="grid min-h-[calc(100svh-var(--header-h)-var(--status-h)-7rem)] items-center gap-14 xl:grid-cols-[minmax(0,1fr)_500px] xl:gap-[72px]"
+      className="grid min-h-[calc(100svh-var(--header-h)-var(--status-h)-7rem)] items-center gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,520px)] xl:gap-[72px]"
     >
       <div className="flex flex-col gap-7">
         <Reveal>
           <p className="text-[13px] text-dim">
-            <Variant
-              dev={
-                <>
-                  <span className="text-accent">//</span> {home.greeting}
-                </>
-              }
-              plain={
-                <>
-                  <span className="text-accent">●</span> hi, i&apos;m
-                </>
-              }
-            />
+            <span className="text-accent">●</span> {home.greeting}
           </p>
         </Reveal>
 
@@ -151,7 +50,7 @@ export default function HomePanel() {
         </Reveal>
 
         <Reveal delay={180}>
-          <Typewriter words={home.typed} />
+          <Building words={home.typed} />
         </Reveal>
 
         <Reveal delay={260}>
@@ -162,14 +61,15 @@ export default function HomePanel() {
 
         <Reveal delay={340}>
           <div className="flex flex-wrap items-center gap-3.5">
-            <Magnetic strength={6}>
+            {/* The one button the ferrofluid guards. */}
+            <Ferrofluid reach={220}>
               <Link href="/projects" data-cursor-label="go" className="btn btn-primary">
-                see projects <span aria-hidden className="nudge">→</span>
+                <HoverRoll text="see projects" /> <span aria-hidden className="nudge">→</span>
               </Link>
-            </Magnetic>
+            </Ferrofluid>
             <Magnetic strength={6}>
               <Link href="/contact" data-cursor-label="hi" className="btn btn-ghost">
-                say hi
+                <HoverRoll text="say hi" />
               </Link>
             </Magnetic>
           </div>
@@ -177,35 +77,13 @@ export default function HomePanel() {
       </div>
 
       <Reveal delay={220} y={24}>
-        <Variant
-          block
-          dev={<Terminal onPlay={() => setPlaying(true)} />}
-          plain={<StartHere onPlay={() => setPlaying(true)} />}
-        />
+        <figure className="mx-auto flex w-full max-w-[520px] flex-col items-center gap-2">
+          <FerroBlob />
+          <figcaption className="text-center text-[11px] text-faint">
+            <span className="text-accent">fig. 01</span> — ferrofluid, simulated live. go on, poke it.
+          </figcaption>
+        </figure>
       </Reveal>
-
-      {/* Opt-in from the terminal, so it never competes with the page. */}
-      <AnimatePresence>
-        {playing ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--bg-overlay)] p-4 backdrop-blur-sm sm:p-8"
-          >
-            <motion.div
-              initial={{ scale: 0.96, y: 14 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.98, y: 8 }}
-              transition={{ type: "spring", stiffness: 280, damping: 28 }}
-              className="h-[min(560px,80vh)] w-full max-w-3xl"
-            >
-              <Flappy onClose={() => setPlaying(false)} />
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
     </section>
   );
 }

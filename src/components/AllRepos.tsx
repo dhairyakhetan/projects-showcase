@@ -3,7 +3,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import ArrowUpRight from "@/components/ArrowUpRight";
 import ProjectCard from "@/components/ProjectCard";
-import Variant from "@/components/Variant";
 import { GITHUB_USERNAME } from "@/lib/content";
 import { techIndex } from "@/lib/tech";
 import type { ProjectsResult } from "@/lib/repos";
@@ -121,16 +120,7 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
           data-cursor-label={state === "loading" ? "wait" : "load"}
           className="panel group flex min-h-[240px] flex-col justify-between gap-8 p-7 text-left lift"
         >
-          <span className="text-[11px] text-dim">
-            <Variant
-              dev={
-                <>
-                  <span className="text-accent">$</span> ls -a projects/
-                </>
-              }
-              plain="everything else"
-            />
-          </span>
+          <span className="text-[11px] text-dim">everything else</span>
 
           <span className="font-display text-[2.25rem] leading-[1.05]">
             That&apos;s the curated set.
@@ -141,20 +131,14 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
           <span className={`text-xs ${state === "error" ? "text-err" : "text-dim"}`}>
             {state === "loading" ? (
               <>
-                <Variant dev="pulling from github" plain="loading" />
-                <span className="caret">…</span>
+                pulling it from github<span className="caret">…</span>
               </>
             ) : state === "error" ? (
               <>couldn&apos;t load that{error ? ` (${error})` : ""} — try again →</>
             ) : (
-              <Variant
-                dev={
-                  <>
-                    show all public repos → <span className="text-faint">· only fetched when you ask</span>
-                  </>
-                }
-                plain="show every project →"
-              />
+              <>
+                show every project → <span className="text-faint">· only loads when you ask</span>
+              </>
             )}
           </span>
         </button>
@@ -167,39 +151,18 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
   return (
     <div className="mt-6">
       <div ref={headingRef} tabIndex={-1} className="outline-none">
-        <p className="text-xs text-dim">
-          <Variant
-            dev={
-              <>
-                <span className="text-accent">$</span> ls -a projects/
-              </>
-            }
-            plain="everything else"
-          />
-        </p>
+        <p className="text-xs text-dim">everything else</p>
         <h2 className="mt-3 font-display text-[2.6rem] leading-none">
           {data!.projects.length}{" "}
           <span className="italic">
-            {data!.degraded ? (
-              <Variant dev="pinned repos." plain="older projects." />
-            ) : (
-              <Variant dev="repositories." plain="projects." />
-            )}
+            {data!.degraded ? "older projects." : "projects."}
           </span>
         </h2>
       </div>
 
       {data!.degraded ? (
         <p className="mt-6 border border-err/40 bg-err/10 px-4 py-3 text-xs leading-[1.8] text-ink-mute">
-          <Variant
-            dev={
-              <>
-                couldn&apos;t reach the worker{data!.error ? ` (${data!.error})` : ""} — showing
-                the pinned repos only.
-              </>
-            }
-            plain="Couldn't load the full list just now, so these are the older ones."
-          />{" "}
+          Couldn&apos;t load the full list just now, so these are the older ones.{" "}
           <a
             href={`https://github.com/${GITHUB_USERNAME}`}
             target="_blank"
@@ -207,7 +170,7 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
             data-cursor-label="open"
             className="inline-flex items-center gap-1 text-ink underline underline-offset-4"
           >
-            <Variant dev="the rest are on github" plain="Everything is on GitHub" />
+            Everything is on GitHub
             <ArrowUpRight />
           </a>
         </p>
@@ -215,14 +178,12 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
 
       <div className="mt-6 flex flex-col gap-4">
         <label className="flex items-center gap-3 border border-line bg-panel px-4 py-3 transition-colors focus-within:border-dim">
-          <span className="text-xs text-accent">
-            <Variant dev="grep" plain="search" />
-          </span>
+          <span className="text-xs text-accent">search</span>
           <input
             ref={searchRef}
             value={query}
             onChange={event => setQuery(event.target.value)}
-            placeholder="search repos, tech, descriptions"
+            placeholder="names, tech, descriptions"
             aria-label="Search repositories"
             className="w-full bg-transparent text-[13px] outline-none placeholder:text-faint"
           />
@@ -264,7 +225,7 @@ export default function AllRepos({ openSlot }: { openSlot: ReactNode }) {
 
       {visible.length === 0 ? (
         <p className="mt-12 text-sm text-err">
-          <Variant dev="grep: nothing matches that." plain="Nothing matches that." />
+          Nothing matches that.
         </p>
       ) : null}
 

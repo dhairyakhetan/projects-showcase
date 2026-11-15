@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import ArrowUpRight from "@/components/ArrowUpRight";
 import { toggleTheme } from "@/components/ThemeToggle";
-import { AUDIENCE_EVENT, getAudience, toggleAudience, type Audience } from "@/lib/audience";
-import { contact, extras, panels } from "@/lib/content";
+import { contact, panels } from "@/lib/content";
 import { featuredProjects, openProject } from "@/lib/featured";
+import { replayIntro } from "@/lib/intro";
+import { SOUND_EVENT, soundEnabled, toggleSound } from "@/lib/sound";
 
 const OPEN_EVENT = "palette:open";
 
@@ -27,16 +28,12 @@ interface Command {
 }
 
 /**
- * ⌘K palette over the pages, the curated projects and a few actions —
- * including switching between the developer and simple views. Everything in
- * it is static content; opening it never makes a request.
- *
- * It only renders while open, on the client, so unlike the pages it can just
- * read the current audience instead of rendering both versions.
+ * ⌘K palette over the pages, the curated projects and a few actions.
+ * Everything in it is static content; opening it never makes a request.
  */
 export default function CommandPalette() {
   const router = useRouter();
-  const [audience, setAudienceState] = useState<Audience>("dev");
+  const [sound, setSoundState] = useState(true);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -64,16 +61,16 @@ export default function CommandPalette() {
     }
 
     const onOpen = () => setOpen(true);
-    const onAudience = () => setAudienceState(getAudience());
-    onAudience();
-    window.addEventListener(AUDIENCE_EVENT, onAudience);
+    const onSound = () => setSoundState(soundEnabled());
+    onSound();
+    window.addEventListener(SOUND_EVENT, onSound);
 
     window.addEventListener("keydown", onKey);
     window.addEventListener(OPEN_EVENT, onOpen);
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener(OPEN_EVENT, onOpen);
-      window.removeEventListener(AUDIENCE_EVENT, onAudience);
+      window.removeEventListener(SOUND_EVENT, onSound);
     };
   }, []);
 
@@ -85,10 +82,10 @@ export default function CommandPalette() {
   }, [open]);
 
   const commands = useMemo<Command[]>(() => {
-    const panelCommands: Command[] = [...panels, ...extras].map(panel => ({
+    const panelCommands: Command[] = panels.map(panel => ({
       id: `panel-${panel.id}`,
       label: panel.label,
-      hint: audience === "dev" ? panel.file : "",
+      hint: panel.file,
       group: "Pages",
       run: () => router.push(`/${panel.id}`),
     }));
@@ -98,7 +95,7 @@ export default function CommandPalette() {
     const projectCommands: Command[] = featuredProjects.map(project => ({
       id: `project-${project.name}`,
       label: project.title,
-      hint: project.link.startsWith("/") ? "open" : project.homepage ? "visit" : audience === "dev" ? "source" : "code",
+      hint: project.link.startsWith("/") ? "open" : project.homepage ? "visit" : "code",
       group: "Projects",
       external: !project.link.startsWith("/"),
       run: () => openProject(project.link),
@@ -108,11 +105,18 @@ export default function CommandPalette() {
       ...panelCommands,
       ...projectCommands,
       {
-        id: "action-audience",
-        label: audience === "dev" ? "Switch to the simple view" : "Switch to the developer view",
-        hint: audience === "dev" ? "mode · plain words, no code" : "mode · the code-editor look",
+        id: "action-sound",
+        label: sound ? "Turn sound off" : "Turn sound on",
+        hint: sound ? "♪ on" : "♪ off",
         group: "Actions",
-        run: () => void toggleAudience(),
+        run: () => void toggleSound(),
+      },
+      {
+        id: "action-intro",
+        label: "Replay the intro",
+        hint: "the loading dock",
+        group: "Actions",
+        run: replayIntro,
       },
       {
         id: "action-theme",
@@ -129,7 +133,7 @@ export default function CommandPalette() {
         run: () => void navigator.clipboard?.writeText(contact.email).catch(() => {}),
       },
     ];
-  }, [router, audience]);
+  }, [router, sound]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -196,11 +200,11 @@ export default function CommandPalette() {
             className="w-full max-w-lg overflow-hidden border border-line-strong bg-panel shadow-[var(--shadow)]"
           >
             <div className="panel-bar">
-              <span>{audience === "dev" ? "~/dhairya — commands" : "menu"}</span>
+              <span>menu</span>
               <kbd className="text-faint">esc</kbd>
             </div>
             <div className="flex items-center gap-3 border-b border-rule px-4 py-3.5">
-              <span className="text-xs text-accent">{audience === "dev" ? "$" : "›"}</span>
+              <span className="text-xs text-accent">›</span>
               <input
                 autoFocus
                 value={query}
@@ -215,7 +219,7 @@ export default function CommandPalette() {
             <div ref={listRef} className="max-h-[52vh] overflow-y-auto py-2">
               {results.length === 0 ? (
                 <p className="px-4 py-6 text-xs text-err">
-                  {audience === "dev" ? "command not found — try a page name" : "Nothing matches that."}
+                  Nothing matches that — try a page name.
                 </p>
               ) : (
                 results.map((command, index) => {
@@ -226,7 +230,6 @@ export default function CommandPalette() {
                     <div key={command.id}>
                       {showGroup ? (
                         <p className="px-4 pb-1.5 pt-3 text-[10px] text-faint">
-                          {audience === "dev" ? <span className="text-accent">// </span> : null}
                           {command.group.toLowerCase()}
                         </p>
                       ) : null}

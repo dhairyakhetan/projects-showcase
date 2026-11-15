@@ -5,7 +5,7 @@ import { techFromSlugs, type Tech } from "./tech";
  * The curated projects, resolved for rendering.
  *
  * Entirely derived from `content.ts` — no worker, no fetch, no server work.
- * The Projects page, the ⌘K palette and the terminal all render from this,
+ * The Projects page and the ⌘K palette both render from this,
  * so the site makes no network call for project data until someone clicks
  * through to the full repo list.
  *

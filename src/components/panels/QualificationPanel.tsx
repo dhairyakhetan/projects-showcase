@@ -2,7 +2,7 @@
 
 import { useRef, useState, type KeyboardEvent } from "react";
 import { Reveal } from "@/components/Reveal";
-import Variant from "@/components/Variant";
+import Eyebrow from "@/components/Eyebrow";
 import { qualification } from "@/lib/content";
 
 /**
@@ -31,9 +31,7 @@ export default function QualificationPanel() {
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex flex-col gap-3.5">
           <Reveal>
-            <p className="text-xs text-dim">
-              <span className="text-accent">03</span> / <Variant dev="qualification.json" plain="Qualification" />
-            </p>
+            <Eyebrow id="qualification" />
           </Reveal>
           <Reveal delay={80}>
             <h1 className="font-display text-[clamp(2.9rem,8vw,4.5rem)] font-normal leading-none tracking-[-0.02em]">

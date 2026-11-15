@@ -4,7 +4,7 @@ import Link from "next/link";
 import AllRepos from "@/components/AllRepos";
 import FeaturedStack from "@/components/FeaturedStack";
 import { Reveal } from "@/components/Reveal";
-import Variant from "@/components/Variant";
+import Eyebrow from "@/components/Eyebrow";
 import { featuredProjects } from "@/lib/featured";
 
 function OpenSlot() {
@@ -21,7 +21,7 @@ function OpenSlot() {
         <span className="italic text-accent">Let&apos;s build it.</span>
       </span>
       <span className="text-xs text-dim">
-        <Variant dev="contact.sh" plain="get in touch" /> <span className="nudge inline-block">→</span>
+        get in touch <span className="nudge inline-block">→</span>
       </span>
     </Link>
   );
@@ -33,9 +33,7 @@ export default function ProjectsPanel() {
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex flex-col gap-3.5">
           <Reveal>
-            <p className="text-xs text-dim">
-              <span className="text-accent">04</span> / <Variant dev="projects/" plain="Projects" />
-            </p>
+            <Eyebrow id="projects" />
           </Reveal>
           <Reveal delay={80}>
             <h1 className="font-display text-[clamp(2.9rem,8vw,4.5rem)] font-normal leading-none tracking-[-0.02em]">
