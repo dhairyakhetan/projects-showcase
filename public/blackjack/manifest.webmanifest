@@ -1,7 +1,7 @@
 {
   "name": "Blackjack",
   "short_name": "Blackjack",
-  "description": "A play-money blackjack table written in Python.",
+  "description": "An online blackjack table.",
   "start_url": "/blackjack",
   "scope": "/blackjack",
   "display": "fullscreen",

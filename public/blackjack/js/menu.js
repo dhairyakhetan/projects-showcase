@@ -10,7 +10,7 @@ export class MenuScene {
     a.keepAlive++;
     if (st.firstRun && !a.session.welcomed) {
       a.session.welcomed = true;
-      a.toast(`Welcome! You start with ${fmtMoney(st.bankroll)} in play money`, "gold", 3);
+      a.toast(`Welcome! You start with ${fmtMoney(st.bankroll)}`, "gold", 3);
     }
   }
   onDestroy() { this.app.keepAlive--; this.alive = false; }
@@ -46,10 +46,9 @@ export class MenuScene {
     a.assets.background(ctx, a, "bg");
     // left column: logo, tagline, buttons — centred as a group on x = 470
     const lx = 470, bob = (i) => Math.sin(this.t * 1.6 + i * 1.3) * 7;
-    a.assets.logo(ctx, lx, 152, 96);
-    a.text("P L A Y - M O N E Y   C A S I N O", lx, 232, { size: 14, weight: "bold", color: "#e8cf8e" });
+    a.assets.logo(ctx, lx, 178, 96);
     const items = this.items();
-    let y = 318;
+    let y = 296;
     items.forEach((it, i) => {
       const h = (i === 0 ? 66 : 54) * k;
       y += h / 2;

@@ -44,20 +44,15 @@ export async function GET() {
       >
         <div style={{ display: "flex", alignItems: "center", height: 60, borderBottom: `1px solid ${C.rule}`, padding: "0 28px", fontSize: 20 }}>
           dk<span style={{ color: C.accent }}>_</span>
-          <span style={{ marginLeft: 22, fontSize: 14, color: C.dim }}>Blackjack.py</span>
+          <span style={{ marginLeft: 22, fontSize: 14, color: C.dim }}>Blackjack.js</span>
         </div>
 
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 56px" }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", alignItems: "center", fontSize: 18, color: C.dim }}>
-              <span style={{ width: 9, height: 9, borderRadius: 9, marginRight: 12, backgroundColor: C.accent }} />
-              play money · written in python
-            </div>
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
-                marginTop: 18,
                 fontFamily: "Instrument Serif",
                 fontSize: 128,
                 lineHeight: 0.88,
@@ -88,7 +83,7 @@ export async function GET() {
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: "flex-end",
             height: 38,
             padding: "0 22px",
             borderTop: `1px solid ${C.rule}`,
@@ -97,10 +92,6 @@ export async function GET() {
             color: C.dim,
           }}
         >
-          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 8, height: 8, backgroundColor: C.accent }} />
-            $1,000 to start · no real money, ever
-          </span>
           <span style={{ color: C.ink }}>dhairyakhetan.vercel.app/blackjack</span>
         </div>
       </div>

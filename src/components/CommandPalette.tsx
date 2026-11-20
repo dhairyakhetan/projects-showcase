@@ -114,7 +114,7 @@ export default function CommandPalette() {
       {
         id: "action-blackjack",
         label: "Play blackjack",
-        hint: "a python game",
+        hint: "a card game",
         group: "Actions",
         // A plain page load: /blackjack lives outside the app router.
         run: () => window.location.assign("/blackjack"),

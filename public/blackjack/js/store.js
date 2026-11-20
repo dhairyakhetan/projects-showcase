@@ -19,7 +19,7 @@ export const PRESETS = {
 
 const DEFAULT_SETTINGS = () => ({
   rules: new Rules().toDict(), preset: "classic", anim_speed: "normal", hints: "button", show_totals: true,
-  show_count: false, intro: "always", volume: 0.8, muted: false, felt: "green", card_back: "red",
+  show_count: false, intro: "always", volume: 0.8, muted: false, felt: "green", card_back: "black",
   four_color: false, fullscreen: false, start_bankroll: 10000000, confirm_leave: true,
 });
 
