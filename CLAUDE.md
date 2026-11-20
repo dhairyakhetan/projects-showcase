@@ -93,48 +93,51 @@ next.config.ts                only to switch on experimental.globalNotFound
   `[panel]/layout.tsx` — a layout under a dynamic segment remounts whenever the
   param changes, which rebuilt the cursor, dots and palette on every click.
 - `[panel]` has `dynamicParams = false`; anything else 404s.
-- `/blackjack` is his Python (tkinter + Pillow) blackjack game, added 20 Nov
-  2026 (the earlier JS version, home terminal and flappy game were removed on
-  15 Nov). It runs in the browser: `src/app/blackjack/` is a static HTML shell
-  (like `/product-funny`, outside the portfolio chrome, **unlisted** — nothing
-  links to it, not in the sitemap), and `public/blackjack/` holds the game.
-  `game/` mirrors his folder (`bj/`, `assets/`) with small edits of ours: the
-  `Web Audio` check in `bj/scenes/settings.py` (hides "Install pygame"),
-  `Button(keycap=)` and the `App.uk` phone scale in `ui.py`/`menu.py`/
-  `table.py`/`sprites.py`, the OS-entropy shoe (`SystemRandom`) and the
-  European original-bets-only rule in `engine.py`, and the $10,000 default in
-  `store.py` (old $1,000 saves are migrated). To update, replace `bj/` and
-  `assets/` with his new copy and re-apply those (`git diff` shows them).
-  Fairness was checked by simulation (uniform shuffles; 10M rounds of Classic
-  with the game's own basic strategy gave a −0.36% player edge, theory ≈
-  −0.35%) — rerun that if the engine or strategy changes. Pyodide 0.28 (CPython + Pillow, from jsDelivr) runs the
-  code unchanged. `game/web/tkinter/` is a stand-in for tkinter that keeps the
-  Canvas items and hands them to `bridge.js` to paint on a `<canvas>`;
-  `imagetk.py`, `websound.py` and `start.py` do the same for PhotoImage, sound
-  (Web Audio) and start-up (threads don't exist: the artwork preload runs on
-  Tk timers). Add any new file to `FILES` in `bridge.js`. Pyodide 0.27 ships
-  Pillow 10.2, whose `rounded_rectangle` rejects shapes the game draws — stay
-  on 0.28+. Save data lives in `localStorage["bj-save"]` (copied from the
-  Python filesystem every 4 s and on leave). Quit goes to `/home`.
-  **Phone / home-screen app**: `manifest.webmanifest` + icons make it
-  installable (fullscreen, landscape); on touch `App.uk` = 1.5 enlarges the table's
-  bottom bar (chips, buttons), top bar, dialogs, toasts and menu (balance/bet move to
-  the top bar; the layout is planned once in `TableScene._plan_touch_layout`, so it
-  isn't redone on rotation); the game gets only
-  press/release (no hover redraws), animations run 0.7x, confetti is halved,
-  buttons react 9 design px past their edge, key hints are hidden, and the
-  site's top bar hides in app mode or on a short landscape screen. The tkinter
-  stand-in caches each canvas item's serialised row (the repaint was ~45% of
-  the Python time under a 4x CPU throttle) — invalidate `_s` on any mutation.
-  Loading overlaps the engine, game files and Pillow downloads, preloads the
-  big Pyodide files from the HTML head, and `public/blackjack-sw.js` (scope
-  `/blackjack`) caches everything for repeat visits and offline: bump `CACHE`
-  there if an asset changes without its filename changing. Link preview:
-  `src/app/blackjack/og.png/route.tsx` using `table.jpg` (retake it if the
-  game's look changes). It's in the ⌘K menu as "Play blackjack"; the game
-  shows key hints (P/S/E/Q, H/S/D/P/R, C/X/M/A, Space) via `Button(keycap=)`. Test it by
-  driving `/blackjack` with Playwright through the sandbox proxy
-  (`proxy: {server: HTTPS_PROXY}`) so jsDelivr is reachable.
+- `/blackjack` is his blackjack game, added 20 Nov 2026 (the earlier JS version,
+  home terminal and flappy game were removed on 15 Nov). It began as his
+  Python/tkinter program and was **ported to plain JavaScript** the same day
+  (the Pyodide version was slow to load and heavy on phones). `src/app/blackjack/`
+  is a static HTML shell (like `/product-funny`, outside the portfolio chrome,
+  **unlisted** from the nav and sitemap; reachable from the ⌘K menu as "Play
+  blackjack"), and `public/blackjack/` holds the game: `js/` (ES modules),
+  `assets/` (his pre-rendered artwork and sounds), `manifest.webmanifest` + icons.
+  - **Engine** (`engine.js`, `strategy.js`) is a line-by-line port: a round is a
+    generator that yields events and asks. The shoe shuffles with
+    `crypto.getRandomValues` (Fisher-Yates, rejection sampling). With no hole
+    card (European) a dealer blackjack takes only the original bet. Strategy EVs
+    are computed, not tabled. Verified against his Python: all 1,750 chart cells
+    across the five presets match exactly, and simulated edges are Classic −0.33%
+    (theory ≈ −0.35%), Double Deck −0.46%, Single Deck 6:5 −1.8%, European −0.65%.
+    Rerun a Node simulation (play N rounds with `Strategy.bestAction`) after any
+    change to either file.
+  - **Drawing** is one `<canvas>` in a 1600×900 design space (`core.js`: letterboxed
+    with the felt filling the rest, one transform, so resize/rotate just work).
+    Input is immediate-mode: every frame, buttons call `button()`/`app.hit()`, and
+    pointer events use the last frame's hit list (touch gets 9 design px of extra
+    reach). Tweens are awaitable (`await app.tween(...)`); the "game" clock follows
+    the animation-speed setting. Scenes: `menu`, `intro` (walk-in), `table`,
+    `stats`, `settings`. The table's HUD is laid out from the visible window
+    (`TableScene.hud()`), so phones get ×1.5 buttons and the layout stays centred.
+  - **Saves** use `localStorage["bj-save"]` in the same JSON shape as the old Python
+    game, so old saves load (the $1,000 default is migrated to $10,000). The tab
+    closing mid-hand finishes it with basic strategy (`emergencyFinish`).
+  - **Sound** is Web Audio on his wav files (`sound.js`); the context is created on
+    the first gesture.
+  - **Loading**: a loading screen with a steady ~2.2 s bar that follows the real
+    downloads; **"Skip loading?"** appears at the halfway mark and opens the menu at
+    once while the rest of the artwork streams in (scenes draw nothing for an image
+    that hasn't arrived, and Play waits for the artwork it needs).
+  - **Phone / app**: `manifest.webmanifest` makes it installable (fullscreen,
+    landscape); the page's top bar hides in app mode or on a short landscape
+    screen; `public/blackjack-sw.js` (scope `/blackjack`) caches the page, code and
+    art for repeat visits and offline — bump `CACHE` there if an asset changes
+    without its filename changing. Link preview: `src/app/blackjack/og.png/route.tsx`
+    using `table.jpg` (retake it if the game's look changes).
+  - The menu shows no keyboard-shortcut letters (they still work: P, S, E, Q); the
+    table shows key hints under its buttons on devices with a keyboard.
+  - Test by driving `/blackjack` with Playwright; `window.BJ` is the app (`BJ.scene`,
+    `BJ.store`, `BJ.hits`) and a scripted shoe is `BJ.scene.shoe.stack.push(Card.parse("10S"), ...)`
+    (player, dealer up, player, dealer hole, then draws).
 - `/Japan2026` (a trip planner) was taken down on 22 Oct 2026 at his request; it
   now 404s. `public/japan-sw.js` is a kill switch for its old offline worker:
   it deletes the saved copy on devices and unregisters. Delete it after a few

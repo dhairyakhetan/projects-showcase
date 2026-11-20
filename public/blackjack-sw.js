@@ -1,8 +1,7 @@
-// Keeps the Blackjack page and its ~15 MB of engine, code and artwork on the
-// device, so the second visit (and the home-screen app) starts from cache and
-// works offline. It only ever touches /blackjack and Pyodide on jsDelivr.
-const CACHE = "bj-v2";
-const PYODIDE = "https://cdn.jsdelivr.net/pyodide/";
+// Keeps the Blackjack page, code and artwork on the device, so the second visit
+// (and the home-screen app) starts from cache and works offline. It only ever
+// touches /blackjack.
+const CACHE = "bj-v3";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
@@ -15,11 +14,6 @@ self.addEventListener("activate", (event) => {
 async function store(request, response) {
   if (response && response.ok) (await caches.open(CACHE)).put(request, response.clone());
   return response;
-}
-
-// Pyodide files are versioned in their URL, so they never change.
-async function cacheFirst(request) {
-  return (await caches.match(request)) || store(request, await fetch(request));
 }
 
 // Serve what's saved at once and refresh it for next time.
@@ -48,7 +42,5 @@ self.addEventListener("fetch", (event) => {
   if (url.origin === self.location.origin) {
     if (url.pathname === "/blackjack") event.respondWith(networkFirst(request));
     else if (url.pathname.startsWith("/blackjack/")) event.respondWith(staleWhileRevalidate(request));
-  } else if (url.href.startsWith(PYODIDE)) {
-    event.respondWith(cacheFirst(request));
   }
 });

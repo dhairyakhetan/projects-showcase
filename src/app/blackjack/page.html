@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Blackjack | Dhairya Khetan</title>
-<meta name="description" content="A play-money blackjack table written in Python, running right here in the browser.">
+<meta name="description" content="A play-money blackjack table that runs right here in the browser.">
 <meta name="theme-color" content="#06120a">
 <link rel="canonical" href="https://dhairyakhetan.vercel.app/blackjack">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -17,30 +17,31 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Dhairya Khetan">
 <meta property="og:title" content="Blackjack | Dhairya Khetan">
-<meta property="og:description" content="A play-money blackjack table written in Python, running right here in the browser.">
+<meta property="og:description" content="A play-money blackjack table that runs right here in the browser.">
 <meta property="og:url" content="https://dhairyakhetan.vercel.app/blackjack">
 <meta property="og:image" content="https://dhairyakhetan.vercel.app/blackjack/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Blackjack | Dhairya Khetan">
-<meta name="twitter:description" content="A play-money blackjack table written in Python, running right here in the browser.">
+<meta name="twitter:description" content="A play-money blackjack table that runs right here in the browser.">
 <meta name="twitter:image" content="https://dhairyakhetan.vercel.app/blackjack/og.png">
-<link rel="modulepreload" href="/blackjack/bridge.js">
-<link rel="modulepreload" href="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.mjs" crossorigin>
-<link rel="preload" as="fetch" href="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.asm.wasm" crossorigin>
-<link rel="preload" as="fetch" href="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/python_stdlib.zip" crossorigin>
-<link rel="preload" as="fetch" href="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide-lock.json" crossorigin>
+<link rel="modulepreload" href="/blackjack/js/main.js">
 <style>
-  :root { --bg: #0b0c0a; --fg: #e8e6dc; --dim: #8d8a7e; --accent: #c8f55a; --mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace; }
+  :root { --bg: #0b0c0a; --fg: #e8e6dc; --dim: #9fa294; --line: #2c3027; --accent: #c8f55a; --mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: #06120a; color: var(--fg); font-family: var(--mono); overflow: hidden; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
   #app { position: fixed; inset: 0; display: flex; flex-direction: column; background: #06120a; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-  header { flex: none; background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 38px; padding: 0 16px; font-size: 12px; border-bottom: 1px solid #23251f; }
+  header { flex: none; display: flex; align-items: stretch; height: 46px; background-color: var(--bg); background-image: radial-gradient(circle at 10px 10px, #1b1e16 1px, transparent 1.3px); background-size: 20px 20px; border-bottom: 1px solid var(--line); box-shadow: 0 1px 0 rgba(200, 245, 90, 0.18); font-size: 12px; }
   header a { color: var(--fg); text-decoration: none; }
-  header a:hover, header a:focus-visible { color: var(--accent); }
+  .logo { display: flex; align-items: center; padding: 0 18px; border-right: 1px solid var(--line); font-size: 15px; letter-spacing: .02em; }
+  .back { display: flex; align-items: center; gap: 10px; padding: 0 18px; border-right: 1px solid var(--line); transition: background .15s, color .15s; }
+  .back .arrow { display: inline-block; transition: transform .18s; }
+  .back:hover, .back:focus-visible { background: var(--accent); color: var(--bg); outline: none; }
+  .back:hover .arrow, .back:focus-visible .arrow { transform: translateX(-4px); }
+  .tag { margin-left: auto; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-left: 1px solid var(--line); color: var(--dim); }
+  .tag i { width: 7px; height: 7px; background: var(--accent); display: block; }
   .logo b { color: var(--accent); font-weight: 600; }
-  .tag { color: var(--dim); }
   #stage { position: relative; flex: 1; min-height: 0; background: #06120a; }
   #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
   #loading { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; background: #06120a; transition: opacity .35s; }
@@ -49,7 +50,9 @@
   #track { width: min(320px, 70vw); height: 3px; background: #1a2a20; }
   #bar { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
   #status { margin: 0; font-size: 12px; color: var(--dim); min-height: 1.4em; }
-  #detail { margin: 0; font-size: 11px; color: #5d5b52; max-width: 60ch; }
+  #skip { margin-top: 6px; font: 12px var(--mono); color: var(--fg); background: transparent; border: 1px solid var(--line); padding: 9px 16px; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .35s, background .15s, color .15s, border-color .15s; }
+  #skip.show { opacity: 1; pointer-events: auto; }
+  #skip:hover, #skip:focus-visible { background: var(--accent); color: var(--bg); border-color: var(--accent); outline: none; }
   #loading.failed #bar { background: #e5604d; }
   #rotate { display: none; flex: none; padding: 8px 16px; font-size: 11px; color: var(--dim); text-align: center; border-top: 1px solid #23251f; }
   @media (orientation: portrait) and (max-width: 700px) { #rotate { display: block; } }
@@ -62,8 +65,9 @@
 <body>
 <div id="app">
   <header>
-    <a class="logo" href="/home" aria-label="Back to the portfolio"><b>dk_</b> &larr; back to the site</a>
-    <span class="tag">Blackjack.py &middot; play money</span>
+    <span class="logo"><b>dk</b>_</span>
+    <a class="back" href="/home" aria-label="Back to the portfolio"><span class="arrow">&larr;</span> back to the site</a>
+    <span class="tag"><i></i>Blackjack &middot; play money</span>
   </header>
   <div id="stage">
     <canvas id="game" tabindex="0" aria-label="Blackjack table"></canvas>
@@ -71,12 +75,12 @@
       <h1>Blackjack</h1>
       <div id="track"><div id="bar"></div></div>
       <p id="status">Loading ...</p>
-      <p id="detail"></p>
-      <noscript><p id="status">This game needs JavaScript.</p></noscript>
+      <button id="skip" type="button">Skip loading?</button>
+      <noscript><p>This game needs JavaScript.</p></noscript>
     </div>
   </div>
   <div id="rotate">Better with your phone turned sideways.</div>
 </div>
-<script type="module" src="/blackjack/bridge.js"></script>
+<script type="module" src="/blackjack/js/main.js"></script>
 </body>
 </html>
