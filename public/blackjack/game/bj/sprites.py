@@ -262,7 +262,7 @@ class ChipButton(Widget):
             gfx.chip(self.denom, max(6, round(self.d * self.app.S)), True)))
         out = [self.c.create_image(*self.scene.P(self.x, self.y - self.lift),
                                    image=self._ph if self.enabled else self._ph_dis)]
-        if self.hotkey:
+        if self.hotkey and getattr(self.app, 'show_keycaps', True):
             f = self.app.font(10.5, 'bold')
             out.append(self.c.create_text(*self.scene.P(self.x, self.y + self.d / 2 + 9), text=self.hotkey,
                                           font=f, fill='#9c927c'))

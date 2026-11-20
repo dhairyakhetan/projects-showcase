@@ -112,6 +112,14 @@ export default function CommandPalette() {
         run: () => void toggleSound(),
       },
       {
+        id: "action-blackjack",
+        label: "Play blackjack",
+        hint: "a python game",
+        group: "Actions",
+        // A plain page load: /blackjack lives outside the app router.
+        run: () => window.location.assign("/blackjack"),
+      },
+      {
         id: "action-intro",
         label: "Replay the intro",
         hint: "the loading dock",

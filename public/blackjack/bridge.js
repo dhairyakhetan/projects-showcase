@@ -38,6 +38,8 @@ const ctx = canvas.getContext("2d");
 // the area is capped because every resize re-scales the artwork in Python.
 const BJ = (window.BJ = {
   width: 800, height: 450, soundNames: SOUNDS, onEvent: null,
+  // Phones and tablets: no hover, so the game gets only presses and releases.
+  touch: matchMedia("(pointer: coarse)").matches,
 });
 let cssW = 800, cssH = 450;
 
@@ -261,6 +263,7 @@ const where = (e) => {
 let down = false, lastPos = [-1, -1];
 
 canvas.addEventListener("pointermove", (e) => {
+  if (BJ.touch && !down) return;
   const [x, y] = where(e);
   lastPos = [x, y];
   send(down ? "drag" : "motion", x, y);
@@ -268,7 +271,7 @@ canvas.addEventListener("pointermove", (e) => {
 canvas.addEventListener("pointerdown", (e) => {
   wakeAudio();
   const [x, y] = where(e);
-  if (e.pointerType !== "mouse" || x !== lastPos[0] || y !== lastPos[1]) send("motion", x, y);
+  if (!BJ.touch && (x !== lastPos[0] || y !== lastPos[1])) send("motion", x, y);
   lastPos = [x, y];
   if (e.button === 2) { send("right", x, y); return; }
   if (e.button !== 0) return;
@@ -281,7 +284,6 @@ const lift = (e) => {
   down = false;
   const [x, y] = where(e);
   send("release", x, y);
-  if (e.pointerType !== "mouse") send("leave");
 };
 canvas.addEventListener("pointerup", lift);
 canvas.addEventListener("pointercancel", lift);
@@ -359,37 +361,54 @@ function persist() {
 }
 
 // ------------------------------------------------------------------ boot
-const status = (text, pct) => {
-  $("status").textContent = text;
-  if (pct != null) $("bar").style.width = `${pct}%`;
-};
+const status = (text) => { $("status").textContent = text; };
+const progress = (frac) => { $("bar").style.width = `${Math.round(frac * 100)}%`; };
 
 function fail(err) {
   console.error(err);
   $("loading").classList.add("failed");
   status(window.WebAssembly ? "Something went wrong while loading the game. Reloading the page usually fixes it." :
-    "This browser can't run WebAssembly, which the game needs.", 100);
+    "This browser can't run WebAssembly, which the game needs.");
+  progress(1);
   $("detail").textContent = String(err && err.message ? err.message : err).slice(0, 300);
 }
 
-async function boot() {
-  status("Starting the Python engine ...", 4);
-  const { loadPyodide } = await import(`${PYODIDE}pyodide.mjs`);
-  const [pyodide] = await Promise.all([loadPyodide({ indexURL: PYODIDE })]);
-  py = pyodide;
-  status("Loading Pillow ...", 28);
-  await pyodide.loadPackage("pillow");
+// Everything that has to be in the Python filesystem. The felts the player
+// isn't using are fetched afterwards.
+const FELTS = ["black", "blue", "green", "purple", "red"];
 
-  let done = 0;
-  status("Unpacking the game ...", 36);
-  const dirs = new Set();
-  const loaded = await Promise.all(FILES.map(async (f) => {
+function savedFelt() {
+  try { return JSON.parse(localStorage.getItem(SAVE_KEY)).settings.felt || "green"; } catch { return "green"; }
+}
+
+async function boot() {
+  status("Starting the Python engine ...");
+  // Three downloads at once instead of one after another: the Python engine,
+  // the game's own files, and (once the engine is up) Pillow.
+  const felt = savedFelt();
+  const now = FILES.filter((f) => !/felt_/.test(f) || f === `assets/img/felt_${felt}.jpg`);
+  let fetched = 0;
+  const filesP = Promise.all(now.map(async (f) => {
     const r = await fetch(GAME + f);
     if (!r.ok) throw new Error(`${f}: ${r.status}`);
     const data = new Uint8Array(await r.arrayBuffer());
-    status("Unpacking the game ...", 36 + (++done / FILES.length) * 50);
+    progress(0.04 + 0.5 * (++fetched / now.length));
     return [f, data];
   }));
+  filesP.catch(() => {});                                  // reported below, where it's awaited
+  const pyP = import(`${PYODIDE}pyodide.mjs`).then((m) => m.loadPyodide({ indexURL: PYODIDE }));
+  progress(0.04);
+  const pyodide = await pyP;
+  py = pyodide;
+  BJ.py = pyodide;
+  status("Loading Pillow ...");
+  progress(0.62);
+  await pyodide.loadPackage("pillow");
+
+  status("Unpacking the game ...");
+  progress(0.72);
+  const loaded = await filesP;
+  const dirs = new Set();
   for (const [f, data] of loaded) {
     const dir = "/game/" + f.split("/").slice(0, -1).join("/");
     if (!dirs.has(dir)) { pyodide.FS.mkdirTree(dir); dirs.add(dir); }
@@ -400,13 +419,26 @@ async function boot() {
     if (saved) { pyodide.FS.writeFile(SAVE_PATH, saved); lastSave = saved; }
   } catch { /* storage blocked: play without a save */ }
 
-  status("Shuffling the deck ...", 90);
-  await new Promise((r) => setTimeout(r, 30));      // let the bar paint before Python blocks the page
+  status("Shuffling the deck ...");
+  progress(0.86);
+  await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));   // let the bar paint before Python blocks the page
   applySize();
   pyodide.runPython("import sys; sys.path.insert(0, '/game/web'); import start; start.run()");
-  status("", 100);
+  progress(1);
   $("loading").classList.add("done");
   setInterval(persist, 4000);
+  registerWorker();
+
+  for (const f of FELTS.filter((c) => c !== felt)) {       // the other table colours, in the background
+    fetch(`${GAME}assets/img/felt_${f}.jpg`).then((r) => r.arrayBuffer())
+      .then((b) => pyodide.FS.writeFile(`/game/assets/img/felt_${f}.jpg`, new Uint8Array(b))).catch(() => {});
+  }
+}
+
+function registerWorker() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/blackjack-sw.js", { scope: "/blackjack" }).catch(() => {});
+  }
 }
 
 new ResizeObserver(applySize).observe(stage);

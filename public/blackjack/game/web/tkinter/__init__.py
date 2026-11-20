@@ -261,6 +261,7 @@ class Canvas:
             it['c'] = list(args)
         else:
             it['x'], it['y'] = args[0], args[1]
+        it['_s'] = None
         self._dirty = True
         return None
 
@@ -273,6 +274,7 @@ class Canvas:
         else:
             it['x'] += dx
             it['y'] += dy
+        it['_s'] = None
         self._dirty = True
 
     def itemconfigure(self, iid, **kw):
@@ -287,6 +289,7 @@ class Canvas:
             if k in ('image', 'text', 'font', 'fill', 'state', 'outline', 'width', 'anchor', 'justify',
                      'angle', 'smooth', 'dash'):
                 it[k] = v
+        it['_s'] = None
         self._dirty = True
     itemconfig = itemconfigure
 
@@ -342,35 +345,47 @@ class Canvas:
         return (int(min(xs)), int(min(ys)), int(max(xs)), int(max(ys)))
 
     # ------------------------------------------------------------ paint
+    @staticmethod
+    def _row(it):
+        """The item as a JSON list for bridge.js, or '' when nothing is drawn."""
+        if it['state'] == 'hidden':
+            return ''
+        t = it['t']
+        if t == 'i':
+            ph = it['image']
+            if ph is None or ph._id is None:
+                return ''
+            return '[0,%d,%s,%s,"%s"]' % (ph._id, it['x'], it['y'], it['anchor'])
+        if t == 'x':
+            f = it['font']
+            if f is None or not it['text']:
+                return ''
+            return json.dumps([1, it['text'], f.family, f.px, f.weight, f.slant, it['fill'], it['anchor'],
+                               it['justify'], it['width'], it['angle'], it['x'], it['y']])
+        if t == 'r':
+            return json.dumps([2, it['c'], it['fill'], it['outline'], it['width']])
+        if t == 'l':
+            dash = it['dash']
+            if isinstance(dash, str):
+                dash = [float(d) for d in dash.replace(',', ' ').split()]
+            return json.dumps([3, it['c'], it['fill'], it['width'], it['smooth'], list(dash) if dash else None,
+                               it['cap']])
+        return json.dumps([4, it['c'], it['fill'], it['outline'], it['width']])
+
     def _render(self):
+        # Most items don't change from one frame to the next, so each keeps its
+        # serialised row until something touches it.
         self._dirty = False
-        out = []
         items = self._items
+        rows = []
         for iid in self._order:
             it = items[iid]
-            if it['state'] == 'hidden':
-                continue
-            t = it['t']
-            if t == 'i':
-                ph = it['image']
-                if ph is not None and ph._id is not None:
-                    out.append([0, ph._id, it['x'], it['y'], it['anchor']])
-            elif t == 'x':
-                f = it['font']
-                if f is not None and it['text']:
-                    out.append([1, it['text'], f.family, f.px, f.weight, f.slant, it['fill'], it['anchor'],
-                                it['justify'], it['width'], it['angle'], it['x'], it['y']])
-            elif t == 'r':
-                out.append([2, it['c'], it['fill'], it['outline'], it['width']])
-            elif t == 'l':
-                dash = it['dash']
-                if isinstance(dash, str):
-                    dash = [float(d) for d in dash.replace(',', ' ').split()]
-                out.append([3, it['c'], it['fill'], it['width'], it['smooth'], list(dash) if dash else None,
-                            it['cap']])
-            elif t == 'p':
-                out.append([4, it['c'], it['fill'], it['outline'], it['width']])
-        BJ.render(self._bg, json.dumps(out))
+            s = it.get('_s')
+            if s is None:
+                s = it['_s'] = self._row(it)
+            if s:
+                rows.append(s)
+        BJ.render(self._bg, '[' + ','.join(rows) + ']')
 
 
 _ANCHOR = {'center': (.5, .5), 'n': (.5, 0), 's': (.5, 1), 'e': (1, .5), 'w': (0, .5),

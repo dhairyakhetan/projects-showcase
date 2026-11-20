@@ -751,7 +751,9 @@ class Button(Widget):
     def __init__(self, scene, layer, x, y, w, h, label='', style='dark', on_click=None, icon=None,
                  icon_size=None, font_size=None, hotkey=None, tooltip=None, radius=None, text_color=None,
                  sound='click', weight='bold', family='ui', visible=True, modal=None, sub=None,
-                 icon_only=False, label_dx=0):
+                 icon_only=False, label_dx=0, keycap=None, keycap_side='below'):
+        self.keycap = keycap
+        self.keycap_side = keycap_side
         self.label = label
         self.style = style
         self.callback = on_click
@@ -829,6 +831,15 @@ class Button(Widget):
                 self._label_items.append(out[-1])
             out.append(self.c.create_text(lx, ly, text=self.label, font=f, fill=self.text_color))
             self._label_items.append(out[-1])
+        if self.keycap and getattr(self.app, 'show_keycaps', False):
+            if self.keycap_side == 'right':
+                kx, ky = self.scene.P(self.x + self.w / 2 + 8, self.y)
+                anc = 'w'
+            else:
+                kx, ky = self.scene.P(self.x, self.y + self.h / 2 + 9)
+                anc = 'center'
+            out.append(self.c.create_text(kx, ky, text=self.keycap, anchor=anc, fill='#d2c294',
+                                          font=self.app.font(12.5, 'bold', 'num')))
         self._sub_item = None
         if self.sub:
             sx, sy = self.scene.P(self.x, self.y + self.h * 0.22)

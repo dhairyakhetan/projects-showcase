@@ -246,19 +246,21 @@ class TableScene(Scene):
 
     def _build_bet_buttons(self):
         self.btn_undo = Button(self, 'hud2', 1094, 858, 46, 46, '', 'dark', icon='undo', icon_size=20,
-                               on_click=self.on_undo, tooltip='Undo last chip  [Backspace]')
+                               on_click=self.on_undo, tooltip='Undo last chip  [Backspace]', keycap='Bksp')
         self.btn_clear = Button(self, 'hud2', 1146, 858, 46, 46, '', 'dark', icon='close', icon_size=18,
-                                on_click=self.on_clear, tooltip='Clear bet  [C]')
+                                on_click=self.on_clear, tooltip='Clear bet  [C]', keycap='C')
         self.btn_x2 = Button(self, 'hud2', 1198, 858, 46, 46, '', 'dark', icon='x2', icon_size=24,
-                             on_click=self.on_x2, tooltip='Double the bet  [X]')
+                             on_click=self.on_x2, tooltip='Double the bet  [X]', keycap='X')
         self.btn_rebet = Button(self, 'hud2', 1290, 858, 120, 46, 'Rebet', 'dark', icon='rebet', icon_size=18,
-                                font_size=15, on_click=self.on_rebet, tooltip='Repeat your last bet  [R]')
+                                font_size=15, on_click=self.on_rebet, tooltip='Repeat your last bet  [R]', keycap='R')
         self.btn_max = Button(self, 'hud2', 470, 840, 128, 32, 'MAX BET', 'amber', font_size=13,
-                              on_click=self.on_max, tooltip='Bet the table maximum  [M]')
+                              on_click=self.on_max, tooltip='Bet the table maximum  [M]', keycap='M',
+                              keycap_side='right')
         self.btn_allin = Button(self, 'hud2', 470, 878, 128, 32, 'ALL IN', 'red', font_size=13,
-                                on_click=self.on_allin, tooltip='Bet everything you have  [A]')
+                                on_click=self.on_allin, tooltip='Bet everything you have  [A]', keycap='A',
+                                keycap_side='right')
         self.btn_deal = Button(self, 'hud2', 1468, 856, 196, 58, 'DEAL', 'gold', icon='cards', icon_size=22,
-                               font_size=21, on_click=self.on_deal, tooltip='Deal the cards  [Space]')
+                               font_size=21, on_click=self.on_deal, tooltip='Deal the cards  [Space]', keycap='Space')
         self.bet_buttons = [self.btn_undo, self.btn_clear, self.btn_x2, self.btn_rebet, self.btn_max,
                             self.btn_allin, self.btn_deal]
 
@@ -268,11 +270,11 @@ class TableScene(Scene):
             label, style, icon, key, tip = ACTION_INFO[a]
             x = 800 + (i - 2) * 162
             b = Button(self, 'hud2', x, 858, 152, 56, label, style, icon=icon, icon_size=22, font_size=18,
-                       on_click=lambda a=a: self.on_action(a), tooltip=f'{tip}  [{key.upper()}]')
+                       on_click=lambda a=a: self.on_action(a), tooltip=f'{tip}  [{key.upper()}]', keycap=key.upper())
             b.set_visible(False)
             self.action_btns[a] = b
         self.btn_hint = Button(self, 'hud2', 1478, 858, 150, 50, 'Hint', 'ghost', icon='hint', icon_size=20,
-                               font_size=16, on_click=self.on_hint, tooltip='What does basic strategy say?  [T]')
+                               font_size=16, on_click=self.on_hint, tooltip='What does basic strategy say?  [T]', keycap='T')
         self.btn_hint.set_visible(False)
 
     # ================================================================ phase / ui state

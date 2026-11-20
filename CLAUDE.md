@@ -109,7 +109,21 @@ next.config.ts                only to switch on experimental.globalNotFound
   Tk timers). Add any new file to `FILES` in `bridge.js`. Pyodide 0.27 ships
   Pillow 10.2, whose `rounded_rectangle` rejects shapes the game draws — stay
   on 0.28+. Save data lives in `localStorage["bj-save"]` (copied from the
-  Python filesystem every 4 s and on leave). Quit goes to `/home`. Test it by
+  Python filesystem every 4 s and on leave). Quit goes to `/home`.
+  **Phone / home-screen app**: `manifest.webmanifest` + icons make it
+  installable (fullscreen, landscape); on touch the game gets only
+  press/release (no hover redraws), animations run 0.7x, confetti is halved,
+  buttons react 9 design px past their edge, key hints are hidden, and the
+  site's top bar hides in app mode or on a short landscape screen. The tkinter
+  stand-in caches each canvas item's serialised row (the repaint was ~45% of
+  the Python time under a 4x CPU throttle) — invalidate `_s` on any mutation.
+  Loading overlaps the engine, game files and Pillow downloads, preloads the
+  big Pyodide files from the HTML head, and `public/blackjack-sw.js` (scope
+  `/blackjack`) caches everything for repeat visits and offline: bump `CACHE`
+  there if an asset changes without its filename changing. Link preview:
+  `src/app/blackjack/og.png/route.tsx` using `table.jpg` (retake it if the
+  game's look changes). It's in the ⌘K menu as "Play blackjack"; the game
+  shows key hints (P/S/E/Q, H/S/D/P/R, C/X/M/A, Space) via `Button(keycap=)`. Test it by
   driving `/blackjack` with Playwright through the sandbox proxy
   (`proxy: {server: HTTPS_PROXY}`) so jsDelivr is reachable.
 - `/Japan2026` (a trip planner) was taken down on 22 Oct 2026 at his request; it

@@ -21,17 +21,18 @@ class MenuScene(Scene):
         TextSprite(self, 'mid', 420, 214, 'P L A Y - M O N E Y   C A S I N O', size=14, color='#e8cf8e',
                    weight='bold', shadow='#000000')
         items = [
-            ('Play', 'gold', 'play', self.play, 'Sit down at the table'),
-            ('Statistics', 'dark', 'stats', self.stats, 'Your wins, streaks and accuracy'),
-            ('Settings', 'dark', 'gear', self.settings, 'Table rules, sound, speed and looks'),
-            ('Quit', 'dark', 'quit', self.quit, 'Save and exit'),
+            ('Play', 'gold', 'play', self.play, 'Sit down at the table', 'P'),
+            ('Statistics', 'dark', 'stats', self.stats, 'Your wins, streaks and accuracy', 'S'),
+            ('Settings', 'dark', 'gear', self.settings, 'Table rules, sound, speed and looks', 'E'),
+            ('Quit', 'dark', 'quit', self.quit, 'Save and exit', 'Q'),
         ]
         self.buttons = []
         y = 360
-        for i, (label, style, icon, cb, tip) in enumerate(items):
+        for i, (label, style, icon, cb, tip, cap) in enumerate(items):
             h = 66 if i == 0 else 54
             b = Button(self, 'hud', 420, y + (6 if i == 0 else 0), 360, h, label, style, icon=icon,
-                       icon_size=26 if i == 0 else 20, font_size=24 if i == 0 else 18, on_click=cb, tooltip=tip)
+                       icon_size=26 if i == 0 else 20, font_size=24 if i == 0 else 18, on_click=cb, tooltip=tip,
+                       keycap=cap, keycap_side='right')
             self.buttons.append(b)
             y += 84 if i == 0 else 66
         self.focus = -1
@@ -106,6 +107,10 @@ class MenuScene(Scene):
             return True
         if key == 'Escape':
             self.quit()
+            return True
+        shortcut = {'p': self.play, 's': self.stats, 'e': self.settings, 'q': self.quit}.get(key.lower())
+        if shortcut is not None:
+            shortcut()
             return True
         return False
 

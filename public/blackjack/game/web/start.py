@@ -2,6 +2,8 @@
 import importlib.util
 import sys
 
+import js
+
 BASE = '/game'
 sys.path.insert(0, BASE)             # the bj package
 sys.path.insert(0, BASE + '/web')    # stands in for tkinter, and websound
@@ -39,6 +41,24 @@ def _preload(felt='green'):
 
 bj.gfx.preload = _preload
 
+TOUCH = bool(js.BJ.touch)
+if TOUCH:
+    import bj.store
+    import bj.ui
+    # No hover on a phone, and quicker animations until the player picks their own.
+    bj.store.DEFAULT_SETTINGS['anim_speed'] = 'fast'
+    bj.ui.Scene._refresh_hover = lambda self: None
+    # Fingers are fatter than a mouse pointer: every button reacts a little beyond its edge.
+    def _contains(self, x, y, pad=9):
+        return (self.x - self.w / 2 - pad <= x <= self.x + self.w / 2 + pad and
+                self.y - self.h / 2 - pad <= y <= self.y + self.h / 2 + pad)
+    bj.ui.Widget.contains = _contains
+    import bj.sprites
+    _confetti = bj.sprites.Confetti.__init__
+    bj.sprites.Confetti.__init__ = lambda self, scene, n=90, *a, **k: _confetti(self, scene, n // 2, *a, **k)
+    _mult = bj.store.Store.anim_mult
+    bj.store.Store.anim_mult = lambda self: _mult(self) * 0.7
+
 from bj import main as bjmain  # noqa: E402
 
 app = None
@@ -52,6 +72,7 @@ def _remember(self, *a, **k):
 
 
 bjmain.GameApp.__init__ = _remember
+bjmain.GameApp.show_keycaps = not TOUCH     # key hints under buttons only where there is a keyboard
 
 
 def run():
