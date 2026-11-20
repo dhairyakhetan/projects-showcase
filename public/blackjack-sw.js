@@ -1,7 +1,7 @@
 // Keeps the Blackjack page and its ~15 MB of engine, code and artwork on the
 // device, so the second visit (and the home-screen app) starts from cache and
 // works offline. It only ever touches /blackjack and Pyodide on jsDelivr.
-const CACHE = "bj-v1";
+const CACHE = "bj-v2";
 const PYODIDE = "https://cdn.jsdelivr.net/pyodide/";
 
 self.addEventListener("install", () => self.skipWaiting());

@@ -247,7 +247,8 @@ class Shoe:
     """
 
     def __init__(self, decks: int = 6, penetration: float = 0.75, rng=None):
-        self.rng = rng or random.Random()
+        # The operating system's entropy: nothing in the shoe order can be predicted or replayed.
+        self.rng = rng or random.SystemRandom()
         self.decks = decks
         self.penetration = penetration
         self.stack = []
@@ -753,7 +754,9 @@ class Round:
                     else:
                         h.result, h.payout = 'blackjack', h.bet + h.bet * r.bj_num // r.bj_den
                 elif dbj:
-                    h.result, h.payout = 'lose', 0
+                    # With no hole card the dealer's blackjack takes only the original bet; doubles and splits come back.
+                    h.result = 'lose'
+                    h.payout = 0 if r.peek else h.bet - (self.initial_bet if i == 0 else 0)
                 elif dbust or h.total > dt:
                     h.result, h.payout = 'win', h.bet * 2
                 elif h.total == dt:

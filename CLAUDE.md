@@ -98,10 +98,16 @@ next.config.ts                only to switch on experimental.globalNotFound
   15 Nov). It runs in the browser: `src/app/blackjack/` is a static HTML shell
   (like `/product-funny`, outside the portfolio chrome, **unlisted** — nothing
   links to it, not in the sitemap), and `public/blackjack/` holds the game.
-  `game/` mirrors his folder (`bj/`, `assets/`); to update, replace `bj/` and
-  `assets/` with his new copy and re-apply the one-line change in
-  `bj/scenes/settings.py` (it hides the "Install pygame" button for the
-  `Web Audio` backend). Pyodide 0.28 (CPython + Pillow, from jsDelivr) runs the
+  `game/` mirrors his folder (`bj/`, `assets/`) with small edits of ours: the
+  `Web Audio` check in `bj/scenes/settings.py` (hides "Install pygame"),
+  `Button(keycap=)` and the `App.uk` phone scale in `ui.py`/`menu.py`/
+  `table.py`/`sprites.py`, the OS-entropy shoe (`SystemRandom`) and the
+  European original-bets-only rule in `engine.py`, and the $10,000 default in
+  `store.py` (old $1,000 saves are migrated). To update, replace `bj/` and
+  `assets/` with his new copy and re-apply those (`git diff` shows them).
+  Fairness was checked by simulation (uniform shuffles; 10M rounds of Classic
+  with the game's own basic strategy gave a −0.36% player edge, theory ≈
+  −0.35%) — rerun that if the engine or strategy changes. Pyodide 0.28 (CPython + Pillow, from jsDelivr) runs the
   code unchanged. `game/web/tkinter/` is a stand-in for tkinter that keeps the
   Canvas items and hands them to `bridge.js` to paint on a `<canvas>`;
   `imagetk.py`, `websound.py` and `start.py` do the same for PhotoImage, sound
@@ -111,7 +117,10 @@ next.config.ts                only to switch on experimental.globalNotFound
   on 0.28+. Save data lives in `localStorage["bj-save"]` (copied from the
   Python filesystem every 4 s and on leave). Quit goes to `/home`.
   **Phone / home-screen app**: `manifest.webmanifest` + icons make it
-  installable (fullscreen, landscape); on touch the game gets only
+  installable (fullscreen, landscape); on touch `App.uk` = 1.5 enlarges the table's
+  bottom bar (chips, buttons), top bar, dialogs, toasts and menu (balance/bet move to
+  the top bar; the layout is planned once in `TableScene._plan_touch_layout`, so it
+  isn't redone on rotation); the game gets only
   press/release (no hover redraws), animations run 0.7x, confetti is halved,
   buttons react 9 design px past their edge, key hints are hidden, and the
   site's top bar hides in app mode or on a short landscape screen. The tkinter

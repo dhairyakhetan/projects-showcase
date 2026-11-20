@@ -27,14 +27,15 @@ class MenuScene(Scene):
             ('Quit', 'dark', 'quit', self.quit, 'Save and exit', 'Q'),
         ]
         self.buttons = []
-        y = 360
+        k = min(a.uk, 1.35)
+        y = 333
         for i, (label, style, icon, cb, tip, cap) in enumerate(items):
-            h = 66 if i == 0 else 54
-            b = Button(self, 'hud', 420, y + (6 if i == 0 else 0), 360, h, label, style, icon=icon,
-                       icon_size=26 if i == 0 else 20, font_size=24 if i == 0 else 18, on_click=cb, tooltip=tip,
-                       keycap=cap, keycap_side='right')
+            h = (66 if i == 0 else 54) * k
+            b = Button(self, 'hud', 420, y + h / 2, 360 * k, h, label, style, icon=icon,
+                       icon_size=(26 if i == 0 else 20) * k, font_size=(24 if i == 0 else 18) * k, on_click=cb,
+                       tooltip=tip, keycap=cap, keycap_side='right')
             self.buttons.append(b)
-            y += 84 if i == 0 else 66
+            y += h + 18
         self.focus = -1
         # hero cards
         self.cards = []

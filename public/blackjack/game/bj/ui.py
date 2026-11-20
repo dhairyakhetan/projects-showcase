@@ -1497,47 +1497,49 @@ class Scene:
         self.modals.append(m)
         vx0, vy0, vx1, vy1 = self.view
         S = self.app.liveS
+        ku = min(self.app.uk, 1.4)
+        width = int(width * ku)
         if dim:
             m.add(ViewOverlay(self, 'modal', 150))
             # swallow clicks on the backdrop
             m.add(HotArea(self, 'modal', 800, 450, 8000, 6000, cursor=False))
         # measure body height
-        f = self.app.font(17, 'normal')
+        f = self.app.font(17 * ku, 'normal')
         probe = self.c.create_text(0, 0, text=body, font=f, width=int((width - 70) * S), anchor='nw')
         bb = self.c.bbox(probe)
         self.c.delete(probe)
         body_h = ((bb[3] - bb[1]) / S) if (bb and body) else 0
         extra_h = extra[0] if extra else 0
-        h = 70 + (body_h + 18 if body else 0) + extra_h + 86
+        h = 70 * ku + (body_h + 18 * ku if body else 0) + extra_h + 86 * ku
         cx = 800
         panel = ImageSprite(self, 'modal', cx, cy, ('modal', width, round(h)), lambda: art.render_panel(
             round(width * S), round(h * S), radius=18 * S, fill=(16, 18, 22, 246), border=(233, 196, 106, 170),
             border_w=1.6 * S))
         m.add(panel)
         top = cy - h / 2
-        ty = top + 40
+        ty = top + 40 * ku
         tx = cx
         if icon:
             m.add(ImageSprite(self, 'modal', cx - width / 2 + 42, ty, ('micon', icon), lambda: art.render_icon(
                 icon, round(30 * S), art.GOLD)))
-        m.add(TextSprite(self, 'modal', tx, ty, title, size=24, weight='bold', family='display', color='#f2d07a'))
-        y = top + 70
+        m.add(TextSprite(self, 'modal', tx, ty, title, size=24 * ku, weight='bold', family='display', color='#f2d07a'))
+        y = top + 70 * ku
         if body:
-            m.add(TextSprite(self, 'modal', cx, y, body, size=17, color='#ece4d2', anchor='n',
+            m.add(TextSprite(self, 'modal', cx, y, body, size=17 * ku, color='#ece4d2', anchor='n',
                              width=width - 70, justify='center', shadow=None))
-            y += body_h + 18
+            y += body_h + 18 * ku
         if extra:
             extra[1](m, cx, y)
             y += extra_h
         n = len(buttons)
-        bw = min(220, (width - 60 - (n - 1) * 16) / n)
+        bw = min(220 * ku, (width - 60 - (n - 1) * 16) / n)
         x0 = cx - (n * bw + (n - 1) * 16) / 2 + bw / 2
-        by = top + h - 48
+        by = top + h - 48 * ku
         for i, b in enumerate(buttons):
             label, style, value = b[0], b[1], b[2]
             opts = b[3] if len(b) > 3 else {}
-            btn = Button(self, 'modal', x0 + i * (bw + 16), by, bw, 50, label, style,
-                         on_click=(lambda v=value: m.close(v)), modal=m, font_size=17, **opts)
+            btn = Button(self, 'modal', x0 + i * (bw + 16), by, bw, 50 * ku, label, style,
+                         on_click=(lambda v=value: m.close(v)), modal=m, font_size=17 * ku, **opts)
             if opts.get('disabled'):
                 pass
             m.add(btn)
@@ -1548,16 +1550,17 @@ class Scene:
     def toast(self, text, kind='info', duration=2.2, y=None):
         colors = {'info': (233, 196, 106), 'good': (110, 210, 130), 'bad': (240, 110, 100), 'gold': (255, 210, 90)}
         col = colors.get(kind, colors['info'])
-        f = self.app.font(17, 'bold')
-        tw = f.measure(text) / self.app.S + 56
-        th = 46
+        ku = min(self.app.uk, 1.4)
+        f = self.app.font(17 * ku, 'bold')
+        tw = f.measure(text) / self.app.S + 56 * ku
+        th = 46 * ku
         vx0, vy0, vx1, vy1 = self.view
         ty = (y if y is not None else vy0 + 74)
         S = self.app.liveS
         bg = ImageSprite(self, 'toast', 800, ty - 80, ('toast', round(tw), kind), lambda: art.render_panel(
             round(tw * S), round(th * S), radius=th * S / 2, fill=(14, 15, 18, 236), border=col + (200,),
             border_w=1.6 * S))
-        txt = TextSprite(self, 'toast', 800, ty - 80, text, size=17, weight='bold', color=art.hexcolor(col))
+        txt = TextSprite(self, 'toast', 800, ty - 80, text, size=17 * ku, weight='bold', color=art.hexcolor(col))
 
         def f_in(t):
             yy = ty - 80 + 80 * t
@@ -1649,6 +1652,7 @@ class LiveScale:
 # ============================================================== app
 class App:
     TITLE = 'Blackjack'
+    uk = 1.0        # >1 on phones: bigger buttons and text (see web/start.py)
 
     def __init__(self, root, store, sound, base_dir):
         self.root = root

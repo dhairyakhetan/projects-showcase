@@ -43,7 +43,7 @@ DEFAULT_SETTINGS = {
     'card_back': 'red',
     'four_color': False,
     'fullscreen': False,
-    'start_bankroll': 100000,
+    'start_bankroll': 1000000,
     'confirm_leave': True,
 }
 
@@ -100,6 +100,8 @@ class Store:
             for k, v in s.items():
                 if k in DEFAULT_SETTINGS:
                     self.settings[k] = v
+            if self.settings.get('start_bankroll') == 100000:      # the old $1,000 default
+                self.settings['start_bankroll'] = DEFAULT_SETTINGS['start_bankroll']
             self.settings['rules'] = Rules.from_dict(s.get('rules', {})).to_dict()
             st = default_stats()
             st.update({k: v for k, v in d.get('stats', {}).items() if k in st})

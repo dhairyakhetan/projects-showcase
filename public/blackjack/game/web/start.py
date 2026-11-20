@@ -72,6 +72,7 @@ def _remember(self, *a, **k):
 
 
 bjmain.GameApp.__init__ = _remember
+bjmain.GameApp.uk = 1.5 if TOUCH else 1.0        # bigger buttons and text on a phone
 bjmain.GameApp.show_keycaps = not TOUCH     # key hints under buttons only where there is a keyboard
 
 

@@ -161,7 +161,8 @@ class TableScene(Scene):
         lines = self._felt_lines()
         self.felt = ViewImage(self, 'bg', lambda: ('felt', a.W, a.H, felt, lines),
                               lambda: gfx.felt(felt, lines, a.W, a.H, a.S, a.ox, a.oy))
-        ViewBar(self, 'hud', 812)
+        self._plan_touch_layout()
+        ViewBar(self, 'hud', self.bar_top)
         self._build_topbar()
         self._build_hud()
         self.coach = CoachPanel(self)
@@ -170,7 +171,10 @@ class TableScene(Scene):
         self._build_bet_buttons()
         self._build_action_buttons()
         self.run(warm_cards(self))
-        self.status = TextSprite(self, 'hud', 800, 793, '', size=15.5, color='#f3e6c6', shadow='#000000')
+        # On a phone the line sits left of the bet circle instead of under it.
+        self.status = TextSprite(self, 'hud', 800 if self.uk == 1 else 430, self.bar_top - 19 * self.uk, '',
+                                 size=15.5 * min(self.uk, 1.3),
+                                 color='#f3e6c6', shadow='#000000')
         self.count_text = TextSprite(self, 'hud', 1440, 188, '', size=13, color='#d8cfb8', family='num',
                                      shadow='#000000', justify='center')
         self._rebuild_discard()
@@ -190,6 +194,27 @@ class TableScene(Scene):
         if self.wallet.balance < self.rules.min_bet:
             self.run(self._broke_flow())
 
+    def _plan_touch_layout(self):
+        """Phones: a taller bottom bar with bigger chips and buttons. `uk` is 1 on desktop, which
+        leaves every position exactly where it was."""
+        vx0, vy0, vx1, vy1 = self.view
+        want = getattr(self.app, 'uk', 1.0)
+        # Fit the betting row (about 1076 design px at 1x) inside the visible width.
+        self.uk = max(1.0, min(want, (vx1 - vx0 - 30) / 1076.0)) if want > 1 else 1.0
+        k = self.uk
+        self.vx0, self.vx1 = vx0, vx1
+        if k > 1:
+            self.bar_h = 70 * k + 26
+            self.bar_top = vy1 - self.bar_h
+            self.row_y = vy1 - self.bar_h / 2 + 3
+            total = (128 + 420 + 156 + 120 + 196) * k + 4 * 14 * k
+            self.rack_x0 = (vx0 + vx1) / 2 - total / 2 + 128 * k + 14 * k
+            global BAL
+            BAL = (max(vx0 + 16 + 118 * k + 30, 235) + 70, 14 + 28 * k)       # chips fly to and from the balance read-out
+        else:
+            self.bar_top = 812
+            self.row_y = HUD_Y
+
     def _felt_lines(self):
         r = self.rules
         return (f'BLACKJACK PAYS {r.bj_num} TO {r.bj_den}',
@@ -197,6 +222,24 @@ class TableScene(Scene):
                 'INSURANCE PAYS 2 TO 1' if r.insurance else 'NO INSURANCE')
 
     def _build_topbar(self):
+        k = self.uk
+        if k > 1:
+            ty = 8 + 21 * k
+            self.btn_menu = Button(self, 'hud', self.vx0 + 16 + 59 * k, ty, 118 * k, 42 * k, 'Menu', 'ghost',
+                                   icon='menu', icon_size=18 * k, font_size=15 * k, on_click=self.on_menu)
+            x = self.vx1 - 16 - 22 * k
+            self.btn_sound = None
+            muted = self.app.store.settings.get('muted')
+            self.btn_sound = Button(self, 'hud', x, ty, 44 * k, 42 * k, '', 'ghost', icon='mute' if muted else 'sound',
+                                    icon_size=22 * k, on_click=self.app.toggle_mute)
+            self.btn_settings = Button(self, 'hud', x - 52 * k, ty, 44 * k, 42 * k, '', 'ghost', icon='gear',
+                                       icon_size=22 * k, on_click=self.on_settings)
+            self.btn_stats = Button(self, 'hud', x - 104 * k, ty, 44 * k, 42 * k, '', 'ghost', icon='stats',
+                                    icon_size=20 * k, on_click=self.on_stats)
+            self.top_buttons = [self.btn_menu, self.btn_stats, self.btn_settings]
+            TextSprite(self, 'hud', 800, 70, self.rules.short(), size=11.5, color='#d9c99e', family='num',
+                       shadow='#000000')
+            return
         self.btn_menu = Button(self, 'hud', 74, 34, 118, 42, 'Menu', 'ghost', icon='menu', icon_size=18,
                                font_size=15, on_click=self.on_menu, tooltip='Back to the main menu  [Esc]')
         self.btn_stats = Button(self, 'hud', 1452, 34, 44, 42, '', 'ghost', icon='stats', icon_size=20,
@@ -216,6 +259,22 @@ class TableScene(Scene):
         self.btn_sound.remount()
 
     def _build_hud(self):
+        k = self.uk
+        if k > 1:
+            # Up beside the Menu button, so the bottom bar is all controls.
+            bx = max(self.vx0 + 16 + 118 * k + 30, 235)      # right of the discard tray
+            TextSprite(self, 'hud', bx, 14 + 7 * k, 'BALANCE', size=12 * k, color='#c9a85a', weight='bold',
+                       anchor='w', shadow=None)
+            self.bal_text = TextSprite(self, 'hud', bx, 14 + 28 * k, '', size=26 * k, color='#f6ecd2',
+                                       weight='bold', family='num', anchor='w')
+            self.bal = CountingText(self, self.bal_text, self.wallet.balance)
+            bt = bx + 150 * k
+            TextSprite(self, 'hud', bt, 14 + 7 * k, 'BET', size=12 * k, color='#c9a85a', weight='bold',
+                       anchor='w', shadow=None)
+            self.bet_text = TextSprite(self, 'hud', bt, 14 + 28 * k, '$0', size=26 * k, color='#f6ecd2',
+                                       weight='bold', family='num', anchor='w')
+            self.limits_text = TextSprite(self, 'hud', bt, 14 + 28 * k, '', size=10, visible=False)
+            return
         TextSprite(self, 'hud', 36, 836, 'BALANCE', size=12, color='#c9a85a', weight='bold', anchor='w', shadow=None)
         self.bal_text = TextSprite(self, 'hud', 36, 867, '', size=28, color='#f6ecd2', weight='bold',
                                    family='num', anchor='w')
@@ -240,11 +299,18 @@ class TableScene(Scene):
         self.rack = []
         dens = self._rack_denoms()
         n = len(dens)
+        k = self.uk
         for i, d in enumerate(dens):
+            if k > 1:
+                x = self.rack_x0 + (i + 0.5) * 70 * k
+                self.rack.append(ChipButton(self, 'hud2', x, self.row_y, d, self.on_chip, d=62 * k))
+                continue
             x = 800 + (i - (n - 1) / 2) * 80
             self.rack.append(ChipButton(self, 'hud2', x, 856, d, self.on_chip, d=62, hotkey=str(i + 1)))
 
     def _build_bet_buttons(self):
+        if self.uk > 1:
+            return self._build_bet_buttons_touch()
         self.btn_undo = Button(self, 'hud2', 1094, 858, 46, 46, '', 'dark', icon='undo', icon_size=20,
                                on_click=self.on_undo, tooltip='Undo last chip  [Backspace]', keycap='Bksp')
         self.btn_clear = Button(self, 'hud2', 1146, 858, 46, 46, '', 'dark', icon='close', icon_size=18,
@@ -264,17 +330,49 @@ class TableScene(Scene):
         self.bet_buttons = [self.btn_undo, self.btn_clear, self.btn_x2, self.btn_rebet, self.btn_max,
                             self.btn_allin, self.btn_deal]
 
+    def _build_bet_buttons_touch(self):
+        k, y = self.uk, self.row_y
+        g = 14 * k
+        total = (128 + 420 + 156 + 120 + 196) * k + 4 * g
+        x = (self.vx0 + self.vx1) / 2 - total / 2
+        # MAX BET / ALL IN, stacked
+        cx = x + 64 * k
+        self.btn_max = Button(self, 'hud2', cx, y - 20 * k, 128 * k, 34 * k, 'MAX BET', 'amber', font_size=13 * k,
+                              on_click=self.on_max)
+        self.btn_allin = Button(self, 'hud2', cx, y + 20 * k, 128 * k, 34 * k, 'ALL IN', 'red', font_size=13 * k,
+                                on_click=self.on_allin)
+        x += 128 * k + g
+        x += 420 * k + g
+        small = []
+        for icon, size, cb in (('undo', 20, self.on_undo), ('close', 18, self.on_clear), ('x2', 24, self.on_x2)):
+            small.append(Button(self, 'hud2', x + 23 * k, y, 46 * k, 46 * k, '', 'dark', icon=icon,
+                                icon_size=size * k, on_click=cb))
+            x += 52 * k
+        self.btn_undo, self.btn_clear, self.btn_x2 = small
+        x += g - 6 * k
+        self.btn_rebet = Button(self, 'hud2', x + 60 * k, y, 120 * k, 46 * k, 'Rebet', 'dark', icon='rebet',
+                                icon_size=18 * k, font_size=15 * k, on_click=self.on_rebet)
+        x += 120 * k + g
+        self.btn_deal = Button(self, 'hud2', x + 98 * k, y, 196 * k, 58 * k, 'DEAL', 'gold', icon='cards',
+                               icon_size=22 * k, font_size=21 * k, on_click=self.on_deal)
+        self.bet_buttons = [self.btn_undo, self.btn_clear, self.btn_x2, self.btn_rebet, self.btn_max,
+                            self.btn_allin, self.btn_deal]
+
     def _build_action_buttons(self):
         self.action_btns = {}
         for i, a in enumerate(ACTIONS):
             label, style, icon, key, tip = ACTION_INFO[a]
-            x = 800 + (i - 2) * 162
-            b = Button(self, 'hud2', x, 858, 152, 56, label, style, icon=icon, icon_size=22, font_size=18,
-                       on_click=lambda a=a: self.on_action(a), tooltip=f'{tip}  [{key.upper()}]', keycap=key.upper())
+            k = self.uk
+            x = 800 + (i - 2) * 162 * k
+            b = Button(self, 'hud2', x, self.row_y, 152 * k, 56 * k, label, style, icon=icon, icon_size=22 * k,
+                       font_size=18 * k, on_click=lambda a=a: self.on_action(a),
+                       tooltip=f'{tip}  [{key.upper()}]', keycap=key.upper())
             b.set_visible(False)
             self.action_btns[a] = b
-        self.btn_hint = Button(self, 'hud2', 1478, 858, 150, 50, 'Hint', 'ghost', icon='hint', icon_size=20,
-                               font_size=16, on_click=self.on_hint, tooltip='What does basic strategy say?  [T]', keycap='T')
+        k = self.uk
+        self.btn_hint = Button(self, 'hud2', 1478 if k == 1 else self.vx1 - 16 - 75 * k, self.row_y, 150 * k, 50 * k,
+                               'Hint', 'ghost', icon='hint', icon_size=20 * k, font_size=16 * k,
+                               on_click=self.on_hint, tooltip='What does basic strategy say?  [T]', keycap='T')
         self.btn_hint.set_visible(False)
 
     # ================================================================ phase / ui state
