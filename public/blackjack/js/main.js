@@ -72,6 +72,17 @@ function registerWorker() {
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/blackjack-sw.js", { scope: "/blackjack" }).catch(() => {});
 }
 
+// ------------------------------------------------------------------ top bar controls
+$("snd").addEventListener("click", () => { sound.unlock(); app.toggleMute(); });
+$("fs").addEventListener("click", () => app.toggleFullscreen());
+const syncBar = () => {
+  const muted = !!store.settings.muted;
+  $("sndl").textContent = muted ? "sound off" : "sound on";
+  $("sndwave").style.opacity = muted ? 0 : 1;
+};
+syncBar();
+setInterval(syncBar, 300);
+
 // ------------------------------------------------------------------ leaving
 const leave = () => { try { app.scene?.emergencyFinish?.(); } catch { /* leaving anyway */ } store.save(); };
 addEventListener("pagehide", leave);

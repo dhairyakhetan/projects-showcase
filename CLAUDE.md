@@ -119,7 +119,7 @@ next.config.ts                only to switch on experimental.globalNotFound
     `stats`, `settings`. The table's HUD is laid out from the visible window
     (`TableScene.hud()`), so phones get ×1.5 buttons and the layout stays centred.
   - **Saves** use `localStorage["bj-save"]` in the same JSON shape as the old Python
-    game, so old saves load (the $1,000 default is migrated to $10,000). The tab
+    game, so old saves load. Defaults are a **$100,000 start with a $10,000 max bet**; saves still on an old default ($1,000 or $10,000 start, $1,000 max) are moved to it (balances are never touched). The tab
     closing mid-hand finishes it with basic strategy (`emergencyFinish`).
   - **Sound** is Web Audio on his wav files (`sound.js`); the context is created on
     the first gesture.
@@ -127,9 +127,13 @@ next.config.ts                only to switch on experimental.globalNotFound
     downloads; **"Skip loading?"** appears at the halfway mark and opens the menu at
     once while the rest of the artwork streams in (scenes draw nothing for an image
     that hasn't arrived, and Play waits for the artwork it needs).
+  - **Top bar** (in `page.html`): `dk_` tile, bordered "back to the site", an
+    active-tab chip (`06 Blackjack.js`, the portfolio header's look), and working
+    sound and fullscreen buttons. He asked for it to be improved twice, so it is
+    **never hidden** (only in real fullscreen): on a short landscape screen it
+    shrinks to 36 px and drops the labels.
   - **Phone / app**: `manifest.webmanifest` makes it installable (fullscreen,
-    landscape); the page's top bar hides in app mode or on a short landscape
-    screen; `public/blackjack-sw.js` (scope `/blackjack`) caches the page, code and
+    landscape); `public/blackjack-sw.js` (scope `/blackjack`) caches the page, code and
     art for repeat visits and offline — bump `CACHE` there if an asset changes
     without its filename changing. Link preview: `src/app/blackjack/og.png/route.tsx`
     using `table.jpg` (retake it if the game's look changes).

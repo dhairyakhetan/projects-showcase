@@ -67,7 +67,7 @@ export class SettingsScene {
       { label: "Animation speed", sub: "How quickly cards and chips move", ...seg("anim", [["relaxed", "Relaxed"], ["normal", "Normal"], ["fast", "Fast"], ["turbo", "Turbo"]], s.anim_speed, (v) => this.set("anim_speed", v)) },
       { label: "Hints", sub: "Basic-strategy help while you play", ...seg("hints", [["off", "Off"], ["button", "Hint button"], ["coach", "Coach"]], s.hints, (v) => this.set("hints", v)) },
       { label: "Walk-in intro", sub: "The animation when you press Play", ...seg("intro", [["always", "Every time"], ["session", "Once per launch"], ["never", "Never"]], s.intro, (v) => this.set("intro", v)) },
-      { label: "Fresh bankroll", sub: "Amount you get when you refill or reset", ...seg("bank", [[50000, "$500"], [100000, "$1,000"], [500000, "$5,000"], [1000000, "$10,000"]], s.start_bankroll, (v) => this.set("start_bankroll", v)) },
+      { label: "Fresh bankroll", sub: "Amount you get when you refill or reset", ...seg("bank", [[100000, "$1,000"], [1000000, "$10,000"], [10000000, "$100,000"], [100000000, "$1,000,000"]], s.start_bankroll, (v) => this.set("start_bankroll", v)) },
       { label: "Show hand totals", sub: "Badges with the total of each hand", ...tog("tot", s.show_totals, (v) => this.set("show_totals", v)) },
       { label: "Show card count", sub: "Hi-Lo running & true count for practice", ...tog("cnt", s.show_count, (v) => this.set("show_count", v)) },
       { label: "Confirm before leaving", sub: "Ask first if you leave in the middle of a hand", ...tog("conf", s.confirm_leave, (v) => this.set("confirm_leave", v)) },

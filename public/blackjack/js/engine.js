@@ -56,7 +56,7 @@ export function fmtChip(cents) {
 const FIELDS = {
   decks: 6, h17: false, bj_num: 3, bj_den: 2, peek: true, double_on: "any", das: true, max_hands: 4,
   resplit_aces: false, hit_split_aces: false, split_by_value: true, surrender: true, insurance: true,
-  penetration: 0.75, min_bet: 1000, max_bet: 100000,
+  penetration: 0.75, min_bet: 1000, max_bet: 1000000,
 };
 
 export class Rules {

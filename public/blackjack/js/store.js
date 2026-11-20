@@ -20,7 +20,7 @@ export const PRESETS = {
 const DEFAULT_SETTINGS = () => ({
   rules: new Rules().toDict(), preset: "classic", anim_speed: "normal", hints: "button", show_totals: true,
   show_count: false, intro: "always", volume: 0.8, muted: false, felt: "green", card_back: "red",
-  four_color: false, fullscreen: false, start_bankroll: 1000000, confirm_leave: true,
+  four_color: false, fullscreen: false, start_bankroll: 10000000, confirm_leave: true,
 });
 
 const ANIM_MULT = { relaxed: 0.8, normal: 0.5, fast: 0.32, turbo: 0.15 };
@@ -51,7 +51,11 @@ export class Store {
     try {
       const d = JSON.parse(raw), s = d.settings || {}, defs = DEFAULT_SETTINGS();
       for (const k of Object.keys(s)) if (k in defs) this.settings[k] = s[k];
-      if (this.settings.start_bankroll === 100000) this.settings.start_bankroll = defs.start_bankroll;   // the old $1,000 default
+      // Saves still on an old default ($1,000 / $10,000 start, $1,000 max bet) move to the new one ($100,000 / $10,000).
+      if (this.settings.start_bankroll === 100000 || this.settings.start_bankroll === 1000000) {
+        this.settings.start_bankroll = defs.start_bankroll;
+        if (s.rules && s.rules.max_bet === 100000) s.rules.max_bet = 1000000;
+      }
       this.settings.rules = Rules.fromDict(s.rules || {}).toDict();
       const st = defaultStats();
       for (const k of Object.keys(st)) if (d.stats && k in d.stats) st[k] = d.stats[k];
