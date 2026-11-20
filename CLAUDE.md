@@ -93,9 +93,25 @@ next.config.ts                only to switch on experimental.globalNotFound
   `[panel]/layout.tsx` — a layout under a dynamic segment remounts whenever the
   param changes, which rebuilt the cursor, dots and palette on every click.
 - `[panel]` has `dynamicParams = false`; anything else 404s.
-- `/blackjack` (and the home terminal and flappy game) were removed on 15 Nov
-  2026 when he asked for one view and less cringe; it now 404s. The old
-  `blackjack-chips` key may linger in visitors' localStorage — harmless.
+- `/blackjack` is his Python (tkinter + Pillow) blackjack game, added 20 Nov
+  2026 (the earlier JS version, home terminal and flappy game were removed on
+  15 Nov). It runs in the browser: `src/app/blackjack/` is a static HTML shell
+  (like `/product-funny`, outside the portfolio chrome, **unlisted** — nothing
+  links to it, not in the sitemap), and `public/blackjack/` holds the game.
+  `game/` mirrors his folder (`bj/`, `assets/`); to update, replace `bj/` and
+  `assets/` with his new copy and re-apply the one-line change in
+  `bj/scenes/settings.py` (it hides the "Install pygame" button for the
+  `Web Audio` backend). Pyodide 0.28 (CPython + Pillow, from jsDelivr) runs the
+  code unchanged. `game/web/tkinter/` is a stand-in for tkinter that keeps the
+  Canvas items and hands them to `bridge.js` to paint on a `<canvas>`;
+  `imagetk.py`, `websound.py` and `start.py` do the same for PhotoImage, sound
+  (Web Audio) and start-up (threads don't exist: the artwork preload runs on
+  Tk timers). Add any new file to `FILES` in `bridge.js`. Pyodide 0.27 ships
+  Pillow 10.2, whose `rounded_rectangle` rejects shapes the game draws — stay
+  on 0.28+. Save data lives in `localStorage["bj-save"]` (copied from the
+  Python filesystem every 4 s and on leave). Quit goes to `/home`. Test it by
+  driving `/blackjack` with Playwright through the sandbox proxy
+  (`proxy: {server: HTTPS_PROXY}`) so jsDelivr is reachable.
 - `/Japan2026` (a trip planner) was taken down on 22 Oct 2026 at his request; it
   now 404s. `public/japan-sw.js` is a kill switch for its old offline worker:
   it deletes the saved copy on devices and unregisters. Delete it after a few

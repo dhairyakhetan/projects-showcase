@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Blackjack | Dhairya Khetan</title>
+<meta name="description" content="A play-money blackjack table written in Python, running right here in the browser.">
+<meta name="theme-color" content="#0b0c0a">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root { --bg: #0b0c0a; --fg: #e8e6dc; --dim: #8d8a7e; --accent: #c8f55a; --mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font-family: var(--mono); overflow: hidden; }
+  #app { display: flex; flex-direction: column; height: 100dvh; background: var(--bg); }
+  header { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 38px; padding: 0 16px; font-size: 12px; border-bottom: 1px solid #23251f; }
+  header a { color: var(--fg); text-decoration: none; }
+  header a:hover, header a:focus-visible { color: var(--accent); }
+  .logo b { color: var(--accent); font-weight: 600; }
+  .tag { color: var(--dim); }
+  #stage { position: relative; flex: 1; min-height: 0; background: #06120a; }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
+  #loading { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; background: #06120a; transition: opacity .35s; }
+  #loading.done { opacity: 0; pointer-events: none; }
+  #loading h1 { margin: 0; font: 400 clamp(28px, 6vw, 44px)/1 Georgia, "Times New Roman", serif; color: #f2d07a; letter-spacing: .02em; }
+  #track { width: min(320px, 70vw); height: 3px; background: #1a2a20; }
+  #bar { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  #status { margin: 0; font-size: 12px; color: var(--dim); min-height: 1.4em; }
+  #detail { margin: 0; font-size: 11px; color: #5d5b52; max-width: 60ch; }
+  #loading.failed #bar { background: #e5604d; }
+  #rotate { display: none; flex: none; padding: 8px 16px; font-size: 11px; color: var(--dim); text-align: center; border-top: 1px solid #23251f; }
+  @media (orientation: portrait) and (max-width: 700px) { #rotate { display: block; } }
+  #app:fullscreen header, #app:fullscreen #rotate { display: none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <a class="logo" href="/home" aria-label="Back to the portfolio"><b>dk_</b> &larr; back to the site</a>
+    <span class="tag">Blackjack.py &middot; play money</span>
+  </header>
+  <div id="stage">
+    <canvas id="game" tabindex="0" aria-label="Blackjack table"></canvas>
+    <div id="loading" role="status">
+      <h1>Blackjack</h1>
+      <div id="track"><div id="bar"></div></div>
+      <p id="status">Loading ...</p>
+      <p id="detail"></p>
+      <noscript><p id="status">This game needs JavaScript.</p></noscript>
+    </div>
+  </div>
+  <div id="rotate">Better with your phone turned sideways.</div>
+</div>
+<script type="module" src="/blackjack/bridge.js"></script>
+</body>
+</html>
