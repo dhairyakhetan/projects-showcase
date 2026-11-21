@@ -51,7 +51,9 @@ export class StatsScene {
     a.text(hist.length > 2 ? `BALANCE OVER YOUR LAST ${hist.length - 1} ROUNDS` : "BALANCE HISTORY", cx0 + 22, cy - ch / 2 + 8, { size: 12.5, weight: "bold", family: "num", color: "#c9a85a", align: "left", shadow: null });
     if (hist.length >= 2) this.chart(ctx, hist, cx0 + 40, cy - ch / 2 + 30, cw - 80, ch - 56, st.settings.start_bankroll);
     else a.text("Play a few hands and your balance history will appear here.", 800, cy + 8, { size: 17, color: "#bdb39b", shadow: null });
-    a.text(`Playing since ${s.started || ""}`, cx0 + 4, 866, { size: 14, color: "#bdb39b", align: "left" });
+    const wr = st.settings.win_rate, lk = st.luck;
+    const since = `Playing since ${s.started || ""}`;
+    a.text(typeof wr === "number" ? `${since}  ·  win rate set to ${Math.round(wr * 100)}% (${lk.wins} of ${lk.rounds} rounds won since)` : since, cx0 + 4, 866, { size: 14, color: "#bdb39b", align: "left" });
     button(a, { id: "resetstats", x: 1400, y: 866, w: 210 * Math.min(k, 1.15), h: 44 * Math.min(k, 1.15), label: "Reset statistics", icon: "trash", style: "dark", size: 14.5, iconSize: 16, fn: () => this.reset() });
   }
 

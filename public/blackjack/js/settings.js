@@ -65,6 +65,7 @@ export class SettingsScene {
     ].filter((x) => !x.skip);
     if (this.tab === "game") return [
       { label: "Animation speed", sub: "How quickly cards and chips move", ...seg("anim", [["relaxed", "Relaxed"], ["normal", "Normal"], ["fast", "Fast"], ["turbo", "Turbo"]], s.anim_speed, (v) => this.set("anim_speed", v)) },
+      { label: "Win rate", sub: "Normal is a fair shuffle. Others stack the cards so you win about that often (surrender still counts as a loss).", ...seg("wr", [["normal", "Normal"], [0.6, "60%"], [0.8, "80%"], [0.9, "90%"], [1, "100%"]], s.win_rate, (v) => { st.luck = { rounds: 0, wins: 0 }; this.set("win_rate", v); }) },
       { label: "Hints", sub: "Basic-strategy help while you play", ...seg("hints", [["off", "Off"], ["button", "Hint button"], ["coach", "Coach"]], s.hints, (v) => this.set("hints", v)) },
       { label: "Walk-in intro", sub: "The animation when you press Play", ...seg("intro", [["always", "Every time"], ["session", "Once per launch"], ["never", "Never"]], s.intro, (v) => this.set("intro", v)) },
       { label: "Fresh bankroll", sub: "Amount you get when you refill or reset", ...seg("bank", [[100000, "$1,000"], [1000000, "$10,000"], [10000000, "$100,000"], [100000000, "$1,000,000"]], s.start_bankroll, (v) => this.set("start_bankroll", v)) },

@@ -4,6 +4,7 @@
 import { ease, Cancelled, roundRect, panel, button } from "./core.js";
 import { Round, Shoe, Wallet, totalText, fmtMoney, chipBreakdown } from "./engine.js";
 import { Strategy, explain, ACTION_LABEL } from "./strategy.js";
+import { Rig } from "./luck.js";
 
 const DEALER_Y = 205, PLAYER_Y = 590, BET_Y = 728, INS = [800, 430], CARD_H = 151, CHIP_D = 60;
 const SHOE = [1396, 138], DISCARD = [160, 132];
@@ -28,6 +29,7 @@ export class TableScene {
     const key = `${this.rules.decks}/${this.rules.penetration}`;
     if (!sess.shoe || sess.shoeKey !== key) { sess.shoe = new Shoe(this.rules.decks, this.rules.penetration); sess.shoeKey = key; sess.rc = 0; sess.discards = 0; sess.freshShoe = true; }
     this.shoe = sess.shoe;
+    this.shoe.rig = null;
     this.pending = 0; this.betChips = [];
     this.phase = "betting";
     this.round = null; this.gen = null; this.parkedAsk = null; this.askResolve = null;
@@ -204,6 +206,9 @@ export class TableScene {
     if (this.leftovers) this.sweep();
     await this.wait(0.05, "ui");
     await this.maybeShuffle();
+    const wr = this.app.store.settings.win_rate;      // "normal" is a fair shuffle; a number stacks some rounds (luck.js)
+    this.shoe.rig = null;
+    if (typeof wr === "number") { const rig = new Rig(wr, this.app.store.luck); if (rig.decide()) this.shoe.rig = rig; }
     this.round = new Round(this.rules, this.shoe, this.wallet, bet);
     this.gen = this.round.play();
     this.decisions = [0, 0];
@@ -397,6 +402,7 @@ export class TableScene {
   }
 
   afterRound() {
+    this.shoe.rig = null;
     const st = this.app.store, rnd = this.round;
     st.bankroll = this.wallet.balance;
     if (rnd && !rnd.recorded && rnd.finished) { rnd.recorded = true; st.recordRound(rnd, this.decisions); }
@@ -613,6 +619,7 @@ export class TableScene {
     button(a, { id: "settings", x: rx - 52 * k, y: ty, w: 44 * k, h: 42 * k, icon: "gear", style: "ghost", iconSize: 22 * k, enabled: canNav, disabledTip: "Available between hands", fn: () => this.go("settings") });
     button(a, { id: "stats", x: rx - 104 * k, y: ty, w: 44 * k, h: 42 * k, icon: "stats", style: "ghost", iconSize: 20 * k, enabled: canNav, disabledTip: "Available between hands", fn: () => this.go("stats") });
     a.text(this.rules.short(), 800, 70, { size: 11.5, family: "num", color: "#d9c99e" });
+    if (typeof st.win_rate === "number") a.text(`WIN RATE ${Math.round(st.win_rate * 100)}%`, 800, 90, { size: 11.5, weight: "bold", family: "num", color: "#e9c46a" });
     // balance and bet, to the right of the discard tray
     const bx = Math.max(h.vx0 + 16 + 118 * k + 30, 235);
     const bt = bx + Math.max(150 * k, a.measure(fmtMoney(Math.round(this.balShown)), { size: 26 * k, weight: "bold", family: "num" }) + 34);

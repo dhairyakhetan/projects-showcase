@@ -115,6 +115,7 @@ export class Shoe {
     this.rand = rand;
     this.decks = decks;
     this.penetration = penetration;
+    this.rig = null;
     this.stack = [];       // cards to deal next, in order (scripted situations / tests)
     this.cards = [];
     this.dealt = 0;
@@ -140,7 +141,7 @@ export class Shoe {
     this.cutAt = Math.max(1, Math.trunc(this.size * this.penetration));
     this.shuffles++;
   }
-  draw(inPlay = []) {
+  draw(inPlay = [], ctx = null) {
     if (this.stack.length) return this.stack.shift();
     if (!this.cards.length) {
       // Ran out mid-round: reshuffle everything that is not on the table right now.
@@ -149,6 +150,10 @@ export class Shoe {
       this.cutAt = 0;
     }
     this.dealt++;
+    if (this.rig && ctx) {                      // optional "win rate" stacking (luck.js); never set in Normal
+      const i = this.rig.choose(this.cards, ctx);
+      if (i !== null && i !== undefined && i >= 0 && i < this.cards.length) return this.cards.splice(i, 1)[0];
+    }
     return this.cards.pop();
   }
   burn() {
@@ -232,19 +237,19 @@ export class Round {
 
   inPlay() { return [...this.dealer, ...this.hands.flatMap((h) => h.cards)]; }
 
-  _draw() {
+  _draw(ctx) {
     const before = this.shoe.shuffles;
-    const c = this.shoe.draw(this.inPlay());
+    const c = this.shoe.draw(this.inPlay(), ctx);
     return [c, this.shoe.shuffles !== before];
   }
   *_dealHand(i, rotated = false) {
-    const [c, reshuffled] = this._draw();
+    const [c, reshuffled] = this._draw({ who: "player", hand: this.hands[i], round: this });
     if (reshuffled) yield ev("shuffle", { emergency: true });
     this.hands[i].cards.push(c);
     yield ev("deal", { to: "player", hand: i, card: c, index: this.hands[i].cards.length - 1, faceUp: true, rotated });
   }
   *_dealDealer(faceUp) {
-    const [c, reshuffled] = this._draw();
+    const [c, reshuffled] = this._draw({ who: "dealer", round: this });
     if (reshuffled) yield ev("shuffle", { emergency: true });
     this.dealer.push(c);
     yield ev("deal", { to: "dealer", card: c, index: this.dealer.length - 1, faceUp, rotated: false });

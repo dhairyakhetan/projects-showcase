@@ -20,7 +20,7 @@ export const PRESETS = {
 const DEFAULT_SETTINGS = () => ({
   rules: new Rules().toDict(), preset: "classic", anim_speed: "normal", hints: "button", show_totals: true,
   show_count: false, intro: "always", volume: 0.8, muted: false, felt: "green", card_back: "black",
-  four_color: false, fullscreen: false, start_bankroll: 10000000, confirm_leave: true,
+  four_color: false, fullscreen: false, start_bankroll: 10000000, confirm_leave: true, win_rate: "normal",
 });
 
 const ANIM_MULT = { relaxed: 0.8, normal: 0.5, fast: 0.32, turbo: 0.15 };
@@ -39,6 +39,7 @@ export class Store {
     this.bankroll = this.settings.start_bankroll;
     this.lastBet = 0;
     this.history = [];
+    this.luck = { rounds: 0, wins: 0 };      // rounds played / won since the win-rate setting was last changed
     this.firstRun = true;
     this.loadWarning = null;
     this.load();
@@ -63,6 +64,7 @@ export class Store {
       this.bankroll = Math.max(0, Math.trunc(d.bankroll ?? this.settings.start_bankroll));
       this.lastBet = Math.max(0, Math.trunc(d.last_bet ?? 0));
       this.history = (d.history || []).map(Number).slice(-400);
+      if (d.luck && Number.isFinite(d.luck.rounds)) this.luck = { rounds: Math.trunc(d.luck.rounds), wins: Math.trunc(d.luck.wins || 0) };
       this.firstRun = false;
       this.validate();
     } catch {
@@ -77,6 +79,7 @@ export class Store {
     if (!["off", "button", "coach"].includes(s.hints)) s.hints = "button";
     if (!["always", "session", "never"].includes(s.intro)) s.intro = "always";
     if (!(s.preset in PRESETS) && s.preset !== "custom") s.preset = "custom";
+    if (s.win_rate !== "normal" && ![0.6, 0.8, 0.9, 1].includes(s.win_rate)) s.win_rate = "normal";
     const v = Number(s.volume);
     s.volume = Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.8;
   }
@@ -84,7 +87,7 @@ export class Store {
   save() {
     const d = {
       version: 1, saved: new Date().toISOString().replace("T", " ").slice(0, 19), bankroll: this.bankroll,
-      last_bet: this.lastBet, settings: this.settings, stats: this.stats, history: this.history.slice(-400),
+      last_bet: this.lastBet, settings: this.settings, stats: this.stats, history: this.history.slice(-400), luck: this.luck,
     };
     try { localStorage.setItem(KEY, JSON.stringify(d)); } catch { /* storage blocked */ }
   }
@@ -101,6 +104,7 @@ export class Store {
   }
   resetStats() {
     this.stats = defaultStats();
+    this.luck = { rounds: 0, wins: 0 };
     this.stats.peak_balance = this.bankroll;
     this.history = [this.bankroll];
     this.save();
@@ -141,5 +145,6 @@ export class Store {
     if (decisions) { st.decisions += decisions[0]; st.correct += decisions[1]; }
     st.peak_balance = Math.max(st.peak_balance, this.bankroll);
     this.history.push(this.bankroll);
+    if (typeof this.settings.win_rate === "number") { this.luck.rounds++; if (net > 0) this.luck.wins++; }
   }
 }

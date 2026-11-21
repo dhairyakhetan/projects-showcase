@@ -110,6 +110,15 @@ next.config.ts                only to switch on experimental.globalNotFound
     (theory ≈ −0.35%), Double Deck −0.46%, Single Deck 6:5 −1.8%, European −0.65%.
     Rerun a Node simulation (play N rounds with `Strategy.bestAction`) after any
     change to either file.
+  - **Win rate setting** (Settings → Gameplay: Normal, 60, 80, 90, 100%), added at his
+    request. Normal never touches the shoe. Otherwise `luck.js` stacks some rounds
+    (the dealer picks his cards from the shoe: a stiff hand that then draws to a
+    bust, and player hits that don't bust) at a rate set by the gap between the
+    target and the share of rounds won since the setting last changed
+    (`store.luck`). Measured over 100k rounds each: 60/80/90% land on the target for
+    both a basic-strategy and a random player; 100% is perfect unless the player
+    surrenders (counts as a loss). The table shows `WIN RATE n%` and Statistics says
+    it, so it is never hidden. `Shoe.draw(inPlay, ctx)` is the only engine hook.
   - **Drawing** is one `<canvas>` in a 1600×900 design space (`core.js`: letterboxed
     with the felt filling the rest, one transform, so resize/rotate just work).
     Input is immediate-mode: every frame, buttons call `button()`/`app.hit()`, and
